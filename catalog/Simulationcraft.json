@@ -1,0 +1,5 @@
+{
+	"handler": "github:latest",
+	"owner": "simulationcraft",
+	"repo": "simc-addon"
+}
