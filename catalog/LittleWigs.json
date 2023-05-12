@@ -1,5 +1,6 @@
 {
-	"domain": "github:latest",
-	"owner": "BigWigsMods",
-	"repo": "LittleWigs"
+	"handler": "github:latest",
+	"name": "LittleWigs",
+	"desc": "",
+	"url": "https://api.github.com/repos/BigWigsMods/LittleWigs/releases/latest"
 }

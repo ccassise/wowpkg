@@ -1,4 +1,4 @@
-package unzip
+package zipper
 
 import (
 	"archive/zip"
@@ -10,7 +10,7 @@ import (
 )
 
 // Extracts .zip src file to the destination dest.
-func Inflate(dest, src string) error {
+func Unzip(dest, src string) error {
 	r, err := zip.OpenReader(src)
 	if err != nil {
 		return err
@@ -18,7 +18,7 @@ func Inflate(dest, src string) error {
 	defer r.Close()
 
 	for _, f := range r.File {
-		if err = InflateFile(dest, f); err != nil {
+		if err = UnzipFile(dest, f); err != nil {
 			return err
 		}
 	}
@@ -27,7 +27,7 @@ func Inflate(dest, src string) error {
 }
 
 // Extracts only a specific file from the .zip to the destination dest.
-func InflateFile(dest string, f *zip.File) error {
+func UnzipFile(dest string, f *zip.File) error {
 	const invalidFilePathErr = "invalid file path"
 	destination, err := filepath.Abs(dest)
 	if err != nil {

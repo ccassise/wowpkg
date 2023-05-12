@@ -7,8 +7,7 @@ import (
 	"strings"
 
 	"github.com/ccassise/wowpkg/internal/command"
-	// "github.com/ccassise/wowpkg/pkg/addon"
-	// "github.com/ccassise/wowpkg/internal/command"
+	"github.com/ccassise/wowpkg/internal/config"
 )
 
 func main() {
@@ -17,16 +16,48 @@ func main() {
 		os.Exit(1)
 	}
 
-	cfg := command.Config{AddonDir: filepath.Join("dump", "out")}
+	cfg := config.Config{
+		AppCfg: config.AppConfig{
+			Installed: make(map[string][]string),
+			// Installed: map[string][]string{
+			// 	"BigWigs":    {"BigWigs", "BigWigs_Aberrus", "BigWigs_Core", "BigWigs_DragonIsles", "BigWigs_Options", "BigWigs_Plugins", "BigWigs_VaultOfTheIncarnates"},
+			// 	"LittleWigs": {"LittleWigs", "LittleWigs_BattleForAzeroth", "LittleWigs_BurningCrusade", "LittleWigs_Cataclysm", "LittleWigs_Classic", "LittleWigs_Legion", "LittleWigs_MistsOfPandaria", "LittleWigs_Shadowlands", "LittleWigs_WarlordsOfDraenor", "LittleWigs_WrathOfTheLichKing"},
+			// },
+		},
+		UserCfg: config.UserConfig{
+			AddonDir:   filepath.Join("dump", "out"),
+			CatalogDir: "catalog",
+		},
+	}
+
+	// TODO: Make sure this gives good error messages when JSON fails to decode.
+	// TODO: If it doesn't find a config file just create it?
+	if err := cfg.Load(); err != nil {
+		fmt.Fprintf(os.Stderr, "%s\n", err)
+		os.Exit(1)
+	}
 
 	arg := os.Args[1]
 	switch strings.ToLower(arg) {
 	case "install":
 		fmt.Println(os.Args[1:])
-		command.Install(cfg, os.Args[1:])
+		err := command.Install(&cfg, os.Args[1:])
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "%s\n", err)
+		}
+		cfg.Save()
+	case "uninstall":
+		fmt.Println(cfg.AppCfg.Installed)
+		err := command.Uninstall(&cfg, os.Args[1:])
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "%s\n", err)
+		}
+		cfg.Save()
+	// case "update"
+	// case "upgrade"
+	// case "outdated"
 	default:
-		fmt.Fprintf(os.Stderr, "unrecognized command\n")
-		os.Exit(1)
+		fmt.Fprintf(os.Stderr, "this should be the help/usage message\n")
 	}
 
 	// f, err := os.Open(filepath.Join("catalog", "bigwigs.json"))

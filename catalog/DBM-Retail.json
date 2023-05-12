@@ -1,5 +1,6 @@
 {
 	"handler": "github:latest",
-	"owner": "DeadlyBossMods",
-	"repo": "DBM-Retail"
+	"name": "DBM-Retail",
+	"desc": "",
+	"url": "https://api.github.com/repos/DeadlyBossMods/DBM-Retail/releases/latest"
 }

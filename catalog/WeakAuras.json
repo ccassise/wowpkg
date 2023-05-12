@@ -1,5 +1,6 @@
 {
 	"handler": "github:latest",
-	"owner": "WeakAuras",
-	"repo": "WeakAuras2"
+	"name": "WeakAuras",
+	"desc": "",
+	"url": "https://api.github.com/repos/WeakAuras/WeakAuras2/releases/latest"
 }

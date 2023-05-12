@@ -1,5 +1,6 @@
 {
 	"handler": "github:pkgmeta",
-	"owner": "Tercioo",
-	"repo": "Details-Damage-Meter"
+	"name": "Details",
+	"desc": "",
+	"url": "https://api.github.com/repos/Tercioo/Details-Damage-Meter/releases/latest"
 }

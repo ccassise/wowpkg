@@ -1,5 +1,6 @@
 {
 	"handler": "github:latest",
-	"owner": "DeadlyBossMods",
-	"repo": "DBM-Dungeons"
+	"name": "DBM-Dungeons",
+	"desc": "",
+	"url": "https://api.github.com/repos/DeadlyBossMods/DBM-Dungeons/releases/latest"
 }

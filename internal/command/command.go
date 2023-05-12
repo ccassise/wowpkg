@@ -2,12 +2,8 @@ package command
 
 import "strings"
 
-type Config struct {
-	AddonDir   string
-	CatalogDir string
-}
-
 const catalogSuffix = ".json"
+const notFound = "unable to find addon in catalog"
 
 // Searches caseSensitiveStrs for a string that matches the case-insensitive s
 // and returns it. If no match was found then s is returned.

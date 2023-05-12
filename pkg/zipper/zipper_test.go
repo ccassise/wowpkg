@@ -1,4 +1,4 @@
-package unzip
+package zipper
 
 import (
 	"archive/zip"
@@ -14,7 +14,7 @@ func TestInflate(t *testing.T) {
 	outputDir := filepath.Join(testDir, "results")
 	defer os.RemoveAll(outputDir)
 
-	err := Inflate(outputDir, filepath.Join(testDir, "mock.zip"))
+	err := Unzip(outputDir, filepath.Join(testDir, "mock.zip"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -58,7 +58,7 @@ func TestInflateFile(t *testing.T) {
 
 	for _, f := range r.File {
 		if strings.HasSuffix(f.FileInfo().Name(), "hello.txt") {
-			err := InflateFile(outputDirectory, f)
+			err := UnzipFile(outputDirectory, f)
 			if err != nil {
 				t.Fatal(err)
 			}
