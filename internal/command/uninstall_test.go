@@ -1,7 +1,6 @@
 package command
 
 import (
-	"fmt"
 	"io"
 	"io/fs"
 	"os"
@@ -9,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/ccassise/wowpkg/internal/config"
+	"github.com/ccassise/wowpkg/pkg/addon"
 )
 
 var testDir = filepath.Join("..", "..", "test")
@@ -32,11 +32,14 @@ func TestUninstall(t *testing.T) {
 
 	cfg := config.Config{
 		UserCfg: config.UserConfig{
-			AddonDir: outDir, CatalogDir: filepath.Join("..", "..", "catalog"),
+			AddonDir: outDir,
 		},
 		AppCfg: config.AppConfig{
-			Installed: map[string][]string{
-				"WeakAuras": {"WeakAuras", "WeakAurasArchive"},
+			Installed: map[string]*addon.Addon{
+				"weakauras": {Folders: []string{"WeakAuras", "WeakAurasArchive"}},
+			},
+			Latest: map[string]*addon.Addon{
+				"weakauras": {Folders: []string{"WeakAuras", "WeakAurasArchive"}},
 			},
 		},
 	}
@@ -59,8 +62,6 @@ func TestUninstall(t *testing.T) {
 			return nil
 		}
 
-		fmt.Println(d.Name())
-
 		actualCount++
 
 		return nil
@@ -71,6 +72,16 @@ func TestUninstall(t *testing.T) {
 
 	if actualCount != len(expectedFiles) {
 		t.Fatalf("should find %d files but found %d", len(expectedFiles), actualCount)
+	}
+
+	_, ok := cfg.AppCfg.Installed["weakauras"]
+	if ok {
+		t.Fatalf("should delete entry from install list")
+	}
+
+	_, ok = cfg.AppCfg.Latest["weakauras"]
+	if ok {
+		t.Fatalf("should delete entry from latest list")
 	}
 }
 
@@ -98,11 +109,14 @@ func TestUninstallOnlyRemovesAddonFoundInCatalog(t *testing.T) {
 
 	cfg := config.Config{
 		UserCfg: config.UserConfig{
-			AddonDir: outDir, CatalogDir: filepath.Join("..", "..", "catalog"),
+			AddonDir: outDir,
 		},
 		AppCfg: config.AppConfig{
-			Installed: map[string][]string{
-				"WeakAuras": {"WeakAuras", "WeakAurasArchive"},
+			Installed: map[string]*addon.Addon{
+				"weakauras": {Folders: []string{"WeakAuras", "WeakAurasArchive"}},
+			},
+			Latest: map[string]*addon.Addon{
+				"weakauras": {Folders: []string{"WeakAuras", "WeakAurasArchive"}},
 			},
 		},
 	}
@@ -135,6 +149,16 @@ func TestUninstallOnlyRemovesAddonFoundInCatalog(t *testing.T) {
 
 	if actualCount != len(expectedFiles) {
 		t.Fatalf("should find %d files but found %d", len(expectedFiles), actualCount)
+	}
+
+	_, ok := cfg.AppCfg.Installed["weakauras"]
+	if !ok {
+		t.Fatalf("should not delete entry from install list")
+	}
+
+	_, ok = cfg.AppCfg.Latest["weakauras"]
+	if !ok {
+		t.Fatalf("should not delete entry from latest list")
 	}
 }
 

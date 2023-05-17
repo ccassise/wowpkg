@@ -5,6 +5,8 @@ import (
 	"path/filepath"
 	"reflect"
 	"testing"
+
+	"github.com/ccassise/wowpkg/pkg/addon"
 )
 
 var testDir = filepath.Join("..", "..", "test")
@@ -15,14 +17,17 @@ func TestSaveLoad(t *testing.T) {
 
 	expect := Config{
 		AppCfg: AppConfig{
-			Installed: map[string][]string{
-				"testfolder":  {"test1", "test2", "test3"},
-				"test2folder": {"test4"},
+			Installed: map[string]*addon.Addon{
+				"testfolder":  {Name: "testfolder", Desc: "testfolder desc", Version: "v1.0.0", Folders: []string{"test1", "test2", "test3"}},
+				"test2folder": {Name: "test2folder", Desc: "test2folder desc", Version: "v1.2.3", Folders: []string{"test4"}},
+			},
+			Latest: map[string]*addon.Addon{
+				"testfolder":  {Name: "testfolder", Desc: "testfolder desc", Version: "v1.0.0", Folders: []string{"test1", "test2", "test3"}},
+				"test2folder": {Name: "test2folder", Desc: "test2folder desc", Version: "v1.2.3", Folders: []string{"test4"}},
 			},
 		},
 		UserCfg: UserConfig{
-			AddonDir:   "test_addon_dir",
-			CatalogDir: "test_catalog_dir",
+			AddonDir: "test_addon_dir",
 		},
 	}
 
@@ -50,7 +55,7 @@ func TestSaveLoad(t *testing.T) {
 	}
 
 	if !reflect.DeepEqual(expect.AppCfg, actual.AppCfg) {
-		t.Fatalf("AppCfg: want %s, got %s\n", expect.AppCfg, actual.AppCfg)
+		t.Fatalf("AppCfg: not equal\n")
 	}
 
 	if expect.UserCfg != actual.UserCfg {

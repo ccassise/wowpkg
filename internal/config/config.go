@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+
+	"github.com/ccassise/wowpkg/pkg/addon"
 )
 
 type Config struct {
@@ -12,12 +14,12 @@ type Config struct {
 }
 
 type AppConfig struct {
-	Installed map[string][]string
+	Installed map[string]*addon.Addon
+	Latest    map[string]*addon.Addon
 }
 
 type UserConfig struct {
-	AddonDir   string `json:"addon_directory"`
-	CatalogDir string `json:"catalog_directory"`
+	AddonDir string `json:"addon_directory"`
 }
 
 // Loads config files from default config locations on disk.
@@ -84,6 +86,7 @@ func saveTo(path string, c interface{}) error {
 	defer f.Close()
 
 	encoder := json.NewEncoder(f)
+	encoder.SetIndent("", "\t")
 	if err = encoder.Encode(c); err != nil {
 		return err
 	}
