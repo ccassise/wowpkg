@@ -12,32 +12,32 @@ import (
 func Update(cfg *config.Config, args []string) error {
 	var names []string
 	if len(args) <= 1 {
-		for k := range cfg.AppCfg.Installed {
-			names = append(names, k)
+		for _, installed := range cfg.AppState.Installed {
+			names = append(names, installed.Name)
 		}
 	} else {
 		for _, arg := range args[1:] {
-			if _, ok := cfg.AppCfg.Installed[strings.ToLower(arg)]; ok {
-				names = append(names, strings.ToLower(arg))
+			if installed, ok := cfg.AppState.Installed[strings.ToLower(arg)]; ok {
+				names = append(names, installed.Name)
 			} else {
-				err := addon.NotFound{Name: arg}
-				fmt.Fprintf(os.Stderr, "%s\n", err.Error())
+				fmt.Printf("Error: [%s] %s\n", arg, &addon.NotFound{})
 				continue
 			}
 		}
 	}
 
 	for _, name := range names {
+		fmt.Printf("==> [%s] updating\n", name)
+		fmt.Printf("fetching %s metadata...\n", name)
 		addon, err := addon.New(name)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "%s\n", err)
+			fmt.Fprintf(os.Stderr, "Error: [%s] %s\n", name, err)
 			continue
 		}
+		fmt.Printf("done %s\n", name)
 
-		cfg.AppCfg.Latest[name] = addon
+		cfg.AppState.Latest[strings.ToLower(name)] = addon
 	}
-
-	cfg.Save()
 
 	return nil
 }

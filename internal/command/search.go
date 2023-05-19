@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/ccassise/wowpkg/internal/config"
+	"github.com/ccassise/wowpkg/pkg/addon"
 )
 
 func Search(cfg *config.Config, args []string) error {
@@ -15,11 +16,12 @@ func Search(cfg *config.Config, args []string) error {
 		return &InvalidArgs{}
 	}
 
-	catalog, err := os.ReadDir("catalog")
+	catalog, err := os.ReadDir(addon.CatalogPath())
 	if err != nil {
 		return err
 	}
 
+	fmt.Println("==> Addons")
 	arg := args[1]
 	var found []string
 	for _, item := range catalog {
@@ -30,7 +32,7 @@ func Search(cfg *config.Config, args []string) error {
 	}
 
 	for _, item := range found {
-		fmt.Println("\t" + item)
+		fmt.Printf("%s\n", item)
 	}
 
 	return nil

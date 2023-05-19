@@ -9,32 +9,32 @@ import (
 	"github.com/ccassise/wowpkg/pkg/addon"
 )
 
-var testDir = filepath.Join("..", "..", "test")
+var testPath = filepath.Join("..", "..", "test")
 
 func TestSaveLoad(t *testing.T) {
-	appConfigPath := filepath.Join(testDir, "test_app_config.json")
-	userConfigPath := filepath.Join(testDir, "test_user_config.json")
+	appStatePath := filepath.Join(testPath, "test_app_config.json")
+	userConfigPath := filepath.Join(testPath, "test_user_config.json")
 
 	expect := Config{
-		AppCfg: AppConfig{
+		AppState: State{
 			Installed: map[string]*addon.Addon{
-				"testfolder":  {Name: "testfolder", Desc: "testfolder desc", Version: "v1.0.0", Folders: []string{"test1", "test2", "test3"}},
-				"test2folder": {Name: "test2folder", Desc: "test2folder desc", Version: "v1.2.3", Folders: []string{"test4"}},
+				"testfolder":  {Name: "testfolder", Desc: "testfolder desc", Version: "v1.0.0", Dirs: []string{"test1", "test2", "test3"}},
+				"test2folder": {Name: "test2folder", Desc: "test2folder desc", Version: "v1.2.3", Dirs: []string{"test4"}},
 			},
 			Latest: map[string]*addon.Addon{
-				"testfolder":  {Name: "testfolder", Desc: "testfolder desc", Version: "v1.0.0", Folders: []string{"test1", "test2", "test3"}},
-				"test2folder": {Name: "test2folder", Desc: "test2folder desc", Version: "v1.2.3", Folders: []string{"test4"}},
+				"testfolder":  {Name: "testfolder", Desc: "testfolder desc", Version: "v1.0.0", Dirs: []string{"test1", "test2", "test3"}},
+				"test2folder": {Name: "test2folder", Desc: "test2folder desc", Version: "v1.2.3", Dirs: []string{"test4"}},
 			},
 		},
 		UserCfg: UserConfig{
-			AddonDir: "test_addon_dir",
+			AddonPath: "test_addon_dir",
 		},
 	}
 
-	if err := expect.AppCfg.Save(appConfigPath); err != nil {
+	if err := expect.AppState.Save(appStatePath); err != nil {
 		t.Fatalf("%s\n", err)
 	}
-	defer os.Remove(appConfigPath)
+	defer os.Remove(appStatePath)
 
 	if err := expect.UserCfg.Save(userConfigPath); err != nil {
 		t.Fatalf("%s\n", err)
@@ -42,11 +42,11 @@ func TestSaveLoad(t *testing.T) {
 	defer os.Remove(userConfigPath)
 
 	actual := Config{
-		UserCfg: UserConfig{},
-		AppCfg:  AppConfig{},
+		UserCfg:  UserConfig{},
+		AppState: State{},
 	}
 
-	if err := actual.AppCfg.Load(appConfigPath); err != nil {
+	if err := actual.AppState.Load(appStatePath); err != nil {
 		t.Fatalf("%s\n", err)
 	}
 
@@ -54,7 +54,7 @@ func TestSaveLoad(t *testing.T) {
 		t.Fatalf("%s\n", err)
 	}
 
-	if !reflect.DeepEqual(expect.AppCfg, actual.AppCfg) {
+	if !reflect.DeepEqual(expect.AppState, actual.AppState) {
 		t.Fatalf("AppCfg: not equal\n")
 	}
 

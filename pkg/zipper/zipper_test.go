@@ -8,18 +8,18 @@ import (
 	"testing"
 )
 
-var testDir = filepath.Join("..", "..", "test")
+var testPath = filepath.Join("..", "..", "test")
 
 func TestInflate(t *testing.T) {
-	outputDir := filepath.Join(testDir, "results")
-	defer os.RemoveAll(outputDir)
+	outPath := filepath.Join(testPath, "results")
+	defer os.RemoveAll(outPath)
 
-	err := Unzip(outputDir, filepath.Join(testDir, "mock.zip"))
+	err := Unzip(outPath, filepath.Join(testPath, "mock.zip"))
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	expectedDirectories := []string{outputDir, filepath.Join(outputDir, "dir")}
+	expectedDirectories := []string{outPath, filepath.Join(outPath, "dir")}
 
 	for _, expected := range expectedDirectories {
 		f, err := os.Stat(expected)
@@ -32,7 +32,7 @@ func TestInflate(t *testing.T) {
 		}
 	}
 
-	expectedFiles := []string{filepath.Join(outputDir, "test.txt"), filepath.Join(outputDir, "dir", "hello.txt")}
+	expectedFiles := []string{filepath.Join(outPath, "test.txt"), filepath.Join(outPath, "dir", "hello.txt")}
 
 	for _, expected := range expectedFiles {
 		f, err := os.Stat(expected)
@@ -47,10 +47,10 @@ func TestInflate(t *testing.T) {
 }
 
 func TestInflateFile(t *testing.T) {
-	outputDirectory := filepath.Join(testDir, "results")
-	defer os.RemoveAll(outputDirectory)
+	outPath := filepath.Join(testPath, "results")
+	defer os.RemoveAll(outPath)
 
-	r, err := zip.OpenReader(filepath.Join(testDir, "mock.zip"))
+	r, err := zip.OpenReader(filepath.Join(testPath, "mock.zip"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -58,14 +58,14 @@ func TestInflateFile(t *testing.T) {
 
 	for _, f := range r.File {
 		if strings.HasSuffix(f.FileInfo().Name(), "hello.txt") {
-			err := UnzipFile(outputDirectory, f)
+			err := UnzipFile(outPath, f)
 			if err != nil {
 				t.Fatal(err)
 			}
 		}
 	}
 
-	expected := filepath.Join(outputDirectory, "dir", "hello.txt")
+	expected := filepath.Join(outPath, "dir", "hello.txt")
 	f, err := os.Stat(expected)
 	if err != nil {
 		t.Fatal(err)

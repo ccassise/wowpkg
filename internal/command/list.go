@@ -7,8 +7,16 @@ import (
 )
 
 func List(cfg *config.Config, args []string) error {
-	fmt.Println("==> List")
-	for _, addon := range cfg.AppCfg.Installed {
+	// var tb terminal.Builder
+	// for i := range make([]int, 256) {
+	// 	tb.AddArg(terminal.FGColorID(uint8(i)))
+	// 	tb.SetText(fmt.Sprintf("%d", i))
+	// 	fmt.Printf("%s ", tb.String())
+	// 	tb.Clear()
+	// }
+
+	fmt.Println("==> Installed addons")
+	for _, addon := range cfg.AppState.Installed {
 		fmt.Println(addon.Name)
 	}
 

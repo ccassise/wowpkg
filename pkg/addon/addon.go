@@ -14,23 +14,21 @@ import (
 )
 
 type Addon struct {
-	Name    string
-	Desc    string
-	Version string
-	Url     string
-	Handler string // Strategy to get and package addon.
-	Folders []string
+	Name    string   `json:"name"`
+	Desc    string   `json:"desc"`
+	Version string   `json:"version"`
+	Url     string   `json:"url"`
+	Handler string   `json:"handler"` // Strategy to get and package addon.
+	Dirs    []string `json:"dirs"`
 
 	zipPath     string
 	packagePath string
 }
 
-type NotFound struct {
-	Name string
-}
+type NotFound struct{}
 
 func (nf *NotFound) Error() string {
-	return nf.Name + ": unable to find addon"
+	return "unable to find addon"
 }
 
 type catalogItem struct {
@@ -58,7 +56,7 @@ type githubAssetResponse struct {
 func New(name string) (*Addon, error) {
 	item, err := newItem(name)
 	if err != nil {
-		return nil, &NotFound{name}
+		return nil, &NotFound{}
 	}
 
 	addon := Addon{
@@ -72,6 +70,10 @@ func New(name string) (*Addon, error) {
 		return nil, err
 	}
 	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("failed to download %s", item.Url)
+	}
 
 	var latestRelease githubReleaseResponse
 	if err = json.NewDecoder(resp.Body).Decode(&latestRelease); err != nil {
@@ -136,43 +138,40 @@ func (addon *Addon) Package() error {
 		return err
 	}
 
+	dirs, err := os.ReadDir(addon.packagePath)
+	if err != nil {
+		return err
+	}
+
+	if len(addon.Dirs) > 0 {
+		addon.Dirs = []string{}
+	}
+
+	for _, dir := range dirs {
+		if dir.IsDir() {
+			addon.Dirs = append(addon.Dirs, dir.Name())
+		}
+	}
+
 	return nil
 }
 
 // Extracts a packaged addon into the dest directory.
 //
 // NOTE: This function is not thread safe.
-func (addon *Addon) Extract(dest string) error {
-	folders, err := os.ReadDir(addon.packagePath)
-	if err != nil {
-		return err
-	}
-
-	if len(addon.Folders) > 0 {
-		addon.Folders = []string{}
-	}
-
-	for _, folder := range folders {
-		if folder.IsDir() {
-			newPath := filepath.Join(dest, folder.Name())
-			_, err := os.Stat(newPath)
-			if err == nil {
-				// TODO: Prompt user warning that folder will be removed and replaced?
-				// TODO: Instead of warning for each folder build a list and then prompt and remove all at once?
-				fmt.Fprintf(os.Stderr, "WARNING: replacing %s\n", newPath)
-
-				if err = os.RemoveAll(newPath); err != nil {
-					fmt.Fprintf(os.Stderr, "%s: %s\n", addon.Name, err)
-					continue
-				}
-			}
-
-			if err = os.Rename(filepath.Join(addon.packagePath, folder.Name()), newPath); err != nil {
-				fmt.Fprintf(os.Stderr, "%s: %s\n", addon.Name, err)
+func (addon *Addon) Unpack(dest string) error {
+	for _, dir := range addon.Dirs {
+		newPath := filepath.Join(dest, dir)
+		if _, err := os.Stat(newPath); err == nil {
+			if err = os.RemoveAll(newPath); err != nil {
+				fmt.Fprintf(os.Stderr, "Error: [%s] %s\n", addon.Name, err)
 				continue
 			}
+		}
 
-			addon.Folders = append(addon.Folders, folder.Name())
+		if err := os.Rename(filepath.Join(addon.packagePath, dir), newPath); err != nil {
+			fmt.Fprintf(os.Stderr, "Error: [%s] %s\n", addon.Name, err)
+			continue
 		}
 	}
 
@@ -192,7 +191,7 @@ func (addon *Addon) Clean() {
 func newItem(name string) (*catalogItem, error) {
 	const catalogSuffix = ".json"
 
-	catalog, err := os.ReadDir("catalog")
+	catalog, err := os.ReadDir(CatalogPath())
 	if err != nil {
 		return nil, err
 	}
@@ -206,7 +205,7 @@ func newItem(name string) (*catalogItem, error) {
 		}
 	}
 
-	f, err := os.Open(filepath.Join("catalog", caseSensitiveName+catalogSuffix))
+	f, err := os.Open(filepath.Join(CatalogPath(), caseSensitiveName+catalogSuffix))
 	if err != nil {
 		return nil, err
 	}
@@ -219,4 +218,11 @@ func newItem(name string) (*catalogItem, error) {
 	}
 
 	return &item, nil
+}
+
+func CatalogPath() string {
+	ep, _ := os.Executable()
+	return filepath.Join(ep, "..", "..", "catalog")
+
+	// return "catalog"
 }

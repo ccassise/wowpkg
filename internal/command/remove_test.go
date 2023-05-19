@@ -11,16 +11,16 @@ import (
 	"github.com/ccassise/wowpkg/pkg/addon"
 )
 
-var testDir = filepath.Join("..", "..", "test")
+var testPath = filepath.Join("..", "..", "test")
 
-func TestUninstall(t *testing.T) {
-	outDir, err := os.MkdirTemp(testDir, "mock_addon_dir")
+func TestRemove(t *testing.T) {
+	outPath, err := os.MkdirTemp(testPath, "mock_addon_dir")
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer os.RemoveAll(outDir)
+	defer os.RemoveAll(outPath)
 
-	err = copyTestUninstallDir(outDir)
+	err = copyTestRemoveDir(outPath)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -32,33 +32,33 @@ func TestUninstall(t *testing.T) {
 
 	cfg := config.Config{
 		UserCfg: config.UserConfig{
-			AddonDir: outDir,
+			AddonPath: outPath,
 		},
-		AppCfg: config.AppConfig{
+		AppState: config.State{
 			Installed: map[string]*addon.Addon{
-				"weakauras": {Folders: []string{"WeakAuras", "WeakAurasArchive"}},
+				"weakauras": {Dirs: []string{"WeakAuras", "WeakAurasArchive"}},
 			},
 			Latest: map[string]*addon.Addon{
-				"weakauras": {Folders: []string{"WeakAuras", "WeakAurasArchive"}},
+				"weakauras": {Dirs: []string{"WeakAuras", "WeakAurasArchive"}},
 			},
 		},
 	}
 
-	err = Uninstall(&cfg, []string{"uninstall", "weakauras"})
+	err = Remove(&cfg, []string{"remove", "weakauras"})
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	for _, expectedFile := range expectedFiles {
-		filePath := filepath.Join(outDir, expectedFile)
+		filePath := filepath.Join(outPath, expectedFile)
 		if _, err := os.Stat(filePath); err != nil {
 			t.Fatalf("should find %s", filePath)
 		}
 	}
 
 	var actualCount int
-	err = filepath.WalkDir(outDir, func(path string, d fs.DirEntry, err error) error {
-		if path == outDir {
+	err = filepath.WalkDir(outPath, func(path string, d fs.DirEntry, err error) error {
+		if path == outPath {
 			return nil
 		}
 
@@ -74,25 +74,25 @@ func TestUninstall(t *testing.T) {
 		t.Fatalf("should find %d files but found %d", len(expectedFiles), actualCount)
 	}
 
-	_, ok := cfg.AppCfg.Installed["weakauras"]
+	_, ok := cfg.AppState.Installed["weakauras"]
 	if ok {
 		t.Fatalf("should delete entry from install list")
 	}
 
-	_, ok = cfg.AppCfg.Latest["weakauras"]
+	_, ok = cfg.AppState.Latest["weakauras"]
 	if ok {
 		t.Fatalf("should delete entry from latest list")
 	}
 }
 
-func TestUninstallOnlyRemovesAddonFoundInCatalog(t *testing.T) {
-	outDir, err := os.MkdirTemp(testDir, "mock_addon_dir")
+func TestRemoveOnlyRemovesAddonFoundInCatalog(t *testing.T) {
+	outPath, err := os.MkdirTemp(testPath, "mock_addon_dir")
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer os.RemoveAll(outDir)
+	defer os.RemoveAll(outPath)
 
-	err = copyTestUninstallDir(outDir)
+	err = copyTestRemoveDir(outPath)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -109,33 +109,33 @@ func TestUninstallOnlyRemovesAddonFoundInCatalog(t *testing.T) {
 
 	cfg := config.Config{
 		UserCfg: config.UserConfig{
-			AddonDir: outDir,
+			AddonPath: outPath,
 		},
-		AppCfg: config.AppConfig{
+		AppState: config.State{
 			Installed: map[string]*addon.Addon{
-				"weakauras": {Folders: []string{"WeakAuras", "WeakAurasArchive"}},
+				"weakauras": {Dirs: []string{"WeakAuras", "WeakAurasArchive"}},
 			},
 			Latest: map[string]*addon.Addon{
-				"weakauras": {Folders: []string{"WeakAuras", "WeakAurasArchive"}},
+				"weakauras": {Dirs: []string{"WeakAuras", "WeakAurasArchive"}},
 			},
 		},
 	}
 
-	err = Uninstall(&cfg, []string{"uninstall", "Really"})
+	err = Remove(&cfg, []string{"remove", "Really"})
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	for _, expectedFile := range expectedFiles {
-		filePath := filepath.Join(outDir, expectedFile)
+		filePath := filepath.Join(outPath, expectedFile)
 		if _, err := os.Stat(filePath); err != nil {
 			t.Fatalf("should find %s", filePath)
 		}
 	}
 
 	var actualCount int
-	err = filepath.WalkDir(outDir, func(path string, d fs.DirEntry, err error) error {
-		if path == outDir {
+	err = filepath.WalkDir(outPath, func(path string, d fs.DirEntry, err error) error {
+		if path == outPath {
 			return nil
 		}
 
@@ -151,19 +151,19 @@ func TestUninstallOnlyRemovesAddonFoundInCatalog(t *testing.T) {
 		t.Fatalf("should find %d files but found %d", len(expectedFiles), actualCount)
 	}
 
-	_, ok := cfg.AppCfg.Installed["weakauras"]
+	_, ok := cfg.AppState.Installed["weakauras"]
 	if !ok {
 		t.Fatalf("should not delete entry from install list")
 	}
 
-	_, ok = cfg.AppCfg.Latest["weakauras"]
+	_, ok = cfg.AppState.Latest["weakauras"]
 	if !ok {
 		t.Fatalf("should not delete entry from latest list")
 	}
 }
 
-func copyTestUninstallDir(outDir string) error {
-	testUninstallDir := filepath.Join(testDir, "mock_addon_dir")
+func copyTestRemoveDir(outDir string) error {
+	testRemoveDir := filepath.Join(testPath, "mock_addon_dir")
 
 	filePaths := []string{
 		"ReallyCoolAddon",
@@ -176,7 +176,7 @@ func copyTestUninstallDir(outDir string) error {
 	}
 
 	for _, filePath := range filePaths {
-		f, err := os.Open(filepath.Join(testUninstallDir, filePath))
+		f, err := os.Open(filepath.Join(testRemoveDir, filePath))
 		if err != nil {
 			return err
 		}
