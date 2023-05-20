@@ -41,7 +41,8 @@ func Upgrade(cfg *config.Config, args []string) error {
 		}
 
 		// This avoids need for a mutex? Would a mutex be slower or faster than
-		// the copy?
+		// the copy? This is only even a concern if the user enters the same
+		// addon two or more times.
 		a := *latest
 
 		go func(a *addon.Addon) {
