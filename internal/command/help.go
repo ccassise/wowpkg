@@ -10,7 +10,7 @@ const helpUsage = `Example usage:
   wowpkg install ADDON...
   wowpkg list
   wowpkg outdated
-  wowpkg remove [ADDON...]
+  wowpkg remove ADDON...
   wowpkg search TEXT
   wowpkg update [ADDON...]
   wowpkg upgrade [ADDON...]

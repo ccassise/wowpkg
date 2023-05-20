@@ -20,4 +20,9 @@
 # Go workspace file
 go.work
 
+# Setup dev directory so that it is easier to run from source.
 dev_only/**
+dev_only/addons/**
+dev_only/state.json
+!dev_only/addons
+!dev_only/config.json
