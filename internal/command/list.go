@@ -2,6 +2,7 @@ package command
 
 import (
 	"fmt"
+	"sort"
 
 	"github.com/ccassise/wowpkg/internal/config"
 )
@@ -15,9 +16,16 @@ func List(cfg *config.Config, args []string) error {
 	// 	tb.Clear()
 	// }
 
-	fmt.Println("==> Installed addons")
+	names := make([]string, 0, len(cfg.AppState.Installed))
 	for _, addon := range cfg.AppState.Installed {
-		fmt.Println(addon.Name)
+		names = append(names, addon.Name)
+	}
+
+	sort.Strings(names)
+
+	fmt.Println("==> Installed addons")
+	for _, name := range names {
+		fmt.Println(name)
 	}
 
 	return nil

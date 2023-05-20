@@ -1,0 +1,6 @@
+{
+	"handler": "github:latest",
+	"name": "AstralKeys",
+	"desc": "Keystone Manager for Guilds and Friends",
+	"url": "https://api.github.com/repos/astralguild/AstralKeys/releases/latest"
+}

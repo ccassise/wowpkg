@@ -28,7 +28,7 @@ func Remove(cfg *config.Config, args []string) error {
 				fmt.Fprintf(os.Stderr, "Error: [%s] failed to remove %s\n", installed.Name, toRemove)
 				continue
 			}
-			fmt.Printf("[%s] removing %s\n", installed.Name, toRemove)
+			fmt.Printf("removing %s\n", toRemove)
 		}
 
 		delete(cfg.AppState.Installed, lowerArg)

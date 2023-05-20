@@ -25,6 +25,10 @@ func Search(cfg *config.Config, args []string) error {
 	arg := args[1]
 	var found []string
 	for _, item := range catalog {
+		if item.IsDir() {
+			continue
+		}
+
 		it := strings.TrimSuffix(item.Name(), catalogSuffix)
 		if strings.Contains(strings.ToLower(it), strings.ToLower(arg)) {
 			found = append(found, it)

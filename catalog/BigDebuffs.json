@@ -1,0 +1,6 @@
+{
+	"handler": "github:latest",
+	"name": "BigDebuffs",
+	"desc": "Increases the debuff size of crowd control effects on the Blizzard raid frames",
+	"url": "https://api.github.com/repos/jordonwow/bigdebuffs/releases/latest"
+}

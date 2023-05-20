@@ -1,0 +1,6 @@
+{
+	"handler": "github:latest",
+	"name": "Plater",
+	"desc": "Nameplate addon designed for advanced users.",
+	"url": "https://api.github.com/repos/Tercioo/Plater-Nameplates/releases/latest"
+}

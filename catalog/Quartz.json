@@ -1,0 +1,6 @@
+{
+	"handler": "github:latest",
+	"name": "Quartz",
+	"desc": "Modular casting bar.",
+	"url": "https://api.github.com/repos/Nevcairiel/Quartz/releases/latest"
+}

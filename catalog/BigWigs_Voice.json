@@ -1,0 +1,6 @@
+{
+	"handler": "github:latest",
+	"name": "BigWigs_Voice",
+	"desc": "A plugin for BigWigs that will play Text-To-Speech sounds for boss abilities.",
+	"url": "https://api.github.com/repos/BigWigsMods/BigWigs_Voice/releases/latest"
+}

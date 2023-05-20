@@ -1,6 +1,6 @@
 {
 	"handler": "github:latest",
 	"name": "WeakAuras",
-	"desc": "",
+	"desc": "A powerful, comprehensive utility for displaying graphics and information based on buffs, debuffs, and other triggers.",
 	"url": "https://api.github.com/repos/WeakAuras/WeakAuras2/releases/latest"
 }

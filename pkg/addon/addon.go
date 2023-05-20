@@ -8,7 +8,9 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/ccassise/wowpkg/pkg/zipper"
 )
@@ -27,8 +29,36 @@ type Addon struct {
 
 type NotFound struct{}
 
-func (nf *NotFound) Error() string {
+func (e *NotFound) Error() string {
 	return "unable to find addon"
+}
+
+type DownloadFailed struct {
+	StatusCode int
+}
+
+func (e *DownloadFailed) Error() string {
+	return fmt.Sprintf("download failed for addon with status code %d", e.StatusCode)
+}
+
+type NoZip struct{}
+
+func (e *NoZip) Error() string {
+	return "no .zip for addon"
+}
+
+type GHRateLimit struct {
+	ResetAtUnixSec int64
+}
+
+func (e *GHRateLimit) Error() string {
+	const ghRateErrMsg = "github rate limit reached"
+
+	d := time.Until(time.Unix(e.ResetAtUnixSec, 0))
+	if d.Minutes() < 0 {
+		return ghRateErrMsg
+	}
+	return fmt.Sprintf("%s - try again in %.0f minutes", ghRateErrMsg, d.Minutes())
 }
 
 type catalogItem struct {
@@ -52,7 +82,7 @@ type githubAssetResponse struct {
 // Creates a new Addon from the given addon name. The name is case-insenstive
 // but should match exactly the name of the addon in the catalog.
 //
-// NOTE: This function makes a HTTP request.
+// NOTE: This method makes a HTTP request.
 func New(name string) (*Addon, error) {
 	item, err := newItem(name)
 	if err != nil {
@@ -65,14 +95,34 @@ func New(name string) (*Addon, error) {
 		Handler: item.Handler,
 	}
 
-	resp, err := http.Get(item.Url)
+	client := http.DefaultClient
+	req, err := http.NewRequest(http.MethodGet, item.Url, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Set("Accept", "application/vnd.github+json")
+	req.Header.Set("X-GitHub-Api-Version", "2022-11-28")
+
+	resp, err := client.Do(req)
 	if err != nil {
 		return nil, err
 	}
 	defer resp.Body.Close()
 
+	remainingHdr := resp.Header.Get("x-ratelimit-remaining")
+	if resp.StatusCode == http.StatusForbidden && remainingHdr == "0" {
+		resetHdr := resp.Header.Get("x-ratelimit-reset")
+		resetAt, err := strconv.ParseInt(resetHdr, 10, 64)
+		if err != nil {
+			return nil, &GHRateLimit{0}
+		}
+
+		return nil, &GHRateLimit{resetAt}
+	}
+
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("failed to download %s", item.Url)
+		return nil, &DownloadFailed{StatusCode: resp.StatusCode}
 	}
 
 	var latestRelease githubReleaseResponse
@@ -90,7 +140,7 @@ func New(name string) (*Addon, error) {
 	}
 
 	if addon.Url == "" {
-		return nil, fmt.Errorf(addon.Name + ": no .zip found in package's latest release assets")
+		return nil, &NoZip{}
 	}
 
 	return &addon, nil
@@ -125,7 +175,7 @@ func (addon *Addon) Fetch() error {
 // Packages the addon based on the strategy found in Addon.Handler.
 func (addon *Addon) Package() error {
 	if addon.zipPath == "" {
-		return fmt.Errorf(addon.Name + ": no .zip file")
+		return &NoZip{}
 	}
 
 	var err error
@@ -221,8 +271,8 @@ func newItem(name string) (*catalogItem, error) {
 }
 
 func CatalogPath() string {
-	ep, _ := os.Executable()
-	return filepath.Join(ep, "..", "..", "catalog")
+	// ep, _ := os.Executable()
+	// return filepath.Join(ep, "..", "..", "catalog")
 
-	// return "catalog"
+	return "catalog"
 }

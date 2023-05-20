@@ -1,0 +1,6 @@
+{
+	"handler": "github:latest",
+	"name": "SexyMap",
+	"desc": "Spice up your minimap with some sexy options.",
+	"url": "https://api.github.com/repos/funkydude/SexyMap/releases/latest"
+}

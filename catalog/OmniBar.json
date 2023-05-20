@@ -1,0 +1,6 @@
+{
+	"handler": "github:latest",
+	"name": "OmniBar",
+	"desc": "Tracks enemy cooldowns",
+	"url": "https://api.github.com/repos/jordonwow/omnibar/releases/latest"
+}

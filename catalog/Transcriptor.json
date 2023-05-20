@@ -1,0 +1,6 @@
+{
+	"handler": "github:latest",
+	"name": "Transcriptor",
+	"desc": "Logging utility for boss encounters.",
+	"url": "https://api.github.com/repos/BigWigsMods/Transcriptor/releases/latest"
+}

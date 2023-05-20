@@ -23,30 +23,17 @@ type UserConfig struct {
 }
 
 func CfgPath() string {
-	ep, _ := os.Executable()
-	return filepath.Join(ep, "..", "..", "config.json")
+	// ep, _ := os.Executable()
+	// return filepath.Join(ep, "..", "..", "config.json")
 
-	// return filepath.Join("dump", "config.json")
+	return filepath.Join("dev_only", "config.json")
 }
 
 func StatePath() string {
-	ep, _ := os.Executable()
-	return filepath.Join(ep, "..", "..", "state.json")
+	// ep, _ := os.Executable()
+	// return filepath.Join(ep, "..", "..", "state.json")
 
-	// return filepath.Join("dump", "state.json")
-}
-
-// Loads config files from default config locations on disk.
-func (c *Config) Load() error {
-	if err := c.AppState.Load(StatePath()); err != nil {
-		return err
-	}
-
-	if err := c.UserCfg.Load(CfgPath()); err != nil {
-		return err
-	}
-
-	return nil
+	return filepath.Join("dev_only", "state.json")
 }
 
 func (c *State) Load(path string) error {
@@ -65,19 +52,6 @@ func loadFrom[T State | UserConfig](path string, c *T) error {
 	defer f.Close()
 
 	if err = json.NewDecoder(f).Decode(c); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-// Writes the config files to default config locations on disk.
-func (c *Config) Save() error {
-	if err := c.AppState.Save(StatePath()); err != nil {
-		return err
-	}
-
-	if err := c.UserCfg.Save(CfgPath()); err != nil {
 		return err
 	}
 

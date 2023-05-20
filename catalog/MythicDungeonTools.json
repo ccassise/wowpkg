@@ -1,0 +1,6 @@
+{
+	"handler": "github:latest",
+	"name": "MythicDungeonTools",
+	"desc": "Tool for planning and optimizing Mythic+ dungeon runs",
+	"url": "https://api.github.com/repos/nnoggie/MythicDungeonTools/releases/latest"
+}

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"sync"
 
 	"github.com/ccassise/wowpkg/internal/config"
 	"github.com/ccassise/wowpkg/pkg/addon"
@@ -26,46 +27,73 @@ func Upgrade(cfg *config.Config, args []string) error {
 		}
 	}
 
+	var wg sync.WaitGroup
+	wg.Add(len(names))
+
+	addons := make(chan *addon.Addon)
 	for _, name := range names {
 		installed := cfg.AppState.Installed[name]
 		latest := cfg.AppState.Latest[name]
 
 		if installed.Version == latest.Version {
+			wg.Done()
 			continue
 		}
 
-		fmt.Printf("==> [%s] upgrading...\n", latest.Name)
-		fmt.Printf("==> [%s] downloading %s\n", latest.Name, latest.Url)
-		if err := latest.Fetch(); err != nil {
-			fmt.Fprintf(os.Stderr, "Error: [%s] %s\n", latest.Name, err)
-			continue
-		}
-		defer latest.Clean()
+		// This avoids need for a mutex? Would a mutex be slower or faster than
+		// the copy?
+		a := *latest
 
-		fmt.Printf("==> [%s] packaging...\n", latest.Name)
-		if err := latest.Package(); err != nil {
-			fmt.Fprintf(os.Stderr, "Error: [%s] %s\n", latest.Name, err)
-			continue
-		}
+		go func(a *addon.Addon) {
+			defer wg.Done()
+			fmt.Printf("==> Upgrading %s\n", a.Name)
+			fmt.Printf("==> [%s] downloading %s\n", a.Name, a.Url)
+			if err := a.Fetch(); err != nil {
+				fmt.Fprintf(os.Stderr, "Error: [%s] %s\n", a.Name, err)
+				return
+			}
 
-		fmt.Printf("==> [%s] removing old directories\n", latest.Name)
-		if err := Remove(cfg, []string{"remove", name}); err != nil {
-			fmt.Fprintf(os.Stderr, "Error: [%s] %s\n", latest.Name, err)
-			continue
-		}
+			addons <- a
+		}(&a)
+	}
 
-		fmt.Printf("==> [%s] extracting files to %s\n", latest.Name, cfg.UserCfg.AddonPath)
-		if err := latest.Unpack(cfg.UserCfg.AddonPath); err != nil {
-			fmt.Fprintf(os.Stderr, "Error: [%s] %s\n", latest.Name, err)
-			continue
-		}
+	go func() {
+		wg.Wait()
+		close(addons)
+	}()
 
-		for _, dir := range latest.Dirs {
-			fmt.Printf("moving %s to %s\n", dir, cfg.UserCfg.AddonPath)
-		}
+	for addon := range addons {
+		func() {
+			defer func() {
+				fmt.Printf("==> [%s] cleaning up any temp files\n", addon.Name)
+				addon.Clean()
+			}()
 
-		cfg.AppState.Installed[name] = latest
-		cfg.AppState.Latest[name] = latest
+			fmt.Printf("==> [%s] packaging...\n", addon.Name)
+			if err := addon.Package(); err != nil {
+				fmt.Fprintf(os.Stderr, "Error: [%s] %s\n", addon.Name, err)
+				return
+			}
+
+			fmt.Printf("==> [%s] removing old directories\n", addon.Name)
+			if err := Remove(cfg, []string{"remove", addon.Name}); err != nil {
+				fmt.Fprintf(os.Stderr, "Error: [%s] %s\n", addon.Name, err)
+				return
+			}
+
+			fmt.Printf("==> [%s] extracting files to %s\n", addon.Name, cfg.UserCfg.AddonPath)
+			if err := addon.Unpack(cfg.UserCfg.AddonPath); err != nil {
+				fmt.Fprintf(os.Stderr, "Error: [%s] %s\n", addon.Name, err)
+				return
+			}
+
+			for _, dir := range addon.Dirs {
+				fmt.Printf("moving %s to %s\n", dir, cfg.UserCfg.AddonPath)
+			}
+
+			cfg.AppState.Installed[strings.ToLower(addon.Name)] = addon
+			cfg.AppState.Latest[strings.ToLower(addon.Name)] = addon
+		}()
 	}
 
 	return nil

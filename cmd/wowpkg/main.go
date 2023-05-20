@@ -12,7 +12,7 @@ import (
 
 func main() {
 	if len(os.Args) <= 1 {
-		fmt.Fprintf(os.Stderr, "this should be the help/usage message\n")
+		fmt.Fprintf(os.Stderr, "Usage: wowpkg COMMAND [ARGS... | OPTIONS]\n")
 		os.Exit(1)
 	}
 
@@ -24,10 +24,12 @@ func main() {
 		UserCfg: config.UserConfig{},
 	}
 
-	// TODO: Make sure this gives good error messages when JSON fails to decode.
-	// TODO: If it doesn't find a config file just create it?
-	// FIX: Handle when JSON fails to get parsed.
-	if err := cfg.Load(); err != nil {
+	if err := cfg.AppState.Load(config.StatePath()); err != nil {
+		fmt.Fprintf(os.Stderr, "%s\n", err)
+		os.Exit(1)
+	}
+
+	if err := cfg.UserCfg.Load(config.CfgPath()); err != nil {
 		fmt.Fprintf(os.Stderr, "%s\n", err)
 		os.Exit(1)
 	}
@@ -37,6 +39,8 @@ func main() {
 	switch strings.ToLower(arg) {
 	// case "create":
 	// case "info":
+	case "help":
+		err = command.Help(&cfg, os.Args[1:])
 	case "install":
 		err = command.Install(&cfg, os.Args[1:])
 	case "list":
@@ -52,7 +56,7 @@ func main() {
 	case "upgrade":
 		err = command.Upgrade(&cfg, os.Args[1:])
 	default:
-		fmt.Fprintf(os.Stderr, "this should be the help/usage message\n")
+		fmt.Fprintf(os.Stderr, "Error: unknown command '%s'\n", arg)
 	}
 
 	if err != nil {
@@ -60,5 +64,5 @@ func main() {
 		os.Exit(1)
 	}
 
-	cfg.Save()
+	cfg.AppState.Save(config.StatePath())
 }

@@ -7,11 +7,10 @@ import (
 )
 
 func Outdated(cfg *config.Config, args []string) error {
-	// fmt.Println("==> Outdated")
 	for name, installed := range cfg.AppState.Installed {
 		latest := cfg.AppState.Latest[name]
 		if latest.Version != installed.Version {
-			fmt.Printf("%s(%s) < %s\n", installed.Name, installed.Version, latest.Version)
+			fmt.Printf("%s (%s) < %s\n", installed.Name, installed.Version, latest.Version)
 		}
 	}
 

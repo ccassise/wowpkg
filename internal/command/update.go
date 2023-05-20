@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"sync"
 
 	"github.com/ccassise/wowpkg/internal/config"
 	"github.com/ccassise/wowpkg/pkg/addon"
@@ -26,17 +27,34 @@ func Update(cfg *config.Config, args []string) error {
 		}
 	}
 
-	for _, name := range names {
-		fmt.Printf("==> [%s] updating\n", name)
-		fmt.Printf("fetching %s metadata...\n", name)
-		addon, err := addon.New(name)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error: [%s] %s\n", name, err)
-			continue
-		}
-		fmt.Printf("done %s\n", name)
+	var wg sync.WaitGroup
+	wg.Add(len(names))
 
-		cfg.AppState.Latest[strings.ToLower(name)] = addon
+	addons := make(chan *addon.Addon)
+	for _, name := range names {
+		go func(name string) {
+			defer wg.Done()
+			fmt.Printf("==> Updating %s\n", name)
+			fmt.Printf("fetching %s metadata...\n", name)
+			addon, err := addon.New(name)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Error: [%s] %s\n", name, err)
+				return
+			}
+
+			fmt.Printf("done %s\n", addon.Name)
+
+			addons <- addon
+		}(name)
+	}
+
+	go func() {
+		wg.Wait()
+		close(addons)
+	}()
+
+	for addon := range addons {
+		cfg.AppState.Latest[strings.ToLower(addon.Name)] = addon
 	}
 
 	return nil

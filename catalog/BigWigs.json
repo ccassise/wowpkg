@@ -1,6 +1,6 @@
 {
 	"handler": "github:latest",
 	"name": "BigWigs",
-	"desc": "",
+	"desc": "Modular, lightweight, non-intrusive approach to boss encounter warnings.",
 	"url": "https://api.github.com/repos/BigWigsMods/BigWigs/releases/latest"
 }

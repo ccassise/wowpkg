@@ -1,0 +1,6 @@
+{
+	"handler": "github:latest",
+	"name": "Hekili",
+	"desc": "Priority helper based on SimulationCraft action lists.",
+	"url": "https://api.github.com/repos/Hekili/hekili/releases/latest"
+}

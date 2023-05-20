@@ -3,18 +3,23 @@
 SETLOCAL enabledelayedexpansion
 
 SET app_name=wowpkg
+SET app_exe=%app_name%.exe
+
 SET wow_dir=World of Warcraft
+
 SET install_path=%APPDATA%\%app_name%
 SET bin_path=%install_path%\bin
+
 SET addon_path=_retail_\Interface\AddOns
+
+SET catalog_dir=catalog
 SET config_json=config.json
 SET state_json=state.json
-SET catalog_dir=catalog
 
 TITLE %app_name% installer
 
 if EXIST "%install_path%\" (
-	ECHO %app_name% install directory already found
+	ECHO %app_name% install directory found
 	SET /P input=Reinstall [y/N] 
 	if /I not !input!==y (
 		exit /B 1
@@ -22,10 +27,10 @@ if EXIST "%install_path%\" (
 )
 
 :: Check that all files/directories needed for installation are present.
-SET required_files=%app_name%.exe catalog
+SET required_files=%app_exe% %catalog_dir%
 for %%f in (%required_files%) do (
 	if not EXIST %%f (
-		ECHO %%f not found in current directory
+		ECHO %%f not found and is needed for installation
 		exit /B 1
 	)
 )
@@ -88,15 +93,15 @@ if not EXIST "%install_path%\%state_json%" (
 	ECHO {} > %install_path%\%state_json%
 )
 
-ECHO Copying %app_name%.exe to %bin_path%
-COPY %app_name%.exe %bin_path%
+ECHO Copying %app_exe% to %bin_path%
+COPY %app_exe% %bin_path%
 
-ECHO Copying %catalog_dir% to %install_path%\%catalog_dir
+ECHO Copying %catalog_dir% to %install_path%\%catalog_dir%
 MKDIR %install_path%\%catalog_dir%
 COPY %catalog_dir% %install_path%\%catalog_dir%
 
 if not "!PATH:%bin_path%=!" == "%PATH%" (
-	ECHO Already in path
+	ECHO Already in PATH
 ) else (
 	for /F "usebackq tokens=2,*" %%A in (`reg query HKCU\Environment /V PATH`) do (
 		set user_path=%%B
@@ -104,10 +109,10 @@ if not "!PATH:%bin_path%=!" == "%PATH%" (
 
 	if DEFINED user_path (
 		ECHO Adding %bin_path% to user PATH
-		ECHO !user_path!
+		ECHO Old user PATH: !user_path!
 		SETX PATH "!user_path!;%bin_path%"
 	) else (
-		ECHO Error getting user path
+		ECHO Error getting user PATH
 		ECHO %bin_path% was not added to user PATH
 	)
 )
