@@ -190,11 +190,11 @@ func copyTestRemoveDir(outDir string) error {
 		dest := filepath.Join(outDir, filePath)
 
 		if fstat.IsDir() {
-			os.MkdirAll(dest, os.ModeDir)
+			os.MkdirAll(dest, 0755)
 			continue
 		}
 
-		if err := os.MkdirAll(filepath.Dir(dest), os.ModeDir); err != nil {
+		if err := os.MkdirAll(filepath.Dir(dest), 0755); err != nil {
 			return err
 		}
 
