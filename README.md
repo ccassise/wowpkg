@@ -124,7 +124,9 @@ Assuming wowpkg was installed with the included installer:
 
 ## Running from source
 1. Install Go and clone the repo.
-2. `$ go run ./cmd/wowpkg\`
+2. cd into the newly cloned repo.
+3. `$ mkdir dev_test/addons`
+4. `$ go run ./cmd/wowpkg/`
 
 The repo is setup so that the above should work without issues. However, if you are wanting to run the executable in a different way there are a few things to be aware of. There are three paths that need to be set. The two configuration files' path (state.json and config.json) and the catalog path.
 

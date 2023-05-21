@@ -40,13 +40,13 @@ func UnzipFile(dest string, f *zip.File) error {
 	}
 
 	if f.FileInfo().IsDir() {
-		if err := os.MkdirAll(file, os.ModeDir); err != nil {
+		if err := os.MkdirAll(file, 0755); err != nil {
 			return err
 		}
 		return nil
 	}
 
-	if err := os.MkdirAll(filepath.Dir(file), os.ModeDir); err != nil {
+	if err := os.MkdirAll(filepath.Dir(file), 0755); err != nil {
 		return err
 	}
 

@@ -214,14 +214,12 @@ func (addon *Addon) Unpack(dest string) error {
 		newPath := filepath.Join(dest, dir)
 		if _, err := os.Stat(newPath); err == nil {
 			if err = os.RemoveAll(newPath); err != nil {
-				fmt.Fprintf(os.Stderr, "Error: [%s] %s\n", addon.Name, err)
-				continue
+				return err
 			}
 		}
 
 		if err := os.Rename(filepath.Join(addon.packagePath, dir), newPath); err != nil {
-			fmt.Fprintf(os.Stderr, "Error: [%s] %s\n", addon.Name, err)
-			continue
+			return err
 		}
 	}
 
