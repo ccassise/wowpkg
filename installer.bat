@@ -37,13 +37,13 @@ for %%f in (%required_files%) do (
 
 :: If the config file already exists then the user has already gone through
 :: setup and should not have to enter their WoW path each time.
-if not EXIST "!install_path!\!config_json!" do (
+if not EXIST "%install_path%\%config_json%" (
 	:: Search these paths for the WoW directory.
-	SET search_paths[0]=%PROGRAMFILES%\%wow_dir%
-	SET search_paths[1]=%PROGRAMFILES(x86)%\%wow_dir%
-	SET search_paths[2]=%PUBLIC%\Games\%wow_dir%
-	SET search_paths[3]=%PROGRAMFILES%\Battle.net\%wow_dir%
-	SET search_paths[4]=%PROGRAMFILES(x86)%\Battle.net\%wow_dir%
+	SET search_paths[0]="%PROGRAMFILES%\%wow_dir%"
+	SET search_paths[1]="%PROGRAMFILES(x86)%\%wow_dir%"
+	SET search_paths[2]="%PUBLIC%\Games\%wow_dir%"
+	SET search_paths[3]="%PROGRAMFILES%\Battle.net\%wow_dir%"
+	SET search_paths[4]="%PROGRAMFILES(x86)%\Battle.net\%wow_dir%"
 
 	for /L %%i in (0, 1, 4) do (
 		if EXIST !search_paths[%%i]! (
@@ -60,12 +60,12 @@ if not EXIST "!install_path!\!config_json!" do (
 		ECHO Found !wow_path!
 	)
 
-	if not EXIST "%wow_path%\" (
+	if not EXIST "!wow_path!\" (
 		ECHO Error: !wow_path! does not exist
 		exit /B 1
 	)
 
-	if not EXIST "%wow_path%\%addon_path%\" (
+	if not EXIST "!wow_path!\%addon_path%\" (
 		ECHO Error: !wow_path!\%addon_path% does not exist
 		exit /B 1
 	)
