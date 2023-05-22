@@ -1,9 +1,7 @@
 # wowpkg
 A CLI World of Warcraft addon manager. For those wanting a Linux package manager feel for managing addons.
 
-wowpkg is an extremely fast and lightweight addon manager. You probably have an addon that takes more space than the entirety of wowpkg's install size (<10MB as of this writing).
-
-This is currently a very early but pretty functional program.
+Available for Windows and macOS.
 
 ## Usage
 ```
