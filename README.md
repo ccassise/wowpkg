@@ -97,8 +97,25 @@ Add the new addon to catalog by:
 3. Check that the addon is available by running `wowpkg search <addon_name>`
 
 ## Installing
-Check the latest releases for your system's .zip. Extract the .zip and then run the included `installer`. The installer attempts to find the World of Warcraft directory and then creates a folder with the given layout.
-- `%APPDATA%\wowpkg` for Windows.
+The included installers make it easier to set up the below directory structure. The structure is important as the executable expects the files to be in these locations relative to itself. The location of this folder in the filesystem does not matter.
+
+### Windows
+Double click the included `installer.bat`. This will create `%APPDATA%\wowpkg` and set it up with the below structure, copying any necessary files. The included installer will then add `wowpkg/bin` to user PATH.
+
+### macOS
+From a terminal run the included `installer.sh`. This will create `$HOME/.wowpkg` and set it up with the below structure, copying any necessary files. `$HOME/.wowpkg/bin` will then need to be added to PATH. This can be done by appending `export PATH="$PATH:$HOME/.wowpkg/bin` to `$HOME/.zshrc`.
+
+### Manually install
+1. Create a directory with the below structure/files.
+2. Create `config.json` with the following contents.
+	```
+	{
+		"addon_path": "path/to/World of Warcraft"
+	}
+	```
+3. Create `state.json` with the contents being an empty json object: `{}`.
+4. Add the path to `wowpkg/bin` to PATH. This makes it easy to run in a terminal from any location.
+### File structure
 ```
 wowpkg/
 |
@@ -113,14 +130,16 @@ wowpkg/
 +-- state.json
 +-- config.json
 ```
-For Windows, the `wowpkg/bin` path will then be added to user PATH.
-
 ## Uninstalling
+### Windows
 Assuming wowpkg was installed with the included installer:
 1. Delete the `wowpkg` directory.
 	- `%APPDATA%\wowpkg` on Windows.
 2. Remove the wowpkg entry from user PATH.
-	- Windows only.
+### macOS
+Assuming wowpkg was installed with the included installer:
+1. `rm -r $HOME/.wowpkg`
+2. Remove the wowpkg entry from PATH if it was added.
 
 ## Running from source
 1. Install Go and clone the repo.
