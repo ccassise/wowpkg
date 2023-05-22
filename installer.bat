@@ -30,40 +30,47 @@ if EXIST "%install_path%\" (
 SET required_files=%app_exe% %catalog_dir%
 for %%f in (%required_files%) do (
 	if not EXIST %%f (
-		ECHO %%f not found and is needed for installation
+        ECHO Error: missing file needed for installation: %%f
 		exit /B 1
 	)
 )
 
+:: If the config file already exists then the user has already gone through
+:: setup and should not have to enter their WoW path each time.
+if not EXIST "!install_path!\!config_json!" do (
+	:: Search these paths for the WoW directory.
+	SET search_paths[0]=%PROGRAMFILES%\%wow_dir%
+	SET search_paths[1]=%PROGRAMFILES(x86)%\%wow_dir%
+	SET search_paths[2]=%PUBLIC%\Games\%wow_dir%
+	SET search_paths[3]=%PROGRAMFILES%\Battle.net\%wow_dir%
+	SET search_paths[4]=%PROGRAMFILES(x86)%\Battle.net\%wow_dir%
 
-:: Search these paths for the WoW directory.
-SET search_paths[0]=%PROGRAMFILES%\%wow_dir%
-SET search_paths[1]=%PROGRAMFILES(x86)%\%wow_dir%
-SET search_paths[2]=%PUBLIC%\Games\%wow_dir%
-SET search_paths[3]=%PROGRAMFILES%\Battle.net\%wow_dir%
-SET search_paths[4]=%PROGRAMFILES(x86)%\Battle.net\%wow_dir%
-
-for /L %%i in (0, 1, 4) do (
-	if EXIST !search_paths[%%i]! (
-		SET wow_path=!search_paths[%%i]!
+	for /L %%i in (0, 1, 4) do (
+		if EXIST !search_paths[%%i]! (
+			SET wow_path=!search_paths[%%i]!
+		)
 	)
-)
 
-:: TODO: If wow_path is defined ask the user if that is correct and if not they
-:: can enter their own path.
-if not DEFINED wow_path (
-	ECHO %wow_dir% directory not found
-	SET /P wow_path=Enter path to "%wow_dir%" directory: 
-)
+	:: TODO: If wow_path is defined ask the user if that is correct and if not they
+	:: can enter their own path.
+	if not DEFINED wow_path (
+		ECHO %wow_dir% directory not found
+		SET /P wow_path=Enter path to "%wow_dir%" directory: 
+	) else (
+		ECHO Found !wow_path!
+	)
 
-if not EXIST "%wow_path%\" (
-	ECHO !wow_path! does not exist
-	exit /B 1
-)
+	if not EXIST "%wow_path%\" (
+		ECHO Error: !wow_path! does not exist
+		exit /B 1
+	)
 
-if not EXIST "%wow_path%\%addon_path%\" (
-	ECHO !wow_path!\%addon_path% does not exist
-	exit /B 1
+	if not EXIST "%wow_path%\%addon_path%\" (
+		ECHO Error: !wow_path!\%addon_path% does not exist
+		exit /B 1
+	)
+) else (
+    ECHO Found %config_json%, skipping directory discovery
 )
 
 ECHO %app_name% will be installed to %install_path%
