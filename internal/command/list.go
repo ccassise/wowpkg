@@ -5,6 +5,7 @@ import (
 	"sort"
 
 	"github.com/ccassise/wowpkg/internal/config"
+	"github.com/ccassise/wowpkg/pkg/addon"
 )
 
 func List(cfg *config.Config, args []string) error {
@@ -16,16 +17,17 @@ func List(cfg *config.Config, args []string) error {
 	// 	tb.Clear()
 	// }
 
-	names := make([]string, 0, len(cfg.AppState.Installed))
-	for _, addon := range cfg.AppState.Installed {
-		names = append(names, addon.Name)
+	addons := make([]*addon.Addon, 0, len(cfg.AppState.Installed))
+	for _, a := range cfg.AppState.Installed {
+		addons = append(addons, a)
 	}
 
-	sort.Strings(names)
+	sort.Slice(addons[:], func(i, j int) bool {
+		return addons[i].Name < addons[j].Name
+	})
 
-	fmt.Println("==> Installed addons")
-	for _, name := range names {
-		fmt.Println(name)
+	for _, a := range addons {
+		fmt.Printf("%s (%s)\n", a.Name, a.Version)
 	}
 
 	return nil
