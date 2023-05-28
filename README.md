@@ -131,8 +131,7 @@ wowpkg/
 ## Uninstalling
 ### Windows
 Assuming wowpkg was installed with the included installer:
-1. Delete the `wowpkg` directory.
-	- `%APPDATA%\wowpkg` on Windows.
+1. Delete the `wowpkg` directory at `%APPDATA%\wowpkg`.
 2. Remove the wowpkg entry from user PATH.
 ### macOS
 Assuming wowpkg was installed with the included installer:
