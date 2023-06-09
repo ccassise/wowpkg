@@ -63,7 +63,8 @@ static void test_addon_from_json_partial(void)
     assert(strcmp(actual.desc, "test_desc") == 0);
     assert(actual.url == NULL);
     assert(actual.version == NULL);
-    assert(actual.dirs == NULL);
+    assert(actual.dirs != NULL);
+    assert(actual.dirs->head == NULL);
 
     cJSON_Delete(json);
     addon_free(&actual);
@@ -138,12 +139,35 @@ static void test_addon_to_json(void)
     list_free(addon.dirs);
 }
 
+void test_addon_metadata_from_catalog(void)
+{
+    cJSON *json = addon_metadata_from_catalog("weakauras", NULL);
+    assert(json != NULL);
+
+    Addon addon;
+    memset(&addon, 0, sizeof(addon));
+
+    assert(addon_from_json(&addon, json) == 0);
+
+    assert(strcmp(addon.handler, "github:latest") == 0);
+    assert(strcmp(addon.name, "WeakAuras") == 0);
+    assert(strcmp(addon.desc, "A powerful, comprehensive utility for displaying graphics and information based on buffs, debuffs, and other triggers.") == 0);
+    assert(strcmp(addon.url, "https://api.github.com/repos/WeakAuras/WeakAuras2/releases/latest") == 0);
+    assert(addon.version == NULL);
+    assert(addon.dirs != NULL);
+    assert(addon.dirs->head == NULL);
+
+    addon_free(&addon);
+    cJSON_Delete(json);
+}
+
 int main(void)
 {
     test_addon_from_json();
     test_addon_from_json_partial();
     test_addon_from_json_overwrite();
     test_addon_to_json();
+    test_addon_metadata_from_catalog();
 
     return 0;
 }

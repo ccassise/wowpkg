@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <string.h>
+#include <sys/stat.h>
 
 #include <curl/curl.h>
 
@@ -12,6 +13,8 @@
 #endif
 
 #define ARRLEN(a) (sizeof(a) / sizeof((a)[0]))
+
+#define USER_AGENT "CURL"
 
 typedef struct Response {
     char *data;
@@ -65,12 +68,11 @@ int addon_from_json(Addon *a, const cJSON *json)
     addon_set_str(&a->url, create_str_from_property(json, ADDON_URL));
     addon_set_str(&a->version, create_str_from_property(json, ADDON_VERSION));
 
+    a->dirs = list_create();
     cJSON *dirs = cJSON_GetObjectItemCaseSensitive(json, ADDON_DIRS);
     if (dirs == NULL) {
-        return ADDON_EBADJSON;
+        return ADDON_OK;
     }
-
-    a->dirs = list_create();
 
     cJSON *dir = NULL;
     cJSON_ArrayForEach(dir, dirs)
@@ -239,7 +241,7 @@ static int snfind_catalog_path(char *s, size_t n, const char *name)
 {
     int result = ADDON_OK;
 
-    const char *catalog_path = "../../../catalog";
+    const char *catalog_path = "../../catalog";
     OsDir *dir = os_opendir(catalog_path);
     if (dir == NULL) {
         return ADDON_EINTERNAL;
@@ -252,25 +254,14 @@ static int snfind_catalog_path(char *s, size_t n, const char *name)
         }
 
         char basename[_MAX_FNAME];
-        size_t ent_namelen = strlen(entry->name);
-        int ext_start = (int)ent_namelen;
-        while (entry->name[ext_start] != '.' && ext_start >= 0) {
-            ext_start--;
-        }
+        snprintf(basename, sizeof(basename), "%s", entry->name);
 
-        if (ext_start < 0 || strcmp(&entry->name[ext_start], ".json") != 0) {
+        char *ext_start = strstr(basename, ".json");
+        if (ext_start == NULL) {
             continue;
         }
 
-        if (ext_start >= _MAX_FNAME) {
-            result = ADDON_ENAME_TOO_LONG;
-            goto end;
-        }
-
-        for (size_t i = 0; i < ext_start; i++) {
-            basename[i] = (char)tolower(entry->name[i]);
-        }
-        basename[ext_start] = '\0';
+        *ext_start = '\0';
 
         if (strcasecmp(basename, name) == 0) {
             int nwrote = snprintf(s, n, "%s%c%s", catalog_path, OS_SEPARATOR, entry->name);
@@ -308,9 +299,13 @@ cJSON *addon_metadata_from_catalog(const char *name, int *out_err)
         goto end;
     }
 
-    fseek(f, 0, SEEK_END);
-    size_t fsz = ftell(f);
-    fseek(f, 0, SEEK_SET);
+    struct _stat s;
+    if (_stat(path, &s) != 0) {
+        err = ADDON_ENOENT;
+        goto end;
+    }
+
+    off_t fsz = s.st_size;
 
     catalog = malloc(fsz + 1);
     if (catalog == NULL) {
@@ -366,7 +361,7 @@ cJSON *addon_metadata_from_github(const char *url, int *out_err)
 
     // curl_easy_setopt(curl, CURLOPT_VERBOSE);
     curl_easy_setopt(curl, CURLOPT_URL, url);
-    curl_easy_setopt(curl, CURLOPT_USERAGENT, "CURL");
+    curl_easy_setopt(curl, CURLOPT_USERAGENT, USER_AGENT);
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_str_cb);
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void *)&res);
 
@@ -458,7 +453,7 @@ int addon_package(Addon *a)
     int err = ADDON_OK;
 
     curl_easy_setopt(curl, CURLOPT_URL, a->url);
-    curl_easy_setopt(curl, CURLOPT_USERAGENT, "CURL");
+    curl_easy_setopt(curl, CURLOPT_USERAGENT, USER_AGENT);
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_str_cb);
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void *)&res);
     curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1);
@@ -480,7 +475,7 @@ int addon_package(Addon *a)
 
     char zipname[_MAX_FNAME];
     int nwrote = snprintf(zipname, _MAX_FNAME, "%s_%s_", a->name, a->version);
-    if (nwrote >= sizeof(zipname)) {
+    if (nwrote >= _MAX_FNAME) {
         err = ADDON_ENAME_TOO_LONG;
         goto end;
     }
@@ -497,7 +492,7 @@ int addon_package(Addon *a)
         goto end;
     }
 
-    if (fwrite(res.data, sizeof(*res.data), res.size, fzip) <= 0) {
+    if (fwrite(res.data, sizeof(*res.data), res.size, fzip) < res.size) {
         err = ADDON_EINTERNAL;
         goto end;
     }

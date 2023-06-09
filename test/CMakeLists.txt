@@ -3,6 +3,7 @@ set(
 
 	addon
 	app_state
+	command
 	config
 	list
 	osapi

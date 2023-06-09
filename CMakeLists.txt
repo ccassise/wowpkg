@@ -26,6 +26,7 @@ set(
     src_files
     ${PROJECT_SOURCE_DIR}/src/addon.c
     ${PROJECT_SOURCE_DIR}/src/app_state.c
+    ${PROJECT_SOURCE_DIR}/src/command.c
     ${PROJECT_SOURCE_DIR}/src/config.c
     ${PROJECT_SOURCE_DIR}/src/list.c
     ${PROJECT_SOURCE_DIR}/src/osapi.c

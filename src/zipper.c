@@ -98,7 +98,7 @@ static int zipper_unzip_file(const char *dest, unzFile uf)
 
         int nread = 0;
         while ((nread = unzReadCurrentFile(uf, buf, sizeof(buf) / sizeof(buf[0]))) > 0) {
-            if (fwrite(buf, sizeof(*buf), nread, out_file) < 0) {
+            if (fwrite(buf, sizeof(*buf), nread, out_file) < nread) {
                 result = ZIPPER_EWRITE;
                 goto end;
             }
