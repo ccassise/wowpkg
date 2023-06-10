@@ -1,16 +1,26 @@
-#include <direct.h>
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/stat.h>
+
+#ifdef _WIN32
+#include <direct.h>
+#else
+#include <unistd.h>
+#endif
 
 #include "osapi.h"
 
+#define ARRLEN(a) (sizeof(a) / sizeof(*(a)))
+
 #ifdef _WIN32
+
 static const char *OS_PATH_SEPS = "/\\";
+
 #else
+
 static const char *OS_PATH_SEPS = "/";
+
 #endif
 
 OsDir *os_opendir(const char *path)
@@ -21,9 +31,10 @@ OsDir *os_opendir(const char *path)
         return NULL;
     }
 
-    char path_win[MAX_PATH];
-    int n = snprintf(path_win, MAX_PATH, "%s%c*", path, OS_SEPARATOR);
-    if (n >= MAX_PATH) {
+#ifdef _WIN32
+    char path_win[OS_MAX_PATH];
+    int n = snprintf(path_win, ARRLEN(path_win), "%s%c*", path, OS_SEPARATOR);
+    if (n >= ARRLEN(path_win) || n < 0) {
         errno = ENAMETOOLONG;
         goto error;
     }
@@ -37,6 +48,13 @@ OsDir *os_opendir(const char *path)
     result->entry.name = result->ffd.cFileName;
     result->_is_first = TRUE;
 
+#else
+    result->dir = opendir(path);
+    if (result->dir == NULL) {
+        goto error;
+    }
+#endif
+
     return result;
 
 error:
@@ -46,6 +64,7 @@ error:
 
 OsDirEnt *os_readdir(OsDir *dir)
 {
+#ifdef _WIN32
     if (dir->_is_first == TRUE) {
         dir->_is_first = FALSE;
         return &dir->entry;
@@ -57,23 +76,41 @@ OsDirEnt *os_readdir(OsDir *dir)
 
     dir->entry.name = dir->ffd.cFileName;
     return &dir->entry;
+#else
+    struct dirent *entry = NULL;
+
+    entry = readdir(dir->dir);
+    if (entry == NULL) {
+        return NULL;
+    }
+
+    dir->entry.name = entry->d_name;
+    return &dir->entry;
+#endif
 }
 
 void os_closedir(OsDir *dir)
 {
+#ifdef _WIN32
     FindClose(dir->dir);
     free(dir);
+#else
+    closedir(dir->dir);
+    free(dir);
+#endif
 }
 
-int os_mkdir(const char *path, int perms)
+int os_mkdir(const char *path, OsMode perms)
 {
 #ifdef _WIN32
     (void)perms;
     return _mkdir(path);
+#else
+    return mkdir(path, perms);
 #endif
 }
 
-int os_mkdir_all(char *path, int perms)
+int os_mkdir_all(char *path, OsMode perms)
 {
 #ifdef _WIN32
     (void)perms;
@@ -84,7 +121,7 @@ int os_mkdir_all(char *path, int perms)
         char sep_ch = *sep;
         *sep = '\0';
 
-        int err = os_mkdir(path, 0755);
+        int err = os_mkdir(path, perms);
         *sep = sep_ch; // Restore separator.
 
         if (err != 0 && errno != EEXIST) {
@@ -95,6 +132,25 @@ int os_mkdir_all(char *path, int perms)
     }
 
     return 0;
+}
+
+FILE *os_mkstemp(char *template)
+{
+#ifdef _WIN32
+    char *tmp = _mktemp(template);
+    if (tmp == NULL) {
+        return NULL;
+    }
+
+    return fopen(tmp, "w+b");
+#else
+    int fd = mkstemp(template);
+    if (fd == -1) {
+        return NULL;
+    }
+
+    return fdopen(fd, "w+b");
+#endif
 }
 
 int os_remove_all(const char *path)
@@ -111,18 +167,18 @@ int os_remove_all(const char *path)
             continue;
         }
 
-        char p[MAX_PATH];
-        int n = snprintf(p, MAX_PATH, "%s%c%s", path, OS_SEPARATOR, entry->name);
-        if (n >= MAX_PATH) {
+        char p[OS_MAX_PATH];
+        int n = snprintf(p, ARRLEN(p), "%s%c%s", path, OS_SEPARATOR, entry->name);
+        if (n >= (int)ARRLEN(p) || n < 0) {
             errno = ENAMETOOLONG;
             result = -1;
             break;
         }
 
-        struct _stat s;
-        _stat(p, &s);
+        struct os_stat s;
+        os_stat(p, &s);
 
-        if (s.st_mode & _S_IFDIR) {
+        if (s.st_mode & S_IFDIR) {
             result = os_remove_all(p);
         } else {
             result = remove(p);
@@ -132,7 +188,7 @@ int os_remove_all(const char *path)
     os_closedir(dir);
 
     if (result == 0) {
-        result = _rmdir(path);
+        result = os_rmdir(path);
     }
 
     return result;

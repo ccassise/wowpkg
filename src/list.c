@@ -14,6 +14,16 @@ List *list_create(void)
     return result;
 }
 
+void list_free(List *l)
+{
+    ListNode *node = NULL;
+    while ((node = l->head) != NULL) {
+        list_remove(l, node);
+    }
+
+    free(l);
+}
+
 ListNode *list_insert(List *l, void *value)
 {
     ListNode *node = malloc(sizeof(*node));
@@ -30,11 +40,14 @@ ListNode *list_insert(List *l, void *value)
     return node;
 }
 
-ListNode *list_search(List *l, const void *value, bool (*compare_fn)(const void *a, const void *b))
+ListNode *list_search(List *l, const void *value, int (*compare_fn)(const void *a, const void *b))
 {
-    ListNode *result = l->head;
-    while (result && !compare_fn(value, result->value)) {
-        result = result->next;
+    ListNode *result = NULL;
+    list_foreach(result, l)
+    {
+        if (compare_fn(value, result->value) == 0) {
+            break;
+        }
     }
 
     return result;
@@ -63,20 +76,80 @@ void list_remove(List *l, ListNode *node)
     }
 
     if (l->free != NULL) {
-        l->free(node);
+        l->free(node->value);
     }
+    free(node);
 }
 
-void list_free(List *l)
+void list_sort(List *l, int (*compare_fn)(const void *a, const void *b))
 {
-    ListNode *node = l->head;
-    while (node) {
-        ListNode *next = node->next;
-        if (l->free != NULL) {
-            l->free(node->value);
-        }
-        node = next;
-    }
+    size_t insize = 1;
 
-    free(l);
+    while (1) {
+        ListNode *p = l->head;
+        ListNode *q = p;
+        ListNode *new_head = NULL;
+        ListNode *tail = NULL;
+        ListNode *node = NULL;
+
+        size_t nmerges = 0;
+
+        while (p) {
+            nmerges++;
+
+            size_t psize = 0;
+            size_t qsize = 0;
+
+            for (size_t i = 0; i < insize && q; i++) {
+                psize++;
+                q = q->next;
+            }
+
+            qsize = insize;
+
+            while (psize > 0 || (qsize > 0 && q)) {
+                if (psize == 0) {
+                    node = q;
+                    q = q->next;
+                    qsize--;
+                } else if (qsize == 0 || !q) {
+                    node = p;
+                    p = p->next;
+                    psize--;
+                } else if (compare_fn(p->value, q->value) <= 0) {
+                    node = p;
+                    p = p->next;
+                    psize--;
+                } else {
+                    node = q;
+                    q = q->next;
+                    qsize--;
+                }
+
+                if (tail) {
+                    tail->next = node;
+                } else {
+                    new_head = node;
+                }
+
+                node->prev = tail;
+
+                tail = node;
+            }
+
+            p = q;
+        }
+
+        if (tail) {
+            tail->next = NULL;
+        }
+
+        l->head = new_head;
+
+        if (nmerges <= 1) {
+            break;
+        }
+
+        insize *= 2;
+    }
 }

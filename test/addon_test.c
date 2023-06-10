@@ -1,18 +1,16 @@
 #include <assert.h>
 #include <stdlib.h>
-#include <string.h>
-
-#include <cJSON/cJSON.h>
 
 #include "addon.h"
+#include "cjson/cjson.h"
+#include "osstring.h"
 
 static void test_addon_from_json(void)
 {
     cJSON *json = cJSON_CreateObject();
     assert(json != NULL);
 
-    Addon actual;
-    memset(&actual, 0, sizeof(actual));
+    Addon *actual = addon_create();
 
     assert(cJSON_AddStringToObject(json, ADDON_HANDLER, "test_handler") != NULL);
     assert(cJSON_AddStringToObject(json, ADDON_NAME, "test_name") != NULL);
@@ -25,22 +23,22 @@ static void test_addon_from_json(void)
     cJSON_AddItemToArray(dirs, cJSON_CreateString("dir_1"));
     cJSON_AddItemToArray(dirs, cJSON_CreateString("dir_2"));
 
-    addon_from_json(&actual, json);
+    addon_from_json(actual, json);
 
-    assert(strcmp(actual.handler, "test_handler") == 0);
-    assert(strcmp(actual.name, "test_name") == 0);
-    assert(strcmp(actual.desc, "test_desc") == 0);
-    assert(strcmp(actual.url, "test_url") == 0);
-    assert(strcmp(actual.version, "test_version") == 0);
+    assert(strcmp(actual->handler, "test_handler") == 0);
+    assert(strcmp(actual->name, "test_name") == 0);
+    assert(strcmp(actual->desc, "test_desc") == 0);
+    assert(strcmp(actual->url, "test_url") == 0);
+    assert(strcmp(actual->version, "test_version") == 0);
 
     ListNode *node = NULL;
-    node = actual.dirs->head;
+    node = actual->dirs->head;
     assert(strcmp("dir_2", node->value) == 0);
     node = node->next;
     assert(strcmp("dir_1", node->value) == 0);
 
     cJSON_Delete(json);
-    addon_free(&actual);
+    addon_free(actual);
 }
 
 static void test_addon_from_json_partial(void)
@@ -48,26 +46,25 @@ static void test_addon_from_json_partial(void)
     cJSON *json = cJSON_CreateObject();
     assert(json != NULL);
 
-    Addon actual;
-    memset(&actual, 0, sizeof(actual));
+    Addon *actual = addon_create();
 
-    actual.handler = _strdup("should not be changed");
+    actual->handler = strdup("should not be changed");
 
     assert(cJSON_AddStringToObject(json, ADDON_NAME, "test_name") != NULL);
     assert(cJSON_AddStringToObject(json, ADDON_DESC, "test_desc") != NULL);
 
-    addon_from_json(&actual, json);
+    addon_from_json(actual, json);
 
-    assert(strcmp(actual.handler, "should not be changed") == 0);
-    assert(strcmp(actual.name, "test_name") == 0);
-    assert(strcmp(actual.desc, "test_desc") == 0);
-    assert(actual.url == NULL);
-    assert(actual.version == NULL);
-    assert(actual.dirs != NULL);
-    assert(actual.dirs->head == NULL);
+    assert(strcmp(actual->handler, "should not be changed") == 0);
+    assert(strcmp(actual->name, "test_name") == 0);
+    assert(strcmp(actual->desc, "test_desc") == 0);
+    assert(actual->url == NULL);
+    assert(actual->version == NULL);
+    assert(actual->dirs != NULL);
+    assert(actual->dirs->head == NULL);
 
     cJSON_Delete(json);
-    addon_free(&actual);
+    addon_free(actual);
 }
 
 static void test_addon_from_json_overwrite(void)
@@ -75,36 +72,33 @@ static void test_addon_from_json_overwrite(void)
     cJSON *json = cJSON_CreateObject();
     assert(json != NULL);
 
-    Addon actual;
-    memset(&actual, 0, sizeof(actual));
+    Addon *actual = addon_create();
 
-    actual.name = _strdup("test_name_overwrite");
+    actual->name = strdup("test_name_overwrite");
 
     assert(cJSON_AddStringToObject(json, ADDON_NAME, "test_name") != NULL);
 
-    addon_from_json(&actual, json);
+    addon_from_json(actual, json);
 
-    assert(strcmp(actual.name, "test_name") == 0);
+    assert(strcmp(actual->name, "test_name") == 0);
 
     cJSON_Delete(json);
-    addon_free(&actual);
+    addon_free(actual);
 }
 
 static void test_addon_to_json(void)
 {
-    Addon addon;
-    memset(&addon, 0, sizeof(addon));
+    Addon *addon = addon_create();
 
-    addon.handler = "test handler";
-    addon.name = "test name";
-    addon.desc = "test desc";
-    addon.url = "test url";
-    addon.version = "test version";
-    addon.dirs = list_create();
-    list_insert(addon.dirs, "dirs_2");
-    list_insert(addon.dirs, "dirs_1");
+    addon->handler = strdup("test handler");
+    addon->name = strdup("test name");
+    addon->desc = strdup("test desc");
+    addon->url = strdup("test url");
+    addon->version = strdup("test version");
+    list_insert(addon->dirs, strdup("dirs_2"));
+    list_insert(addon->dirs, strdup("dirs_1"));
 
-    char *json_str = addon_to_json(&addon);
+    char *json_str = addon_to_json(addon);
     assert(json_str != NULL);
 
     cJSON *json = cJSON_Parse(json_str);
@@ -136,7 +130,7 @@ static void test_addon_to_json(void)
 
     free(json_str);
     cJSON_Delete(json);
-    list_free(addon.dirs);
+    addon_free(addon);
 }
 
 void test_addon_metadata_from_catalog(void)
@@ -144,20 +138,19 @@ void test_addon_metadata_from_catalog(void)
     cJSON *json = addon_metadata_from_catalog("weakauras", NULL);
     assert(json != NULL);
 
-    Addon addon;
-    memset(&addon, 0, sizeof(addon));
+    Addon *addon = addon_create();
 
-    assert(addon_from_json(&addon, json) == 0);
+    assert(addon_from_json(addon, json) == 0);
 
-    assert(strcmp(addon.handler, "github:latest") == 0);
-    assert(strcmp(addon.name, "WeakAuras") == 0);
-    assert(strcmp(addon.desc, "A powerful, comprehensive utility for displaying graphics and information based on buffs, debuffs, and other triggers.") == 0);
-    assert(strcmp(addon.url, "https://api.github.com/repos/WeakAuras/WeakAuras2/releases/latest") == 0);
-    assert(addon.version == NULL);
-    assert(addon.dirs != NULL);
-    assert(addon.dirs->head == NULL);
+    assert(strcmp(addon->handler, "github:latest") == 0);
+    assert(strcmp(addon->name, "WeakAuras") == 0);
+    assert(strcmp(addon->desc, "A powerful, comprehensive utility for displaying graphics and information based on buffs, debuffs, and other triggers.") == 0);
+    assert(strcmp(addon->url, "https://api.github.com/repos/WeakAuras/WeakAuras2/releases/latest") == 0);
+    assert(addon->version == NULL);
+    assert(addon->dirs != NULL);
+    assert(addon->dirs->head == NULL);
 
-    addon_free(&addon);
+    addon_free(addon);
     cJSON_Delete(json);
 }
 

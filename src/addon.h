@@ -36,6 +36,8 @@ typedef struct Addon {
 #define ADDON_VERSION "version"
 #define ADDON_DIRS "dirs"
 
+Addon *addon_create(void);
+
 /**
  * Searches the given JSON for properties with the same name as the ones in
  * struct Addon and assigns their value to the respective Addon variable. If the
@@ -62,16 +64,20 @@ void addon_free(Addon *a);
 void addon_set_str(char **old, char *new);
 
 /**
- * Fills the addon struct with metadata based on the given name. This function
- * may make a HTTP request. If this functions succeeds then the Addon will have
- * its properties filled.
+ * Retrieves addon metadata from the catalog. If successful the addon will then
+ * contain metadata for the appropriate domain in which to get further metadata
+ * such as its .zip download URL.
  *
- * Returns non zero on errors.
+ * Returns NULL on error and sets out_err.
  */
-// int addon_fetch_metadata(Addon *a, const char *name);
-
 cJSON *addon_metadata_from_catalog(const char *name, int *out_err);
 
+/**
+ * Retrieves addon metadata from Github. If successful the addon will then
+ * contain metadata the will allow addon_package to be called successfully.
+ *
+ * Returns NULL on error and sets out_err.
+ */
 cJSON *addon_metadata_from_github(const char *url, int *out_err);
 
 /**
@@ -90,5 +96,3 @@ int addon_package(Addon *a);
  * Returns non zero on errors.
  */
 int addon_extract(Addon *a);
-
-void addon_print(const Addon *a, FILE *out);

@@ -26,5 +26,7 @@ ListNode *list_insert(List *l, void *value);
 
 void list_remove(List *l, ListNode *node);
 
-ListNode *list_search(List *l, const void *value, bool (*compare_fn)(const void *a, const void *b));
+ListNode *list_search(List *l, const void *value, int (*compare_fn)(const void *a, const void *b));
 ListNode *list_search_ptr(List *l, const void *value);
+
+void list_sort(List *l, int (*compare_fn)(const void *a, const void *b));

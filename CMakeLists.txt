@@ -2,28 +2,35 @@ cmake_minimum_required(VERSION 3.16)
 
 set(CMAKE_TOOLCHAIN_FILE "${CMAKE_CURRENT_SOURCE_DIR}/vcpkg/scripts/buildsystems/vcpkg.cmake"
     CACHE STRING "Vcpkg toolchain file")
-set(VCPKG_TARGET_TRIPLET "x64-windows"
-    CACHE STRING "Vcpkg target triplet")
 
 project(wowpkg VERSION 0.1.0 LANGUAGES C)
 
 set(CMAKE_C_STANDARD 11)
 
-set(wowpkg_enable_san ON)
+set(wowpkg_enable_sanitizers OFF)
 set(wowpkg_enable_tests ON)
+
+# Disable tests on release builds because NDEBUG is most likely set.
+if (CMAKE_BUILD_TYPE STREQUAL "Release")
+    set(wowpkg_enable_tests OFF)
+endif()
 
 if (wowpkg_enable_tests)
     include(CTest)
     enable_testing()
 endif()
 
-find_package(unofficial-minizip CONFIG REQUIRED)
+if (WIN32)
+    find_package(unofficial-minizip CONFIG REQUIRED)
+else()
+    find_package(minizip CONFIG REQUIRED)
+endif()
+
 find_package(CURL CONFIG REQUIRED)
 find_package(cJSON CONFIG REQUIRED)
 
 
-set(
-    src_files
+set(src_files
     ${PROJECT_SOURCE_DIR}/src/addon.c
     ${PROJECT_SOURCE_DIR}/src/app_state.c
     ${PROJECT_SOURCE_DIR}/src/command.c
@@ -41,11 +48,54 @@ if (MSVC)
     set(ldflags "$<$<CONFIG:Release>:${ldflags_release}>")
 
     set(cdefs _CRT_SECURE_NO_WARNINGS)
+else()
+    set (cflags
+        -Wall
+        -Wextra
+        -Wshadow
+        -Wdouble-promotion
+        -Wconversion
+        -Wpedantic
+        -Wcast-align
+        -Wstrict-prototypes
+
+        -Wwrite-strings
+        -Winit-self
+        -Wformat=2
+        -Wstrict-overflow=2
+        -Wcast-qual
+        -Wundef
+        -Wswitch-default
+        -fstack-protector-strong
+        -Wparentheses
+        -Wunused-macros
+        -Wswitch-enum
+    )
 endif()
 
-if (wowpkg_enable_san)
+if (wowpkg_enable_sanitizers)
     message(STATUS "[${PROJECT_NAME}] enabling sanitizers")
-    set(cflags ${cflags} /fsanitize=address)
+    if (MSVC)
+        set(cflags ${cflags} /fsanitize=address)
+    else()
+        set (sanflags
+            -fsanitize=address
+            -fsanitize=undefined
+            -fno-sanitize-recover=all
+            -fsanitize=float-divide-by-zero
+            -fsanitize=float-cast-overflow
+            -fno-sanitize=null
+            -fno-sanitize=alignment
+        )
+
+        set (cflags ${cflags} ${sanflags})
+
+        if (CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+            set(ldflags ${ldflags} ${sanflags} -static-libsan)
+        else()
+            set(ldflags ${ldflags} ${sanflags} -static-libasan)
+        endif()
+    endif()
 endif()
 
 add_subdirectory(src)

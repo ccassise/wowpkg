@@ -2,16 +2,14 @@
 #include <stdio.h>
 #include <sys/stat.h>
 
-#include <windows.h>
-
 #include "osapi.h"
 #include "zipper.h"
 
-#ifdef _WIN32
-static const char *PATH_SEPS = "/\\";
-#else
-static const char *PATH_SEPS = "/";
-#endif
+// #ifdef _WIN32
+// static const char *PATH_SEPS = "/\\";
+// #else
+// static const char *PATH_SEPS = "/";
+// #endif
 
 // static bool is_sep(char sep)
 // {
@@ -61,7 +59,7 @@ static int zipper_unzip_file(const char *dest, unzFile uf)
 {
     int result = ZIPPER_OK;
     unz_file_info64 finfo;
-    char filename[_MAX_FNAME];
+    char filename[OS_MAX_FILENAME];
     FILE *out_file = NULL;
 
     int err = unzGetCurrentFileInfo64(uf, &finfo, filename, sizeof(filename), NULL, 0, NULL, 0);
@@ -74,9 +72,9 @@ static int zipper_unzip_file(const char *dest, unzFile uf)
         return ZIPPER_ENOENT;
     }
 
-    char new_path[MAX_PATH];
+    char new_path[OS_MAX_PATH];
     int nwrote = snprintf(new_path, sizeof(new_path), "%s%c%s", dest, OS_SEPARATOR, filename);
-    if (nwrote > sizeof(new_path)) {
+    if (nwrote >= (int)sizeof(new_path) || nwrote < 0) {
         result = ZIPPER_ENAMETOOLONG;
         goto end;
     }
@@ -98,7 +96,7 @@ static int zipper_unzip_file(const char *dest, unzFile uf)
 
         int nread = 0;
         while ((nread = unzReadCurrentFile(uf, buf, sizeof(buf) / sizeof(buf[0]))) > 0) {
-            if (fwrite(buf, sizeof(*buf), nread, out_file) < nread) {
+            if (fwrite(buf, sizeof(*buf), (size_t)nread, out_file) != (size_t)nread) {
                 result = ZIPPER_EWRITE;
                 goto end;
             }
@@ -130,19 +128,19 @@ end:
 
 int zipper_unzip(const char *dest, const char *src)
 {
-    // char tmp[MAX_PATH];
+    // char tmp[OS_MAX_PATH];
 
-    // int nww = snclean(tmp, MAX_PATH, "/../hello/../world../..hmm../../");
+    // int nww = snclean(tmp, OS_MAX_PATH, "/../hello/../world../..hmm../../");
     // printf("%d: %s\n", nww, tmp);
 
-    // nww = snclean(tmp, MAX_PATH, "/");
+    // nww = snclean(tmp, OS_MAX_PATH, "/");
     // printf("%d: %s\n", nww, tmp);
 
     // return nww;
     int result = ZIPPER_OK;
 
-    struct _stat s;
-    if (_stat(dest, &s) != 0 || !(s.st_mode & _S_IFDIR)) {
+    struct os_stat s;
+    if (os_stat(dest, &s) != 0 || !(s.st_mode & S_IFDIR)) {
         return ZIPPER_ENOENT;
     }
 

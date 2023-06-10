@@ -1,8 +1,18 @@
-#include <string.h>
+#include <stdlib.h>
 
-#include <cJSON/cJSON.h>
-
+#include "cjson/cjson.h"
 #include "config.h"
+#include "osstring.h"
+
+Config *config_create(void)
+{
+    Config *result = malloc(sizeof(*result));
+    if (result) {
+        memset(result, 0, sizeof(*result));
+    }
+
+    return result;
+}
 
 int config_from_json(Config *cfg, const char *json_str)
 {
@@ -20,7 +30,7 @@ int config_from_json(Config *cfg, const char *json_str)
         goto end;
     }
 
-    cfg->addon_path = _strdup(addon_path->valuestring);
+    cfg->addon_path = strdup(addon_path->valuestring);
 
 end:
     if (json != NULL) {
@@ -56,4 +66,10 @@ end:
     }
 
     return result;
+}
+
+void config_free(Config *cfg)
+{
+    free(cfg->addon_path);
+    free(cfg);
 }

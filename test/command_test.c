@@ -40,10 +40,8 @@ static void test_cmd_list(void)
                              "}\n";
 
     Context ctx;
-    AppState state;
     memset(&ctx, 0, sizeof(ctx));
-    memset(&state, 0, sizeof(state));
-    ctx.state = &state;
+    ctx.state = appstate_create();
     assert(appstate_from_json(ctx.state, state_json) == 0);
 
     FILE *out = fopen(filename, "w+b");
@@ -52,18 +50,18 @@ static void test_cmd_list(void)
     const char *argv[] = { "list" };
     assert(cmd_list(&ctx, 1, argv, out) == 0);
 
-    size_t out_len = ftell(out);
+    off_t out_len = ftell(out);
+    assert(out_len > 0);
     fseek(out, 0, SEEK_SET);
 
-    char *out_str = malloc(sizeof(*out_str) * out_len + 1);
+    char *out_str = malloc(sizeof(*out_str) * (size_t)out_len + 1);
     assert(out_str != NULL);
 
-    assert(fread(out_str, sizeof(*out_str), out_len, out) > 0);
+    assert(fread(out_str, sizeof(*out_str), (size_t)out_len, out) == (size_t)out_len);
     out_str[out_len] = '\0';
 
-    assert(strcmp(out_str, "b_test_name (v4.5.6)\na_test_name (v1.2.3)\nc_test_name (v7.8.9)\n") == 0);
-    // TODO: Should be sorted.
-    // assert(strcmp(out_str, "a_test_name (v1.2.3)\nb_test_name (v4.5.6)\nc_test_name (v7.8.9)\n") == 0);
+    // Should be sorted.
+    assert(strcmp(out_str, "a_test_name (v1.2.3)\nb_test_name (v4.5.6)\nc_test_name (v7.8.9)\n") == 0);
 
     fclose(out);
     appstate_free(ctx.state);
@@ -81,18 +79,18 @@ static void test_cmd_search(void)
     const char *argv[] = { "search", "wigs" };
     assert(cmd_search(NULL, 2, argv, out) == 0);
 
-    size_t out_len = ftell(out);
+    off_t out_len = ftell(out);
+    assert(out_len > 0);
     fseek(out, 0, SEEK_SET);
 
-    char *out_str = malloc(sizeof(*out_str) * out_len + 1);
+    char *out_str = malloc(sizeof(*out_str) * (size_t)out_len + 1);
     assert(out_str != NULL);
 
-    assert(fread(out_str, sizeof(*out_str), out_len, out) > 0);
+    assert(fread(out_str, sizeof(*out_str), (size_t)out_len, out) == (size_t)out_len);
     out_str[out_len] = '\0';
 
-    assert(strcmp(out_str, "LittleWigs\nBigWigs_Voice\nBigWigs\n") == 0);
-    // TODO: Should be sorted.
-    // assert(strcmp(out_str, "BigWigs\nBigWigs_Voice\nLittleWigs\n") == 0);
+    // Should be sorted.
+    assert(strcmp(out_str, "BigWigs\nBigWigs_Voice\nLittleWigs\n") == 0);
 
     fclose(out);
     free(out_str);

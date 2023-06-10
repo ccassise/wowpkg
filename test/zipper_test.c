@@ -2,9 +2,10 @@
 #include <stdbool.h>
 
 #include "osapi.h"
+#include "osstring.h"
 #include "zipper.h"
 
-#define ARRLEN(a) (sizeof(a) / sizeof((a)[0]))
+#define ARRLEN(a) (sizeof(a) / sizeof(*(a)))
 
 static void test_zipper_unzip(const char *outpath)
 {
@@ -12,8 +13,7 @@ static void test_zipper_unzip(const char *outpath)
 
     assert(os_mkdir(outpath, 0755) == 0);
 
-    int err = zipper_unzip(outpath, "../../test/mocks/mock_zip.zip");
-    assert(err == ZIPPER_OK);
+    assert(zipper_unzip(outpath, "../../test/mocks/mock_zip.zip") == ZIPPER_OK);
 
     OsDir *dir = os_opendir(outpath);
     assert(dir != NULL);
@@ -44,35 +44,39 @@ static void test_zipper_unzip(const char *outpath)
 
     os_closedir(dir);
 
-    char mock_dir[MAX_PATH];
+    char mock_dir[OS_MAX_PATH];
 
-    snprintf(mock_dir, MAX_PATH, "%s%c%s", outpath, OS_SEPARATOR, "mock_dir_a");
+    snprintf(mock_dir, OS_MAX_PATH, "%s%c%s", outpath, OS_SEPARATOR, "mock_dir_a");
     dir = os_opendir(mock_dir);
     assert(dir != NULL);
 
+    size_t filecount = 0;
     while ((entry = os_readdir(dir)) != NULL) {
         if (strcmp(".", entry->name) == 0 || strcmp("..", entry->name) == 0) {
             continue;
         }
 
         assert(strcmp(entry->name, "mock_dir_a.txt") == 0);
-        assert(os_readdir(dir) == NULL);
+        filecount++;
     }
+    assert(filecount == 1);
 
     os_closedir(dir);
 
-    snprintf(mock_dir, MAX_PATH, "%s%c%s", outpath, OS_SEPARATOR, "mock_dir_b");
+    snprintf(mock_dir, OS_MAX_PATH, "%s%c%s", outpath, OS_SEPARATOR, "mock_dir_b");
     dir = os_opendir(mock_dir);
     assert(dir != NULL);
 
+    filecount = 0;
     while ((entry = os_readdir(dir)) != NULL) {
         if (strcmp(".", entry->name) == 0 || strcmp("..", entry->name) == 0) {
             continue;
         }
 
         assert(strcmp(entry->name, "mock_dir_b.txt") == 0);
-        assert(os_readdir(dir) == NULL);
+        filecount++;
     }
+    assert(filecount == 1);
 
     os_closedir(dir);
 
@@ -81,6 +85,9 @@ static void test_zipper_unzip(const char *outpath)
 
 int main(void)
 {
+    // Ensure previous runs don't affect this run.
+    os_remove_all("../../test/test_tmp/");
+
     test_zipper_unzip("../../test/test_tmp");
     test_zipper_unzip("../../test/test_tmp/");
 

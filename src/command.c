@@ -1,13 +1,16 @@
-#include <string.h>
+#include <ctype.h>
+#include <stdlib.h>
 
 #include "addon.h"
 #include "app_state.h"
 #include "command.h"
 #include "list.h"
 #include "osapi.h"
+#include "osstring.h"
 
-#ifdef _WIN32
-static const char *strcasestr_win(const char *haystack, const char *needle)
+#define UNUSED(a) ((void)(a))
+
+static const char *cmd_strcasestr(const char *haystack, const char *needle)
 {
     const char *result = NULL;
     const char *haystackp = haystack;
@@ -39,17 +42,27 @@ static const char *strcasestr_win(const char *haystack, const char *needle)
 
     return result;
 }
-#endif
+
+static int cmp_addon(const void *a, const void *b)
+{
+    const Addon *aa = a;
+    const Addon *bb = b;
+
+    return strcmp(aa->name, bb->name);
+}
 
 // int cmd_install(Context *ctx, int argc, const char *argv[], FILE *out);
 
 int cmd_list(Context *ctx, int argc, const char *argv[], FILE *out)
 {
+    UNUSED(argv);
+
     if (argc > 1) {
         return -1;
     }
 
-    // TODO: Sort.
+    list_sort(ctx->state->installed, cmp_addon);
+
     ListNode *node = NULL;
     list_foreach(node, ctx->state->installed)
     {
@@ -66,7 +79,8 @@ int cmd_list(Context *ctx, int argc, const char *argv[], FILE *out)
 
 int cmd_search(Context *ctx, int argc, const char *argv[], FILE *out)
 {
-    (void)ctx;
+    UNUSED(ctx);
+
     if (argc != 2) {
         return -1;
     }
@@ -86,8 +100,8 @@ int cmd_search(Context *ctx, int argc, const char *argv[], FILE *out)
             continue;
         }
 
-        if (strcasestr_win(entry->name, argv[1]) != NULL) {
-            char *basename = _strdup(entry->name);
+        if (cmd_strcasestr(entry->name, argv[1]) != NULL) {
+            char *basename = strdup(entry->name);
             if (basename == NULL) {
                 result = -1;
                 goto end;
@@ -104,6 +118,8 @@ int cmd_search(Context *ctx, int argc, const char *argv[], FILE *out)
         }
     }
 
+    list_sort(found, (int (*)(const void *, const void *))strcmp);
+
     ListNode *node = NULL;
     list_foreach(node, found)
     {
@@ -115,7 +131,8 @@ end:
         os_closedir(dir);
     }
     list_free(found);
-    return 0;
+
+    return result;
 }
 
 // int cmd_update(Context *ctx, int argc, const char *argv[], FILE *out);

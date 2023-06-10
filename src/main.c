@@ -1,73 +1,82 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <time.h>
 
-#include <cjson/cJSON.h>
 #include <curl/curl.h>
 
 // #include <windows.h>
 
 #include "addon.h"
+#include "cjson/cJSON.h"
 
 int main(int argc, const char *argv[])
 {
     (void)argc;
     (void)argv;
+
+    int result = 0;
     clock_t start = clock();
 
-    // char *tmp = _tempnam(NULL, "myfile");
-    // printf("%s.zip\n", tmp);
-    // free(tmp);
-    Addon bigwigs;
-    // Addon plater;
-    Addon weakauras;
-    Addon notfound;
-    memset(&bigwigs, 0, sizeof(bigwigs));
-    // memset(&plater, 0, sizeof(plater));
-    memset(&weakauras, 0, sizeof(weakauras));
-    memset(&notfound, 0, sizeof(notfound));
+    cJSON *catalog_meta = NULL;
+    cJSON *gh_meta = NULL;
+    Addon *bigwigs = addon_create();
+    Addon *weakauras = addon_create();
 
-    // addon_fetch_metadata(&weakauras, "weakauras");
     int err = 0;
-    cJSON *meta = addon_metadata_from_catalog("weakauras", &err);
-    if (meta == NULL) {
+    catalog_meta = addon_metadata_from_catalog("wEaKauRas", &err);
+    if (catalog_meta == NULL) {
         fprintf(stderr, "error: Failed to get addon metadata from catalog (%d)\n", err);
+        result = 1;
+        goto end;
     }
-    addon_from_json(&weakauras, meta);
+    addon_from_json(weakauras, catalog_meta);
 
-    meta = addon_metadata_from_github(weakauras.url, &err);
-    if (meta == NULL) {
+    gh_meta = addon_metadata_from_github(weakauras->url, &err);
+    if (gh_meta == NULL) {
         fprintf(stderr, "error: Failed to get addon metadata from Github (%d)\n", err);
+        result = 1;
+        goto end;
     }
-    addon_from_json(&weakauras, meta);
+    addon_from_json(weakauras, gh_meta);
 
-    if ((err = addon_package(&weakauras)) != ADDON_OK) {
+    if ((err = addon_package(weakauras)) != ADDON_OK) {
         fprintf(stderr, "error: addon_package (%d)\n", err);
-        exit(1);
+        result = 1;
+        goto end;
     }
 
-    if ((err = addon_extract(&weakauras)) != ADDON_OK) {
+    if ((err = addon_extract(weakauras)) != ADDON_OK) {
         fprintf(stderr, "error: addon_extract (%d)\n", err);
-        exit(1);
+        result = 1;
+        goto end;
     }
 
-    // addon_fetch_metadata(&plater, "PLATER");
-    // addon_fetch_metadata(&weakauras, "WeAkAuRaS");
-    // addon_package(&weakauras);
-    // if (addon_fetch_metadata(&notfound, "not_found") != ADDON_ENOTFOUND) {
-    //     fprintf(stderr, "error: SHOULD NOT BE FOUND BUT IT IS\n");
-    // }
+    addon_package(weakauras);
+    if (addon_metadata_from_catalog("not found", &err) != NULL) {
+        fprintf(stderr, "error: SHOULD NOT BE FOUND BUT IT IS\n");
+    }
 
-    // addon_print(&bigwigs, stdout);
-    // // addon_print(&plater, stdout);
-    addon_print(&weakauras, stdout);
+    char *output = addon_to_json(weakauras);
+    printf("%s\n", output);
+    free(output);
 
-    addon_free(&bigwigs);
-    // addon_free(&plater);
-    addon_free(&weakauras);
-    addon_free(&notfound);
+    printf("Press enter to continue...\n");
+    getchar();
+
+end:
+    if (catalog_meta != NULL) {
+        cJSON_Delete(catalog_meta);
+    }
+
+    if (gh_meta != NULL) {
+        cJSON_Delete(gh_meta);
+    }
+
+    addon_free(bigwigs);
+    addon_free(weakauras);
 
     clock_t end = clock();
     printf("Complete in: %.2f seconds\n", (double)(end - start) / CLOCKS_PER_SEC);
 
-    return 0;
+    return result;
 }

@@ -1,18 +1,14 @@
 #include <stdlib.h>
-#include <string.h>
 #include <sys/stat.h>
 
 #include <curl/curl.h>
 
 #include "addon.h"
 #include "osapi.h"
+#include "osstring.h"
 #include "zipper.h"
 
-#ifdef _WIN32
-#define strcasecmp _stricmp
-#endif
-
-#define ARRLEN(a) (sizeof(a) / sizeof((a)[0]))
+#define ARRLEN(a) (sizeof(a) / sizeof(*(a)))
 
 #define USER_AGENT "CURL"
 
@@ -54,10 +50,27 @@ static char *create_str_from_property(const cJSON *json, const char *property)
 {
     cJSON *prop = cJSON_GetObjectItemCaseSensitive(json, property);
     if (json_check_string(prop)) {
-        return _strdup(prop->valuestring);
+        return strdup(prop->valuestring);
     }
 
     return NULL;
+}
+
+Addon *addon_create(void)
+{
+    Addon *result = malloc(sizeof(*result));
+    if (result != NULL) {
+        memset(result, 0, sizeof(*result));
+        result->dirs = list_create();
+        if (result->dirs == NULL) {
+            free(result);
+            return NULL;
+        }
+
+        list_set_free_fn(result->dirs, free);
+    }
+
+    return result;
 }
 
 int addon_from_json(Addon *a, const cJSON *json)
@@ -68,22 +81,18 @@ int addon_from_json(Addon *a, const cJSON *json)
     addon_set_str(&a->url, create_str_from_property(json, ADDON_URL));
     addon_set_str(&a->version, create_str_from_property(json, ADDON_VERSION));
 
-    a->dirs = list_create();
     cJSON *dirs = cJSON_GetObjectItemCaseSensitive(json, ADDON_DIRS);
-    if (dirs == NULL) {
-        return ADDON_OK;
-    }
+    if (cJSON_IsArray(dirs)) {
+        cJSON *dir = NULL;
+        cJSON_ArrayForEach(dir, dirs)
+        {
+            if (!cJSON_IsString(dir) || dir->valuestring == NULL) {
+                continue;
+            }
 
-    cJSON *dir = NULL;
-    cJSON_ArrayForEach(dir, dirs)
-    {
-        if (!cJSON_IsString(dir) || dir->valuestring == NULL) {
-            continue;
+            list_insert(a->dirs, strdup(dir->valuestring));
         }
-
-        list_insert(a->dirs, _strdup(dir->valuestring));
     }
-    list_set_free_fn(a->dirs, free);
 
     return ADDON_OK;
 }
@@ -177,6 +186,8 @@ void addon_free(Addon *a)
         remove(a->_zip_path);
         free(a->_zip_path);
     }
+
+    free(a);
 }
 
 void addon_set_str(char **old, char *new)
@@ -253,7 +264,7 @@ static int snfind_catalog_path(char *s, size_t n, const char *name)
             continue;
         }
 
-        char basename[_MAX_FNAME];
+        char basename[OS_MAX_FILENAME];
         snprintf(basename, sizeof(basename), "%s", entry->name);
 
         char *ext_start = strstr(basename, ".json");
@@ -265,7 +276,7 @@ static int snfind_catalog_path(char *s, size_t n, const char *name)
 
         if (strcasecmp(basename, name) == 0) {
             int nwrote = snprintf(s, n, "%s%c%s", catalog_path, OS_SEPARATOR, entry->name);
-            if (nwrote >= n) {
+            if (nwrote >= (int)n || nwrote < 0) {
                 result = ADDON_ENAME_TOO_LONG;
                 goto end;
             }
@@ -287,8 +298,8 @@ cJSON *addon_metadata_from_catalog(const char *name, int *out_err)
     char *catalog = NULL;
     cJSON *result = NULL;
 
-    char path[MAX_PATH];
-    err = snfind_catalog_path(path, MAX_PATH, name);
+    char path[OS_MAX_PATH];
+    err = snfind_catalog_path(path, OS_MAX_PATH, name);
     if (err != ADDON_OK) {
         goto end;
     }
@@ -299,20 +310,20 @@ cJSON *addon_metadata_from_catalog(const char *name, int *out_err)
         goto end;
     }
 
-    struct _stat s;
-    if (_stat(path, &s) != 0) {
+    struct os_stat s;
+    if (os_stat(path, &s) != 0) {
         err = ADDON_ENOENT;
         goto end;
     }
 
-    off_t fsz = s.st_size;
+    size_t fsz = (size_t)s.st_size;
 
     catalog = malloc(fsz + 1);
     if (catalog == NULL) {
         err = ADDON_EINTERNAL;
         goto end;
     }
-    if (fread(catalog, sizeof(*catalog), fsz, f) < 0) {
+    if (fread(catalog, sizeof(*catalog), fsz, f) != fsz) {
         err = ADDON_EBADJSON;
         goto end;
     }
@@ -401,7 +412,7 @@ cJSON *addon_metadata_from_github(const char *url, int *out_err)
         goto end;
     }
 
-    // a->version = _strdup(tag_name->valuestring);
+    // a->version = strdup(tag_name->valuestring);
 
     const char *zip_url = gh_resp_find_asset_zip(resp);
     if (zip_url == NULL) {
@@ -443,7 +454,6 @@ int addon_package(Addon *a)
 {
     Response res = { .data = NULL, .size = 0 };
     FILE *fzip = NULL;
-    char *tmpfile = NULL;
 
     CURL *curl = curl_easy_init();
     if (curl == NULL) {
@@ -473,31 +483,25 @@ int addon_package(Addon *a)
 
     res.size--; // Remove terminating null since this should be raw data.
 
-    char zipname[_MAX_FNAME];
-    int nwrote = snprintf(zipname, _MAX_FNAME, "%s_%s_", a->name, a->version);
-    if (nwrote >= _MAX_FNAME) {
+    char zippath[OS_MAX_PATH];
+    int nwrote = snprintf(zippath, ARRLEN(zippath), "%s_%s_XXXXXX", a->name, a->version);
+    if (nwrote >= (int)ARRLEN(zippath) || nwrote < 0) {
         err = ADDON_ENAME_TOO_LONG;
         goto end;
     }
 
-    tmpfile = _tempnam(NULL, zipname);
-    if (tmpfile == NULL) {
-        err = ADDON_EINTERNAL;
-        goto end;
-    }
-
-    fzip = fopen(tmpfile, "wb");
+    fzip = os_mkstemp(zippath);
     if (fzip == NULL) {
         err = ADDON_EINTERNAL;
         goto end;
     }
 
-    if (fwrite(res.data, sizeof(*res.data), res.size, fzip) < res.size) {
+    if (fwrite(res.data, sizeof(*res.data), res.size, fzip) != res.size) {
         err = ADDON_EINTERNAL;
         goto end;
     }
 
-    addon_set_str(&a->_zip_path, tmpfile);
+    addon_set_str(&a->_zip_path, strdup(zippath));
 
 end:
     curl_easy_cleanup(curl);
@@ -514,33 +518,10 @@ end:
 
 int addon_extract(Addon *a)
 {
-    const char *addon_path = "../../../out/dump/";
+    const char *addon_path = "../../dev_only/addons/";
     if (zipper_unzip(addon_path, a->_zip_path) != 0) {
         return ADDON_EUNZIP;
     }
 
     return 0;
-}
-
-void addon_print(const Addon *a, FILE *out)
-{
-    if (a->name != NULL) {
-        fprintf(out, "name: %s\n", a->name);
-    }
-
-    if (a->desc != NULL) {
-        fprintf(out, "desc: %s\n", a->desc);
-    }
-
-    if (a->version != NULL) {
-        fprintf(out, "version: %s\n", a->version);
-    }
-
-    if (a->url != NULL) {
-        fprintf(out, "url: %s\n", a->url);
-    }
-
-    if (a->handler != NULL) {
-        fprintf(out, "handler: %s\n", a->handler);
-    }
 }

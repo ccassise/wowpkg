@@ -4,7 +4,10 @@ typedef struct Config {
     char *addon_path;
 } Config;
 
-#define config_free(c) (free((c)->addon_path))
+Config *config_create(void);
 
 int config_from_json(Config *cfg, const char *json);
+
 char *config_to_json(Config *cfg);
+
+void config_free(Config *cfg);

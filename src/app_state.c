@@ -1,27 +1,52 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <cJSON/cJSON.h>
-
 #include "addon.h"
 #include "app_state.h"
+#include "cjson/cJSON.h"
 #include "list.h"
+
+AppState *appstate_create(void)
+{
+    AppState *result = malloc(sizeof(*result));
+    if (result != NULL) {
+        result->installed = list_create();
+        result->latest = list_create();
+
+        if (result->installed == NULL || result->latest == NULL) {
+            if (result->installed != NULL) {
+                list_free(result->installed);
+            }
+
+            if (result->latest != NULL) {
+                list_free(result->latest);
+            }
+
+            free(result);
+            result = NULL;
+        } else {
+            list_set_free_fn(result->installed, (void (*)(void *))addon_free);
+            list_set_free_fn(result->latest, (void (*)(void *))addon_free);
+        }
+    }
+
+    return result;
+}
 
 int appstate_from_json(AppState *state, const char *json_str)
 {
-    state->installed = list_create();
-    state->latest = list_create();
-    list_set_free_fn(state->installed, addon_free);
-    list_set_free_fn(state->latest, addon_free);
+    int result = 0;
 
     cJSON *json = cJSON_Parse(json_str);
     if (json == NULL) {
-        return -1;
+        result = -1;
+        goto end;
     }
 
     cJSON *installed = cJSON_GetObjectItemCaseSensitive(json, "installed");
     if (!cJSON_IsArray(installed)) {
-        return -1;
+        result = -1;
+        goto end;
     }
 
     cJSON *addon_json = NULL;
@@ -29,8 +54,7 @@ int appstate_from_json(AppState *state, const char *json_str)
     addon_json = NULL;
     cJSON_ArrayForEach(addon_json, installed)
     {
-        Addon *addon = malloc(sizeof(*addon));
-        memset(addon, 0, sizeof(*addon));
+        Addon *addon = addon_create();
         addon_from_json(addon, addon_json);
 
         list_insert(state->installed, addon);
@@ -38,20 +62,25 @@ int appstate_from_json(AppState *state, const char *json_str)
 
     cJSON *latest = cJSON_GetObjectItemCaseSensitive(json, "latest");
     if (!cJSON_IsArray(latest)) {
-        return -1;
+        result = -1;
+        goto end;
     }
 
     addon_json = NULL;
     cJSON_ArrayForEach(addon_json, latest)
     {
-        Addon *addon = malloc(sizeof(*addon));
-        memset(addon, 0, sizeof(*addon));
+        Addon *addon = addon_create();
         addon_from_json(addon, addon_json);
 
         list_insert(state->latest, addon);
     }
 
-    return 0;
+end:
+    if (json != NULL) {
+        cJSON_Delete(json);
+    }
+
+    return result;
 }
 
 char *appstate_to_json(AppState *state)
@@ -138,4 +167,5 @@ void appstate_free(AppState *state)
 {
     list_free(state->installed);
     list_free(state->latest);
+    free(state);
 }
