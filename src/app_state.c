@@ -1,9 +1,10 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <cjson/cJSON.h>
+
 #include "addon.h"
 #include "app_state.h"
-#include "cjson/cJSON.h"
 #include "list.h"
 
 AppState *appstate_create(void)

@@ -2,12 +2,12 @@
 #include <stdlib.h>
 #include <time.h>
 
+#include <cjson/cJSON.h>
 #include <curl/curl.h>
 
 // #include <windows.h>
 
 #include "addon.h"
-#include "cjson/cJSON.h"
 
 int main(int argc, const char *argv[])
 {
@@ -25,7 +25,8 @@ int main(int argc, const char *argv[])
     int err = 0;
     catalog_meta = addon_metadata_from_catalog("wEaKauRas", &err);
     if (catalog_meta == NULL) {
-        fprintf(stderr, "error: Failed to get addon metadata from catalog (%d)\n", err);
+        // fprintf(stderr, "error: Failed to get addon metadata from catalog (%d)\n", err);
+        perror("error: catalog");
         result = 1;
         goto end;
     }
@@ -60,8 +61,8 @@ int main(int argc, const char *argv[])
     printf("%s\n", output);
     free(output);
 
-    printf("Press enter to continue...\n");
-    getchar();
+    // printf("Press enter to continue...\n");
+    // getchar();
 
 end:
     if (catalog_meta != NULL) {

@@ -1,10 +1,10 @@
 #include <assert.h>
 #include <stdlib.h>
-#include <string.h>
 
 #include "addon.h"
 #include "app_state.h"
 #include "list.h"
+#include "osstring.h"
 
 static const char *const json_input = "{\n"
                                       "\"installed\": [\n"

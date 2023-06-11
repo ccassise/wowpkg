@@ -243,19 +243,35 @@ static const char *gh_resp_find_asset_zip(const cJSON *json)
 /**
  * Finds the catalog item path and stores it in s. s will always be null
  * terminated. If the amount of characters that would be written to s is equal
- * to or larger than n, then ADDON_ENAME_TOO_LONG will be returned. The
- * characters that could fit will be in s.
- *
- * On success returns ADDON_OK. Otherwise returns one of the ADDON_E types.
+ * to or larger than n, then the characters that could fit will be in s and the
+ * returned value will equal the amount of characters that would have been wrote
+ * if s had sufficient space.
  */
 static int snfind_catalog_path(char *s, size_t n, const char *name)
 {
-    int result = ADDON_OK;
+    int result = -1;
 
-    const char *catalog_path = "../../catalog";
-    OsDir *dir = os_opendir(catalog_path);
+    // TODO: Should probably just be a temporary solution. The path to catalog
+    // changes depending on OS or if a test is being run. Running the main
+    // executable on Windows uses '../../../' but on Linux and testing on
+    // Windows would find the catalog at '../../'.
+    const char *catalog_paths[] = {
+        "../../catalog",
+        "../../../catalog",
+    };
+
+    const char *catalog_path = NULL;
+    OsDir *dir = NULL;
+    for (size_t i = 0; i < ARRLEN(catalog_paths); i++) {
+        dir = os_opendir(catalog_paths[i]);
+        if (dir != NULL) {
+            catalog_path = catalog_paths[i];
+            break;
+        }
+    }
+
     if (dir == NULL) {
-        return ADDON_EINTERNAL;
+        return -1;
     }
 
     OsDirEnt *entry;
@@ -275,17 +291,12 @@ static int snfind_catalog_path(char *s, size_t n, const char *name)
         *ext_start = '\0';
 
         if (strcasecmp(basename, name) == 0) {
-            int nwrote = snprintf(s, n, "%s%c%s", catalog_path, OS_SEPARATOR, entry->name);
-            if (nwrote >= (int)n || nwrote < 0) {
-                result = ADDON_ENAME_TOO_LONG;
-                goto end;
-            }
+            result = snprintf(s, n, "%s%c%s", catalog_path, OS_SEPARATOR, entry->name);
 
             break;
         }
     }
 
-end:
     os_closedir(dir);
 
     return result;
@@ -299,8 +310,9 @@ cJSON *addon_metadata_from_catalog(const char *name, int *out_err)
     cJSON *result = NULL;
 
     char path[OS_MAX_PATH];
-    err = snfind_catalog_path(path, OS_MAX_PATH, name);
-    if (err != ADDON_OK) {
+    int n = snfind_catalog_path(path, ARRLEN(path), name);
+    if (n >= ARRLEN(path) || n < 0) {
+        err = ADDON_ENOTFOUND;
         goto end;
     }
 
@@ -323,6 +335,7 @@ cJSON *addon_metadata_from_catalog(const char *name, int *out_err)
         err = ADDON_EINTERNAL;
         goto end;
     }
+
     if (fread(catalog, sizeof(*catalog), fsz, f) != fsz) {
         err = ADDON_EBADJSON;
         goto end;
@@ -411,8 +424,6 @@ cJSON *addon_metadata_from_github(const char *url, int *out_err)
         err = ADDON_EINTERNAL;
         goto end;
     }
-
-    // a->version = strdup(tag_name->valuestring);
 
     const char *zip_url = gh_resp_find_asset_zip(resp);
     if (zip_url == NULL) {
@@ -518,7 +529,13 @@ end:
 
 int addon_extract(Addon *a)
 {
+    // TODO: Find a better way to handle the path between operating systems.
+#ifdef _WIN32
+    const char *addon_path = "../../../dev_only/addons/";
+#else
     const char *addon_path = "../../dev_only/addons/";
+#endif
+
     if (zipper_unzip(addon_path, a->_zip_path) != 0) {
         return ADDON_EUNZIP;
     }

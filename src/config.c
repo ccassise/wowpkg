@@ -1,6 +1,7 @@
 #include <stdlib.h>
 
-#include "cjson/cjson.h"
+#include <cjson/cJSON.h>
+
 #include "config.h"
 #include "osstring.h"
 

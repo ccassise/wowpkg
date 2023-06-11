@@ -11,5 +11,3 @@ target_compile_options(wowpkg PRIVATE ${cflags})
 target_link_options(wowpkg PRIVATE ${ldflags})
 
 target_compile_definitions(wowpkg PRIVATE ${cdefs})
-
-target_include_directories(wowpkg PRIVATE ${PROJECT_SOURCE_DIR}/lib)

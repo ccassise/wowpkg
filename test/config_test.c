@@ -1,8 +1,8 @@
 #include <assert.h>
 #include <stdlib.h>
-#include <string.h>
 
 #include "config.h"
+#include "osstring.h"
 
 static void test_config_to_json(void)
 {

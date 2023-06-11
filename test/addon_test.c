@@ -1,8 +1,9 @@
 #include <assert.h>
 #include <stdlib.h>
 
+#include <cjson/cJSON.h>
+
 #include "addon.h"
-#include "cjson/cjson.h"
 #include "osstring.h"
 
 static void test_addon_from_json(void)

@@ -23,7 +23,7 @@ foreach(test IN LISTS tests)
 		target_link_libraries(${test_name} PRIVATE minizip::minizip CURL::libcurl cjson)
 	endif()
 
-	target_include_directories(${test_name} PRIVATE ${PROJECT_SOURCE_DIR}/src ${PROJECT_SOURCE_DIR}/lib)
+	target_include_directories(${test_name} PRIVATE ${PROJECT_SOURCE_DIR}/src)
 
 	add_test(${test_name} ${test_name})
 endforeach()

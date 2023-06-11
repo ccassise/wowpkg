@@ -50,7 +50,7 @@ static void test_cmd_list(void)
     const char *argv[] = { "list" };
     assert(cmd_list(&ctx, 1, argv, out) == 0);
 
-    off_t out_len = ftell(out);
+    long out_len = ftell(out);
     assert(out_len > 0);
     fseek(out, 0, SEEK_SET);
 
@@ -79,7 +79,7 @@ static void test_cmd_search(void)
     const char *argv[] = { "search", "wigs" };
     assert(cmd_search(NULL, 2, argv, out) == 0);
 
-    off_t out_len = ftell(out);
+    long out_len = ftell(out);
     assert(out_len > 0);
     fseek(out, 0, SEEK_SET);
 
