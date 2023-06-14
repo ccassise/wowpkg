@@ -76,9 +76,10 @@ int os_mkdir(const char *path, OsMode perms);
 int os_mkdir_all(char *path, OsMode perms);
 
 /**
- * Generates a unique temporary filename from template. Creates and opens the file, and returns the FILE stream.
+ * Generates a unique temporary filename from template. Creates and opens the
+ * file, and returns the FILE stream.
  *
- * Modifies the template string. The last six characters of template shalle be
+ * Modifies the template string. The last six characters of template shall be
  * "XXXXXX". Since it will be modified template shall not be a string constant.
  *
  * On success returns an open FILE with "w+b" mode. On error, NULL is returned
@@ -87,9 +88,29 @@ int os_mkdir_all(char *path, OsMode perms);
 FILE *os_mkstemp(char *template);
 
 /**
+ * Generates a unique temporary filename from template. Creates a directory with
+ * permissions 0700 (on non-Windows).
+ *
+ * Modifies the template string. The last six characters of template shall be
+ * "XXXXXX". Since it will be modified template shall not be a string constant.
+ *
+ * On success returns the modified template string. Otherwise returns NULL and
+ * sets errno on errors.
+ */
+char *os_mkdtemp(char *template);
+
+/**
  * Removes the file at path. If path is a directory then it recursively removes
  * all files and subdirectories.
  *
  * On success returns 0, otherwise returns -1 and sets errno on errors.
  */
 int os_remove_all(const char *path);
+
+/**
+ * See rename(2) for *nix and MoveFileEx with MOVEFILE_REPLACE_EXISTING for
+ * Windows.
+ *
+ * Returns non-zero on errors.
+ */
+int os_rename(const char *src, const char *dest);

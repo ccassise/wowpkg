@@ -9,11 +9,11 @@
 
 static void test_zipper_unzip(const char *outpath)
 {
-    assert(zipper_unzip(outpath, "../../test/mocks/mock_zip.zip") == ZIPPER_ENOENT);
+    assert(zipper_unzip(WOWPKG_TEST_MOCKSDIR "mock_zip.zip", outpath) == ZIPPER_ENOENT);
 
     assert(os_mkdir(outpath, 0755) == 0);
 
-    assert(zipper_unzip(outpath, "../../test/mocks/mock_zip.zip") == ZIPPER_OK);
+    assert(zipper_unzip(WOWPKG_TEST_MOCKSDIR "mock_zip.zip", outpath) == ZIPPER_OK);
 
     OsDir *dir = os_opendir(outpath);
     assert(dir != NULL);
@@ -46,7 +46,7 @@ static void test_zipper_unzip(const char *outpath)
 
     char mock_dir[OS_MAX_PATH];
 
-    snprintf(mock_dir, OS_MAX_PATH, "%s%c%s", outpath, OS_SEPARATOR, "mock_dir_a");
+    snprintf(mock_dir, ARRLEN(mock_dir), "%s%c%s", outpath, OS_SEPARATOR, "mock_dir_a");
     dir = os_opendir(mock_dir);
     assert(dir != NULL);
 
@@ -63,7 +63,7 @@ static void test_zipper_unzip(const char *outpath)
 
     os_closedir(dir);
 
-    snprintf(mock_dir, OS_MAX_PATH, "%s%c%s", outpath, OS_SEPARATOR, "mock_dir_b");
+    snprintf(mock_dir, ARRLEN(mock_dir), "%s%c%s", outpath, OS_SEPARATOR, "mock_dir_b");
     dir = os_opendir(mock_dir);
     assert(dir != NULL);
 
@@ -86,10 +86,10 @@ static void test_zipper_unzip(const char *outpath)
 int main(void)
 {
     // Ensure previous runs don't affect this run.
-    os_remove_all("../../test/test_tmp/");
+    os_remove_all(WOWPKG_TEST_TMPDIR "test_tmp/");
 
-    test_zipper_unzip("../../test/test_tmp");
-    test_zipper_unzip("../../test/test_tmp/");
+    test_zipper_unzip(WOWPKG_TEST_TMPDIR "test_tmp");
+    test_zipper_unzip(WOWPKG_TEST_TMPDIR "test_tmp/");
 
     return 0;
 }

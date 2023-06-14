@@ -2,7 +2,7 @@ set(
 	tests
 
 	addon
-	app_state
+	appstate
 	command
 	config
 	list
@@ -15,7 +15,7 @@ foreach(test IN LISTS tests)
 	add_executable(${test_name} ${test_name}.c ${src_files})
 
 	target_compile_options(${test_name} PRIVATE ${cflags})
-	target_compile_definitions(${test_name} PRIVATE ${cdefs})
+	target_compile_definitions(${test_name} PRIVATE ${cdefs} WOWPKG_TEST_TMPDIR="${PROJECT_SOURCE_DIR}/dev_only/tmp/" WOWPKG_TEST_MOCKSDIR="${PROJECT_SOURCE_DIR}/test/mocks/")
 
 	if (WIN32)
 		target_link_libraries(${test_name} PRIVATE unofficial::minizip::minizip CURL::libcurl cjson)

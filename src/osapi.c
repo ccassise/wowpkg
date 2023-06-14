@@ -154,16 +154,34 @@ FILE *os_mkstemp(char *template)
 #endif
 }
 
+char *os_mkdtemp(char *template)
+{
+#ifdef _WIN32
+    char *result = _mktemp(template);
+    if (result == NULL) {
+        return NULL;
+    }
+
+    if (os_mkdir(result, 0700) != 0) {
+        return NULL;
+    }
+
+    return result;
+#else
+    return mkdtemp(template);
+#endif
+}
+
 int os_remove_all(const char *path)
 {
-    int result = 0;
+    int err = 0;
     OsDir *dir = os_opendir(path);
     if (dir == NULL) {
         return -1;
     }
 
     OsDirEnt *entry = NULL;
-    while ((entry = os_readdir(dir)) != NULL && result == 0) {
+    while ((entry = os_readdir(dir)) != NULL && err == 0) {
         if (strcmp(".", entry->name) == 0 || strcmp("..", entry->name) == 0) {
             continue;
         }
@@ -172,7 +190,7 @@ int os_remove_all(const char *path)
         int n = snprintf(p, ARRLEN(p), "%s%c%s", path, OS_SEPARATOR, entry->name);
         if (n >= (int)ARRLEN(p) || n < 0) {
             errno = ENAMETOOLONG;
-            result = -1;
+            err = -1;
             break;
         }
 
@@ -180,17 +198,29 @@ int os_remove_all(const char *path)
         os_stat(p, &s);
 
         if (s.st_mode & S_IFDIR) {
-            result = os_remove_all(p);
+            err = os_remove_all(p);
         } else {
-            result = remove(p);
+            err = remove(p);
         }
     }
 
     os_closedir(dir);
 
-    if (result == 0) {
-        result = os_rmdir(path);
+    if (err == 0) {
+        err = os_rmdir(path);
     }
 
-    return result;
+    return err;
+}
+
+int os_rename(const char *src, const char *dest)
+{
+#ifdef _WIN32
+    if (!MoveFileEx(src, dest, MOVEFILE_REPLACE_EXISTING)) {
+        return -1;
+    }
+    return 0;
+#else
+    return rename(src, dest);
+#endif
 }

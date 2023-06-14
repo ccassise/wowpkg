@@ -1,4 +1,9 @@
+#pragma once
+
+#include "appstate.h"
+#include "config.h"
+
 typedef struct Context {
-    struct AppState *state;
-    struct Config *config;
+    AppState *state;
+    Config *config;
 } Context;

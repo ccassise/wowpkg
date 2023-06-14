@@ -6,6 +6,30 @@
 #include "addon.h"
 #include "osstring.h"
 
+static void test_addon_dup(void)
+{
+    Addon *expect = addon_create();
+    expect->name = strdup("Test");
+    expect->desc = strdup("Test Desc");
+    expect->url = strdup("test_url");
+    expect->version = strdup("v1.2.3");
+    expect->handler = strdup("github:latest");
+    list_insert(expect->dirs, strdup("dont_copy_me"));
+
+    Addon *actual = addon_dup(expect);
+
+    assert(actual != expect);
+    assert(strcmp(actual->name, "Test") == 0);
+    assert(strcmp(actual->desc, "Test Desc") == 0);
+    assert(strcmp(actual->url, "test_url") == 0);
+    assert(strcmp(actual->version, "v1.2.3") == 0);
+    assert(strcmp(actual->handler, "github:latest") == 0);
+    assert(list_isempty(actual->dirs));
+
+    addon_free(expect);
+    addon_free(actual);
+}
+
 static void test_addon_from_json(void)
 {
     cJSON *json = cJSON_CreateObject();
@@ -62,7 +86,7 @@ static void test_addon_from_json_partial(void)
     assert(actual->url == NULL);
     assert(actual->version == NULL);
     assert(actual->dirs != NULL);
-    assert(actual->dirs->head == NULL);
+    assert(list_isempty(actual->dirs));
 
     cJSON_Delete(json);
     addon_free(actual);
@@ -136,7 +160,7 @@ static void test_addon_to_json(void)
 
 void test_addon_metadata_from_catalog(void)
 {
-    cJSON *json = addon_metadata_from_catalog("weakauras", NULL);
+    cJSON *json = addon_fetch_catalog_meta("weakauras", NULL);
     assert(json != NULL);
 
     Addon *addon = addon_create();
@@ -149,7 +173,7 @@ void test_addon_metadata_from_catalog(void)
     assert(strcmp(addon->url, "https://api.github.com/repos/WeakAuras/WeakAuras2/releases/latest") == 0);
     assert(addon->version == NULL);
     assert(addon->dirs != NULL);
-    assert(addon->dirs->head == NULL);
+    assert(list_isempty(addon->dirs));
 
     addon_free(addon);
     cJSON_Delete(json);
@@ -157,6 +181,7 @@ void test_addon_metadata_from_catalog(void)
 
 int main(void)
 {
+    test_addon_dup();
     test_addon_from_json();
     test_addon_from_json_partial();
     test_addon_from_json_overwrite();

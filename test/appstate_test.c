@@ -2,7 +2,7 @@
 #include <stdlib.h>
 
 #include "addon.h"
-#include "app_state.h"
+#include "appstate.h"
 #include "list.h"
 #include "osstring.h"
 
@@ -232,8 +232,81 @@ static void test_appstate_to_json(void)
     appstate_free(state);
 }
 
+static void test_appstate_save_load(void)
+{
+    const char *test_path = "__test_appstate_save_load__.json";
+    remove(test_path);
+
+    AppState *state = appstate_create();
+    assert(state != NULL);
+
+    Addon *installed = addon_create();
+    Addon *latest = addon_create();
+
+    installed->name = strdup("Installed");
+    installed->desc = strdup("Installed desc");
+    installed->version = strdup("v1.2.3");
+    installed->url = strdup("installed_url");
+    installed->handler = strdup("github:latest");
+    list_insert(installed->dirs, strdup("Installed"));
+    list_insert(installed->dirs, strdup("Installed_Core"));
+    list_insert(installed->dirs, strdup("Installed_Plugins"));
+
+    latest->name = strdup("Latest");
+    latest->desc = strdup("Latest desc");
+    latest->version = strdup("v4.5.6");
+    latest->url = strdup("latest_url");
+    latest->handler = strdup("github:latest");
+    list_insert(latest->dirs, strdup("Latest"));
+
+    list_insert(state->installed, installed);
+    list_insert(state->latest, latest);
+
+    assert(appstate_save(state, test_path) == 0);
+
+    AppState *actual = appstate_create();
+
+    assert(appstate_load(actual, test_path) == 0);
+
+    assert(actual->installed->head != NULL);
+
+    Addon *installed_actual = actual->installed->head->value;
+    assert(strcmp(installed_actual->name, "Installed") == 0);
+    assert(strcmp(installed_actual->desc, "Installed desc") == 0);
+    assert(strcmp(installed_actual->version, "v1.2.3") == 0);
+    assert(strcmp(installed_actual->url, "installed_url") == 0);
+    assert(strcmp(installed_actual->handler, "github:latest") == 0);
+    assert(installed_actual->dirs->head != NULL);
+    ListNode *installed_dir = installed_actual->dirs->head;
+    assert(installed_dir != NULL);
+    assert(strcmp((const char *)installed_dir->value, "Installed") == 0);
+    installed_dir = installed_dir->next;
+    assert(installed_dir != NULL);
+    assert(strcmp((const char *)installed_dir->value, "Installed_Core") == 0);
+    installed_dir = installed_dir->next;
+    assert(installed_dir != NULL);
+    assert(strcmp((const char *)installed_dir->value, "Installed_Plugins") == 0);
+
+    Addon *latest_actual = actual->latest->head->value;
+    assert(strcmp(latest_actual->name, "Latest") == 0);
+    assert(strcmp(latest_actual->desc, "Latest desc") == 0);
+    assert(strcmp(latest_actual->version, "v4.5.6") == 0);
+    assert(strcmp(latest_actual->url, "latest_url") == 0);
+    assert(strcmp(latest_actual->handler, "github:latest") == 0);
+    assert(latest_actual->dirs->head != NULL);
+    ListNode *latest_dir = latest_actual->dirs->head;
+    assert(latest_dir != NULL);
+    assert(strcmp((const char *)latest_dir->value, "Latest") == 0);
+
+    appstate_free(state);
+    appstate_free(actual);
+}
+
 int main(void)
 {
     test_appstate_from_json();
     test_appstate_to_json();
+    test_appstate_save_load();
+
+    return 0;
 }

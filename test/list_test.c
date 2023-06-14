@@ -85,7 +85,7 @@ static void test_list_remove(void)
     list_remove(l, node4);
     list_remove(l, node2);
 
-    assert(l->head == NULL);
+    assert(list_isempty(l));
 
     list_free(l);
 }
@@ -106,7 +106,7 @@ static void test_list_search(void)
     list_insert(l, str4);
     list_insert(l, str5);
 
-    ListNode *node = list_search(l, "test four", (int (*)(const void *, const void *))strcmp);
+    ListNode *node = list_search(l, "test four", (ListCompareFn)strcmp);
     assert(node != NULL && strcmp((const char *)node->value, str4) == 0);
 
     node = list_search_ptr(l, str2);
@@ -114,7 +114,7 @@ static void test_list_search(void)
 
     const char *should_not_find = "this should not be found";
 
-    node = list_search(l, should_not_find, (int (*)(const void *, const void *))strcmp);
+    node = list_search(l, should_not_find, (ListCompareFn)strcmp);
     assert(node == NULL);
 
     node = list_search_ptr(l, should_not_find);

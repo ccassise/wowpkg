@@ -1,11 +1,13 @@
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include <cjson/cJSON.h>
 
 #include "addon.h"
-#include "app_state.h"
+#include "appstate.h"
 #include "list.h"
+#include "osapi.h"
 
 AppState *appstate_create(void)
 {
@@ -34,19 +36,26 @@ AppState *appstate_create(void)
     return result;
 }
 
+void appstate_free(AppState *state)
+{
+    list_free(state->installed);
+    list_free(state->latest);
+    free(state);
+}
+
 int appstate_from_json(AppState *state, const char *json_str)
 {
-    int result = 0;
+    int err = 0;
 
     cJSON *json = cJSON_Parse(json_str);
     if (json == NULL) {
-        result = -1;
+        err = -1;
         goto end;
     }
 
     cJSON *installed = cJSON_GetObjectItemCaseSensitive(json, "installed");
     if (!cJSON_IsArray(installed)) {
-        result = -1;
+        err = -1;
         goto end;
     }
 
@@ -63,7 +72,7 @@ int appstate_from_json(AppState *state, const char *json_str)
 
     cJSON *latest = cJSON_GetObjectItemCaseSensitive(json, "latest");
     if (!cJSON_IsArray(latest)) {
-        result = -1;
+        err = -1;
         goto end;
     }
 
@@ -81,7 +90,7 @@ end:
         cJSON_Delete(json);
     }
 
-    return result;
+    return err;
 }
 
 char *appstate_to_json(AppState *state)
@@ -164,9 +173,83 @@ end:
     return result;
 }
 
-void appstate_free(AppState *state)
+int appstate_save(AppState *state, const char *path)
 {
-    list_free(state->installed);
-    list_free(state->latest);
-    free(state);
+    int err = 0;
+    FILE *statef = NULL;
+    char *json_str = NULL;
+
+    statef = fopen(path, "wb");
+    if (statef == NULL) {
+        err = -1;
+        goto end;
+    }
+
+    json_str = appstate_to_json(state);
+    if (json_str == NULL) {
+        err = -1;
+        goto end;
+    }
+
+    size_t json_strlen = strlen(json_str);
+    if (fwrite(json_str, sizeof(*json_str), json_strlen, statef) != json_strlen) {
+        err = -1;
+        goto end;
+    }
+
+end:
+    if (statef != NULL) {
+        fclose(statef);
+    }
+
+    if (json_str != NULL) {
+        free(json_str);
+    }
+
+    return err;
+}
+
+int appstate_load(AppState *state, const char *path)
+{
+    int err = 0;
+    FILE *statef = NULL;
+    char *buf = NULL;
+
+    statef = fopen(path, "rb");
+    if (statef == NULL) {
+        err = -1;
+        goto end;
+    }
+
+    struct os_stat s;
+    if (os_stat(path, &s) != 0) {
+        err = -1;
+        goto end;
+    }
+
+    size_t bufsz = s.st_size;
+    buf = malloc(sizeof(*buf) * bufsz + 1);
+
+    if (fread(buf, sizeof(*buf), bufsz, statef) != bufsz) {
+        err = -1;
+        goto end;
+    }
+
+    buf[bufsz] = '\0';
+
+    if (appstate_from_json(state, buf) != 0) {
+        err = -1;
+        goto end;
+    }
+
+end:
+    if (statef != NULL) {
+        fclose(statef);
+    }
+
+    if (buf != NULL) {
+        free(buf);
+    }
+
+    return err;
 }

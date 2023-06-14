@@ -14,76 +14,76 @@
 
 static void test_os_mkdir(void)
 {
-    int err = os_mkdir("../../test_osapi_tmp", 0755);
+    int err = os_mkdir(WOWPKG_TEST_TMPDIR "test_osapi_tmp", 0755);
     assert(err == 0);
 
     struct os_stat s;
-    err = os_stat("../../test_osapi_tmp", &s);
+    err = os_stat(WOWPKG_TEST_TMPDIR "test_osapi_tmp", &s);
     assert(err == 0);
 
     assert(s.st_mode & S_IFDIR);
 
-    err = os_rmdir("../../test_osapi_tmp");
+    err = os_rmdir(WOWPKG_TEST_TMPDIR "test_osapi_tmp");
     assert(err == 0);
 }
 
 static void test_os_mkdir_all(void)
 {
-    char path[OS_MAX_PATH] = "../../test_osapi_tmp/test_subdir/test.txt";
+    char path[OS_MAX_PATH] = WOWPKG_TEST_TMPDIR "test_osapi_tmp/test_subdir/test.txt";
 
     int err = os_mkdir_all(path, 0755);
     assert(err == 0);
 
     struct os_stat s;
-    err = os_stat("../../test_osapi_tmp", &s);
+    err = os_stat(WOWPKG_TEST_TMPDIR "test_osapi_tmp", &s);
     assert(err == 0);
     assert(s.st_mode & S_IFDIR);
 
-    err = os_stat("../../test_osapi_tmp/test_subdir", &s);
+    err = os_stat(WOWPKG_TEST_TMPDIR "test_osapi_tmp/test_subdir", &s);
     assert(err == 0);
     assert(s.st_mode & S_IFDIR);
 
-    err = os_stat("../../test_osapi_tmp/test_subsir/test.txt", &s);
+    err = os_stat(WOWPKG_TEST_TMPDIR "test_osapi_tmp/test_subsir/test.txt", &s);
     assert(err != 0);
 
-    err = os_rmdir("../../test_osapi_tmp/test_subdir");
+    err = os_rmdir(WOWPKG_TEST_TMPDIR "test_osapi_tmp/test_subdir");
     assert(err == 0);
 
-    err = os_rmdir("../../test_osapi_tmp");
+    err = os_rmdir(WOWPKG_TEST_TMPDIR "test_osapi_tmp");
     assert(err == 0);
 }
 
 #ifdef _WIN32
 static void test_os_mkdir_all_win32(void)
 {
-    char path[OS_MAX_PATH] = "../../test_osapi_tmp/test_subdir/test.txt";
+    char path[OS_MAX_PATH] = WOWPKG_TEST_TMPDIR "test_osapi_tmp\\test_subdir\\test.txt";
 
     int err = os_mkdir_all(path, 0755);
     assert(err == 0);
 
     struct os_stat s;
-    err = os_stat("..\\..\\test_osapi_tmp", &s);
+    err = os_stat(WOWPKG_TEST_TMPDIR "test_osapi_tmp", &s);
     assert(err == 0);
     assert(s.st_mode & S_IFDIR);
 
-    err = os_stat("..\\..\\test_osapi_tmp\\test_subdir", &s);
+    err = os_stat(WOWPKG_TEST_TMPDIR "test_osapi_tmp\\test_subdir", &s);
     assert(err == 0);
     assert(s.st_mode & S_IFDIR);
 
-    err = os_stat("..\\..\\test_osapi_tmp\\test_subsir\\test.txt", &s);
+    err = os_stat(WOWPKG_TEST_TMPDIR "test_osapi_tmp\\test_subsir\\test.txt", &s);
     assert(err != 0);
 
-    err = os_rmdir("..\\..\\test_osapi_tmp\\test_subdir");
+    err = os_rmdir(WOWPKG_TEST_TMPDIR "test_osapi_tmp\\test_subdir");
     assert(err == 0);
 
-    err = os_rmdir("..\\..\\test_osapi_tmp");
+    err = os_rmdir(WOWPKG_TEST_TMPDIR "test_osapi_tmp");
     assert(err == 0);
 }
 #endif
 
 static void test_os_readdir(void)
 {
-    OsDir *dir = os_opendir("../../test/mocks/mock_dir");
+    OsDir *dir = os_opendir(WOWPKG_TEST_MOCKSDIR "mock_dir");
     OsDirEnt *entry = NULL;
 
     const char *expect[] = {
@@ -124,24 +124,130 @@ static void test_os_readdir(void)
 
 static void test_os_remove_all(void)
 {
-    char path[OS_MAX_PATH] = "../../test/test_osapi_tmp/dir1/dir2/dir3/";
+    char path[OS_MAX_PATH] = WOWPKG_TEST_TMPDIR "test_osapi_tmp/dir1/dir2/dir3/";
 
     assert(os_mkdir_all(path, 0755) == 0);
 
-    FILE *dir3txt = fopen("../../test/test_osapi_tmp/dir1/dir2/dir3/dir3.txt", "wb");
+    FILE *dir3txt = fopen(WOWPKG_TEST_TMPDIR "test_osapi_tmp/dir1/dir2/dir3/dir3.txt", "wb");
     const char *dir3txtstr = "dir3.txt\n";
     assert(fwrite(dir3txtstr, sizeof(*dir3txtstr), strlen(dir3txtstr), dir3txt) == strlen(dir3txtstr));
     fclose(dir3txt);
 
-    FILE *dir2txt = fopen("../../test/test_osapi_tmp/dir1/dir2/dir2.txt", "wb");
+    FILE *dir2txt = fopen(WOWPKG_TEST_TMPDIR "test_osapi_tmp/dir1/dir2/dir2.txt", "wb");
     const char *dir2txtstr = "dir3.txt\n";
     assert(fwrite(dir2txtstr, sizeof(*dir2txtstr), strlen(dir2txtstr), dir2txt) == strlen(dir2txtstr));
     fclose(dir2txt);
 
-    assert(os_remove_all("../../test/test_osapi_tmp") == 0);
+    assert(os_remove_all(WOWPKG_TEST_TMPDIR "test_osapi_tmp") == 0);
 
     struct os_stat s;
-    assert(os_stat("../../test/test_osapi_tmp", &s) != 0);
+    assert(os_stat(WOWPKG_TEST_TMPDIR "test_osapi_tmp", &s) != 0);
+}
+
+static void test_os_mkstemp(void)
+{
+    char template[] = WOWPKG_TEST_TMPDIR "test_os_mkstemp_XXXXXX";
+
+    FILE *ftemp = os_mkstemp(template);
+    assert(ftemp != NULL);
+    assert(strcmp(template, WOWPKG_TEST_TMPDIR "test_os_mkstemp_XXXXXX") != 0);
+
+    struct os_stat s;
+    assert(os_stat(template, &s) == 0);
+
+    assert(s.st_mode & S_IFREG);
+
+    fclose(ftemp);
+    remove(template);
+}
+
+static void test_os_mkdtemp(void)
+{
+    char template[] = WOWPKG_TEST_TMPDIR "test_os_mkdtemp_XXXXXX";
+
+    assert(os_mkdtemp(template) != NULL);
+    assert(strcmp(template, WOWPKG_TEST_TMPDIR "test_os_mkdtemp_XXXXXX") != 0);
+
+    struct os_stat s;
+    assert(os_stat(template, &s) == 0);
+
+    assert(s.st_mode & S_IFDIR);
+
+    os_rmdir(template);
+}
+
+static void test_os_rename_dir(void)
+{
+    char src[] = WOWPKG_TEST_TMPDIR "test_os_rename_XXXXXX";
+    char dest[] = WOWPKG_TEST_TMPDIR "test_os_rename_XXXXXX";
+
+    assert(os_mkdtemp(src) != NULL);
+    assert(os_mkdtemp(dest) != NULL);
+
+    assert(strcmp(src, dest) != 0);
+
+    char actual[OS_MAX_PATH];
+    int n = snprintf(actual, ARRLEN(actual), "%s%c%s", src, OS_SEPARATOR, &dest[strlen(WOWPKG_TEST_TMPDIR)]);
+    assert(n > 0 && n < ARRLEN(actual));
+
+    assert(os_rename(dest, actual) == 0);
+
+    struct os_stat s;
+    assert(os_stat(actual, &s) == 0);
+    assert(s.st_mode & S_IFDIR);
+
+    os_remove_all(src);
+}
+
+static void test_os_rename_file(void)
+{
+    char src[] = WOWPKG_TEST_TMPDIR "test_os_rename_XXXXXX";
+    char dest[] = WOWPKG_TEST_TMPDIR "test_os_rename_XXXXXX";
+
+    FILE *srcf = os_mkstemp(src);
+
+    assert(srcf != NULL);
+
+    fclose(srcf);
+
+    assert(strcmp(src, dest) != 0);
+
+    assert(os_rename(src, dest) == 0);
+
+    struct os_stat s;
+    assert(os_stat(src, &s) != 0);
+
+    assert(os_stat(dest, &s) == 0);
+    assert(s.st_mode & S_IFREG);
+
+    remove(dest);
+}
+
+static void test_os_rename_file_replace(void)
+{
+    char src[] = WOWPKG_TEST_TMPDIR "test_os_rename_XXXXXX";
+    char dest[] = WOWPKG_TEST_TMPDIR "test_os_rename_XXXXXX";
+
+    FILE *srcf = os_mkstemp(src);
+    FILE *destf = os_mkstemp(dest);
+
+    assert(srcf != NULL);
+    assert(destf != NULL);
+
+    fclose(srcf);
+    fclose(destf);
+
+    assert(strcmp(src, dest) != 0);
+
+    assert(os_rename(src, dest) == 0);
+
+    struct os_stat s;
+    assert(os_stat(src, &s) != 0);
+
+    assert(os_stat(dest, &s) == 0);
+    assert(s.st_mode & S_IFREG);
+
+    remove(dest);
 }
 
 int main(void)
@@ -150,6 +256,11 @@ int main(void)
     test_os_mkdir_all();
     test_os_readdir();
     test_os_remove_all();
+    test_os_mkstemp();
+    test_os_mkdtemp();
+    test_os_rename_dir();
+    test_os_rename_file();
+    test_os_rename_file_replace();
 
 #ifdef _WIN32
     test_os_mkdir_all_win32();

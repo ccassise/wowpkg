@@ -73,6 +73,66 @@ Addon *addon_create(void)
     return result;
 }
 
+void addon_free(Addon *a)
+{
+    if (a->handler != NULL) {
+        free(a->handler);
+    }
+
+    if (a->name != NULL) {
+        free(a->name);
+    }
+
+    if (a->desc != NULL) {
+        free(a->desc);
+    }
+
+    if (a->url != NULL) {
+        free(a->url);
+    }
+
+    if (a->version != NULL) {
+        free(a->version);
+    }
+
+    if (a->dirs != NULL) {
+        list_free(a->dirs);
+    }
+
+    addon_cleanup_files(a);
+
+    free(a);
+}
+
+void addon_cleanup_files(Addon *a)
+{
+    if (a->_zip_path != NULL) {
+        remove(a->_zip_path);
+        free(a->_zip_path);
+        a->_zip_path = NULL;
+    }
+
+    if (a->_package_path != NULL) {
+        os_remove_all(a->_package_path);
+        free(a->_package_path);
+        a->_package_path = NULL;
+    }
+}
+
+Addon *addon_dup(Addon *a)
+{
+    Addon *result = addon_create();
+    if (result) {
+        result->name = a->name == NULL ? NULL : strdup(a->name);
+        result->desc = a->desc == NULL ? NULL : strdup(a->desc);
+        result->version = a->version == NULL ? NULL : strdup(a->version);
+        result->handler = a->handler == NULL ? NULL : strdup(a->handler);
+        result->url = a->url == NULL ? NULL : strdup(a->url);
+    }
+
+    return result;
+}
+
 int addon_from_json(Addon *a, const cJSON *json)
 {
     addon_set_str(&a->handler, create_str_from_property(json, ADDON_HANDLER));
@@ -107,11 +167,6 @@ char *addon_to_json(Addon *a)
         goto end;
     }
 
-    if (cJSON_AddStringToObject(json, ADDON_HANDLER, a->handler) == NULL) {
-        err = ADDON_EINTERNAL;
-        goto end;
-    }
-
     if (cJSON_AddStringToObject(json, ADDON_NAME, a->name) == NULL) {
         err = ADDON_EINTERNAL;
         goto end;
@@ -122,12 +177,17 @@ char *addon_to_json(Addon *a)
         goto end;
     }
 
+    if (cJSON_AddStringToObject(json, ADDON_VERSION, a->version) == NULL) {
+        err = ADDON_EINTERNAL;
+        goto end;
+    }
+
     if (cJSON_AddStringToObject(json, ADDON_URL, a->url) == NULL) {
         err = ADDON_EINTERNAL;
         goto end;
     }
 
-    if (cJSON_AddStringToObject(json, ADDON_VERSION, a->version) == NULL) {
+    if (cJSON_AddStringToObject(json, ADDON_HANDLER, a->handler) == NULL) {
         err = ADDON_EINTERNAL;
         goto end;
     }
@@ -154,40 +214,6 @@ end:
     }
 
     return result;
-}
-
-void addon_free(Addon *a)
-{
-    if (a->handler != NULL) {
-        free(a->handler);
-    }
-
-    if (a->name != NULL) {
-        free(a->name);
-    }
-
-    if (a->desc != NULL) {
-        free(a->desc);
-    }
-
-    if (a->url != NULL) {
-        free(a->url);
-    }
-
-    if (a->version != NULL) {
-        free(a->version);
-    }
-
-    if (a->dirs != NULL) {
-        list_free(a->dirs);
-    }
-
-    if (a->_zip_path != NULL) {
-        remove(a->_zip_path);
-        free(a->_zip_path);
-    }
-
-    free(a);
 }
 
 void addon_set_str(char **old, char *new)
@@ -249,27 +275,11 @@ static const char *gh_resp_find_asset_zip(const cJSON *json)
  */
 static int snfind_catalog_path(char *s, size_t n, const char *name)
 {
-    int result = -1;
+    int err = -1;
 
-    // TODO: Should probably just be a temporary solution. The path to catalog
-    // changes depending on OS or if a test is being run. Running the main
-    // executable on Windows uses '../../../' but on Linux and testing on
-    // Windows would find the catalog at '../../'.
-    const char *catalog_paths[] = {
-        "../../catalog",
-        "../../../catalog",
-    };
+    const char *catalog_path = "../../catalog";
 
-    const char *catalog_path = NULL;
-    OsDir *dir = NULL;
-    for (size_t i = 0; i < ARRLEN(catalog_paths); i++) {
-        dir = os_opendir(catalog_paths[i]);
-        if (dir != NULL) {
-            catalog_path = catalog_paths[i];
-            break;
-        }
-    }
-
+    OsDir *dir = dir = os_opendir(catalog_path);
     if (dir == NULL) {
         return -1;
     }
@@ -291,7 +301,7 @@ static int snfind_catalog_path(char *s, size_t n, const char *name)
         *ext_start = '\0';
 
         if (strcasecmp(basename, name) == 0) {
-            result = snprintf(s, n, "%s%c%s", catalog_path, OS_SEPARATOR, entry->name);
+            err = snprintf(s, n, "%s%c%s", catalog_path, OS_SEPARATOR, entry->name);
 
             break;
         }
@@ -299,10 +309,10 @@ static int snfind_catalog_path(char *s, size_t n, const char *name)
 
     os_closedir(dir);
 
-    return result;
+    return err;
 }
 
-cJSON *addon_metadata_from_catalog(const char *name, int *out_err)
+cJSON *addon_fetch_catalog_meta(const char *name, int *out_err)
 {
     int err = ADDON_OK;
     FILE *f = NULL;
@@ -370,7 +380,7 @@ end:
     return result;
 }
 
-cJSON *addon_metadata_from_github(const char *url, int *out_err)
+cJSON *addon_fetch_github_meta(const char *url, int *out_err)
 {
     int err = ADDON_OK;
     cJSON *resp = NULL;
@@ -461,8 +471,48 @@ end:
     return result;
 }
 
-int addon_package(Addon *a)
+int addon_fetch_all_meta(Addon *a, const char *name)
 {
+    int err = ADDON_OK;
+
+    cJSON *catalog_json = NULL;
+    cJSON *gh_json = NULL;
+
+    catalog_json = addon_fetch_catalog_meta(name, &err);
+    if (err != ADDON_OK) {
+        goto end;
+    }
+
+    err = addon_from_json(a, catalog_json);
+    if (err != ADDON_OK) {
+        goto end;
+    }
+
+    gh_json = addon_fetch_github_meta(a->url, &err);
+    if (err != ADDON_OK) {
+        goto end;
+    }
+
+    err = addon_from_json(a, gh_json);
+    if (err != ADDON_OK) {
+        goto end;
+    }
+
+end:
+    if (catalog_json != NULL) {
+        cJSON_Delete(catalog_json);
+    }
+
+    if (gh_json != NULL) {
+        cJSON_Delete(gh_json);
+    }
+
+    return err;
+}
+
+int addon_fetch_zip(Addon *a)
+{
+    int err = ADDON_OK;
     Response res = { .data = NULL, .size = 0 };
     FILE *fzip = NULL;
 
@@ -470,8 +520,6 @@ int addon_package(Addon *a)
     if (curl == NULL) {
         return ADDON_EINTERNAL;
     }
-
-    int err = ADDON_OK;
 
     curl_easy_setopt(curl, CURLOPT_URL, a->url);
     curl_easy_setopt(curl, CURLOPT_USERAGENT, USER_AGENT);
@@ -527,18 +575,101 @@ end:
     return err;
 }
 
-int addon_extract(Addon *a)
+int addon_package(Addon *a)
 {
-    // TODO: Find a better way to handle the path between operating systems.
-#ifdef _WIN32
-    const char *addon_path = "../../../dev_only/addons/";
-#else
-    const char *addon_path = "../../dev_only/addons/";
-#endif
+    const char *tmp_path = "../../dev_only/tmp";
 
-    if (zipper_unzip(addon_path, a->_zip_path) != 0) {
+    char tmpdir[OS_MAX_PATH];
+
+    int n = snprintf(tmpdir, ARRLEN(tmpdir), "%s%c%s_%s_XXXXXX", tmp_path, OS_SEPARATOR, a->name, a->version);
+    if (n < 0 || n >= ARRLEN(tmpdir)) {
+        return ADDON_ENAME_TOO_LONG;
+        // fprintf(stderr, "error: %s %s '%s%c%s_%s_XXXXXX'\n", argv[0], CMD_ENAME_TOO_LONG_STR, tmp_path, OS_SEPARATOR, addon->name, addon->version);
+        // result = -1;
+        // goto end;
+    }
+
+    if (os_mkdtemp(tmpdir) == NULL) {
+        return ADDON_EINTERNAL;
+    }
+
+    if (zipper_unzip(a->_zip_path, tmpdir) != 0) {
         return ADDON_EUNZIP;
     }
 
-    return 0;
+    addon_set_str(&a->_package_path, strdup(tmpdir));
+
+    return ADDON_OK;
+}
+
+static int move_filename(const char *srcdir, const char *destdir, const char *filename)
+{
+    // int err = ADDON_OK;
+    int n;
+
+    char dest[OS_MAX_PATH];
+    n = snprintf(dest, ARRLEN(dest), "%s%c%s", destdir, OS_SEPARATOR, filename);
+    if (n < 0 || n >= ARRLEN(dest)) {
+        // fprintf(stderr, "error: %s '%s%c%s'\n", CMD_ENAME_TOO_LONG_STR, destdir, OS_SEPARATOR, filename);
+        // err = ADDON_ENAME_TOO_LONG;
+        // goto end;
+        return ADDON_ENAME_TOO_LONG;
+    }
+
+    struct os_stat s;
+    if (os_stat(dest, &s) == 0) {
+        // fprintf(stderr, "warning: removing existing directory '%s'\n", filename);
+        if (os_remove_all(dest) != 0) {
+            // fprintf(stderr, "error: %s '%s'\n", CMD_EREMOVE_DIR_STR, filename);
+            // err = -1;
+            // err = ADDON_EINTERNAL;
+            // goto end;
+            return ADDON_EINTERNAL;
+        }
+    }
+
+    char src[OS_MAX_PATH];
+    n = snprintf(src, ARRLEN(src), "%s%c%s", srcdir, OS_SEPARATOR, filename);
+    if (n < 0 || n >= ARRLEN(src)) {
+        // fprintf(stderr, "error: %s '%s%c%s'\n", CMD_ENAME_TOO_LONG_STR, srcdir, OS_SEPARATOR, filename);
+        // err = ADDON_ENAME_TOO_LONG;
+        // goto end;
+        return ADDON_ENAME_TOO_LONG;
+    }
+
+    if (os_rename(src, dest) != 0) {
+        // fprintf(stderr, "error: %s '%s'\n", CMD_EMOVE_STR, filename);
+        // err = ADDON_EINTERNAL;
+        // goto end;
+        return ADDON_EINTERNAL;
+    }
+
+    // end:
+    // return err;
+    return ADDON_OK;
+}
+
+int addon_extract(Addon *a, const char *path)
+{
+    int err = ADDON_OK;
+
+    OsDir *dir = os_opendir(a->_package_path);
+    if (dir == NULL) {
+        return ADDON_ENOENT;
+    }
+
+    OsDirEnt *entry = NULL;
+    while ((entry = os_readdir(dir)) != NULL) {
+        if (strcmp(entry->name, ".") == 0 || strcmp(entry->name, "..") == 0) {
+            continue;
+        }
+
+        if ((err = move_filename(a->_package_path, path, entry->name)) != ADDON_OK) {
+            return err;
+        }
+
+        list_insert(a->dirs, strdup(entry->name));
+    }
+
+    return ADDON_OK;
 }

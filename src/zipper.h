@@ -18,4 +18,4 @@ enum {
  *
  * On success returns ZIPPER_OK. On error returns one of the ZIPPER_E values.
  */
-int zipper_unzip(const char *dest, const char *src);
+int zipper_unzip(const char *src, const char *dest);

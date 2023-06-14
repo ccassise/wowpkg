@@ -17,17 +17,17 @@ Config *config_create(void)
 
 int config_from_json(Config *cfg, const char *json_str)
 {
-    int result = 0;
+    int err = 0;
 
     cJSON *json = cJSON_Parse(json_str);
     if (json == NULL) {
-        result = -1;
+        err = -1;
         goto end;
     }
 
     cJSON *addon_path = cJSON_GetObjectItemCaseSensitive(json, "addon_path");
     if (addon_path == NULL || !cJSON_IsString(addon_path)) {
-        result = -1;
+        err = -1;
         goto end;
     }
 
@@ -38,7 +38,7 @@ end:
         cJSON_Delete(json);
     }
 
-    return result;
+    return err;
 }
 
 char *config_to_json(Config *cfg)

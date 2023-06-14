@@ -7,10 +7,11 @@ project(wowpkg VERSION 0.1.0 LANGUAGES C)
 
 set(CMAKE_C_STANDARD 11)
 
-set(wowpkg_enable_sanitizers OFF)
+set(wowpkg_enable_sanitizers ON)
 set(wowpkg_enable_tests ON)
 
-# Disable tests on release builds because NDEBUG is most likely set.
+# Disable tests on release builds because NDEBUG is most likely set so they
+# won't be able to be ran.
 if (CMAKE_BUILD_TYPE STREQUAL "Release")
     set(wowpkg_enable_tests OFF)
 endif()
@@ -32,7 +33,7 @@ find_package(cJSON CONFIG REQUIRED)
 
 set(src_files
     ${PROJECT_SOURCE_DIR}/src/addon.c
-    ${PROJECT_SOURCE_DIR}/src/app_state.c
+    ${PROJECT_SOURCE_DIR}/src/appstate.c
     ${PROJECT_SOURCE_DIR}/src/command.c
     ${PROJECT_SOURCE_DIR}/src/config.c
     ${PROJECT_SOURCE_DIR}/src/list.c

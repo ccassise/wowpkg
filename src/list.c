@@ -40,12 +40,12 @@ ListNode *list_insert(List *l, void *value)
     return node;
 }
 
-ListNode *list_search(List *l, const void *value, int (*compare_fn)(const void *a, const void *b))
+ListNode *list_search(List *l, const void *value, ListCompareFn cmp)
 {
     ListNode *result = NULL;
     list_foreach(result, l)
     {
-        if (compare_fn(value, result->value) == 0) {
+        if (cmp(value, result->value) == 0) {
             break;
         }
     }
@@ -55,9 +55,12 @@ ListNode *list_search(List *l, const void *value, int (*compare_fn)(const void *
 
 ListNode *list_search_ptr(List *l, const void *value)
 {
-    ListNode *result = l->head;
-    while (result && result->value != value) {
-        result = result->next;
+    ListNode *result = NULL;
+    list_foreach(result, l)
+    {
+        if (result->value == value) {
+            break;
+        }
     }
 
     return result;
@@ -65,6 +68,10 @@ ListNode *list_search_ptr(List *l, const void *value)
 
 void list_remove(List *l, ListNode *node)
 {
+    if (node == NULL) {
+        return;
+    }
+
     if (node->prev != NULL) {
         node->prev->next = node->next;
     } else {
@@ -78,10 +85,11 @@ void list_remove(List *l, ListNode *node)
     if (l->free != NULL) {
         l->free(node->value);
     }
+
     free(node);
 }
 
-void list_sort(List *l, int (*compare_fn)(const void *a, const void *b))
+void list_sort(List *l, ListCompareFn cmp)
 {
     size_t insize = 1;
 
@@ -116,7 +124,7 @@ void list_sort(List *l, int (*compare_fn)(const void *a, const void *b))
                     node = p;
                     p = p->next;
                     psize--;
-                } else if (compare_fn(p->value, q->value) <= 0) {
+                } else if (cmp(p->value, q->value) <= 0) {
                     node = p;
                     p = p->next;
                     psize--;

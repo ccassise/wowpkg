@@ -55,14 +55,14 @@
 //     return wrote;
 // }
 
-static int zipper_unzip_file(const char *dest, unzFile uf)
+static int zipper_unzip_file(unzFile uf, const char *dest)
 {
-    int result = ZIPPER_OK;
+    int err = ZIPPER_OK;
     unz_file_info64 finfo;
     char filename[OS_MAX_FILENAME];
     FILE *out_file = NULL;
 
-    int err = unzGetCurrentFileInfo64(uf, &finfo, filename, sizeof(filename), NULL, 0, NULL, 0);
+    err = unzGetCurrentFileInfo64(uf, &finfo, filename, sizeof(filename), NULL, 0, NULL, 0);
     if (err != UNZ_OK) {
         return ZIPPER_ENOENT;
     }
@@ -75,20 +75,20 @@ static int zipper_unzip_file(const char *dest, unzFile uf)
     char new_path[OS_MAX_PATH];
     int nwrote = snprintf(new_path, sizeof(new_path), "%s%c%s", dest, OS_SEPARATOR, filename);
     if (nwrote >= (int)sizeof(new_path) || nwrote < 0) {
-        result = ZIPPER_ENAMETOOLONG;
+        err = ZIPPER_ENAMETOOLONG;
         goto end;
     }
 
     err = os_mkdir_all(new_path, 0755);
     if (err != 0) {
-        result = ZIPPER_ENOENT;
+        err = ZIPPER_ENOENT;
         goto end;
     }
 
     if (filename[finfo.size_filename - 1] != '/') {
         out_file = fopen(new_path, "wb");
         if (out_file == NULL) {
-            result = ZIPPER_ENOENT;
+            err = ZIPPER_ENOENT;
             goto end;
         }
 
@@ -97,13 +97,13 @@ static int zipper_unzip_file(const char *dest, unzFile uf)
         int nread = 0;
         while ((nread = unzReadCurrentFile(uf, buf, sizeof(buf) / sizeof(buf[0]))) > 0) {
             if (fwrite(buf, sizeof(*buf), (size_t)nread, out_file) != (size_t)nread) {
-                result = ZIPPER_EWRITE;
+                err = ZIPPER_EWRITE;
                 goto end;
             }
         }
 
         if (nread < 0) {
-            result = ZIPPER_EREAD;
+            err = ZIPPER_EREAD;
             goto end;
         }
     }
@@ -114,19 +114,19 @@ end:
         fclose(out_file);
     }
 
-    if (result == ZIPPER_OK) {
+    if (err == ZIPPER_OK) {
         err = unzGoToNextFile(uf);
         if (err == UNZ_END_OF_LIST_OF_FILE) {
-            result = ZIPPER_EEND_OF_LIST;
+            err = ZIPPER_EEND_OF_LIST;
         } else if (err != UNZ_OK) {
-            result = ZIPPER_ENOENT;
+            err = ZIPPER_ENOENT;
         }
     }
 
-    return result;
+    return err;
 }
 
-int zipper_unzip(const char *dest, const char *src)
+int zipper_unzip(const char *src, const char *dest)
 {
     // char tmp[OS_MAX_PATH];
 
@@ -137,7 +137,7 @@ int zipper_unzip(const char *dest, const char *src)
     // printf("%d: %s\n", nww, tmp);
 
     // return nww;
-    int result = ZIPPER_OK;
+    int err = ZIPPER_OK;
 
     struct os_stat s;
     if (os_stat(dest, &s) != 0 || !(s.st_mode & S_IFDIR)) {
@@ -149,25 +149,24 @@ int zipper_unzip(const char *dest, const char *src)
         return ZIPPER_ENOENT;
     }
 
-    int err = 0;
     unz_global_info64 ufinfo;
     err = unzGetGlobalInfo64(uf, &ufinfo);
     if (err != UNZ_OK) {
-        result = ZIPPER_ENOENT;
+        err = ZIPPER_ENOENT;
         goto end;
     }
 
     for (size_t i = 0; i < ufinfo.number_entry; i++) {
-        result = zipper_unzip_file(dest, uf);
-        if (result == ZIPPER_EEND_OF_LIST) {
-            result = ZIPPER_OK;
+        err = zipper_unzip_file(uf, dest);
+        if (err == ZIPPER_EEND_OF_LIST) {
+            err = ZIPPER_OK;
             break;
-        } else if (result != ZIPPER_OK) {
+        } else if (err != ZIPPER_OK) {
             break;
         }
     }
 
 end:
     unzClose(uf);
-    return result;
+    return err;
 }
