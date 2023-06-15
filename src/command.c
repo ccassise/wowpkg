@@ -1,7 +1,7 @@
 #include <ctype.h>
 #include <stdlib.h>
 
-#include <curl/cURL.h>
+#include <curl/curl.h>
 
 #include "addon.h"
 #include "command.h"
@@ -14,15 +14,15 @@
 #define ARRLEN(a) (sizeof(a) / sizeof(*(a)))
 
 #define CMD_EMETADATA "failed to get metadata"
-#define CMD_ECREATE_TMP_DIR_STR "failed to create temp directory"
+// #define CMD_ECREATE_TMP_DIR_STR "failed to create temp directory"
 #define CMD_EDOWNLOAD_STR "failed to make HTTP request"
 #define CMD_EEXTRACT_STR "failed to extract addon"
 #define CMD_EINVALID_ARGS_STR "invalid args"
-#define CMD_EMOVE_STR "failed to move file/directory"
+// #define CMD_EMOVE_STR "failed to move file/directory"
 #define CMD_ENAME_TOO_LONG_STR "name too long"
 #define CMD_ENOT_FOUND_STR "could not find addon"
 #define CMD_ENO_MEM_STR "memory allocation failed"
-#define CMD_EOPEN_DIR_STR "failed to open directory"
+// #define CMD_EOPEN_DIR_STR "failed to open directory"
 #define CMD_EPACKAGE_STR "failed to package addon"
 #define CMD_EREMOVE_DIR_STR "failed to remove existing directory"
 
@@ -119,7 +119,7 @@ int cmd_install(Context *ctx, int argc, const char *argv[], FILE *out)
         goto end;
     }
 
-    for (size_t i = 1; i < argc; i++) {
+    for (int i = 1; i < argc; i++) {
         fprintf(out, "==> Fetching %s\n", argv[i]);
 
         Addon *addon = addon_create();
@@ -140,14 +140,14 @@ int cmd_install(Context *ctx, int argc, const char *argv[], FILE *out)
             goto loop_error;
         }
 
-        list_insert(addons, addon);
-
         fprintf(out, "==> Downloading %s\n", addon->url);
         if (addon_fetch_zip(addon) != ADDON_OK) {
             PRINT_ERROR3(CMD_EDOWNLOAD_STR, argv[0], addon->name);
             err = -1;
             goto loop_error;
         }
+
+        list_insert(addons, addon);
 
         continue;
     loop_error:
@@ -167,8 +167,6 @@ int cmd_install(Context *ctx, int argc, const char *argv[], FILE *out)
     {
         Addon *addon = node->value;
 
-        const char *addon_path = "../../dev_only/addons";
-
         fprintf(out, "==> Packaging %s\n", addon->name);
         if (addon_package(addon) != ADDON_OK) {
             PRINT_ERROR3(CMD_EPACKAGE_STR, argv[0], addon->name);
@@ -177,7 +175,7 @@ int cmd_install(Context *ctx, int argc, const char *argv[], FILE *out)
         }
 
         fprintf(out, "==> Extracting %s\n", addon->name);
-        if (addon_extract(addon, addon_path) != ADDON_OK) {
+        if (addon_extract(addon, ctx->config->addon_path) != ADDON_OK) {
             PRINT_ERROR3(CMD_EEXTRACT_STR, argv[0], addon->name);
             err = -1;
             goto end;
@@ -211,7 +209,7 @@ end:
     // transferred to appstate. However if there was an error then ownership may
     // not have been transferred and need to be cleaned up.
     if (err != 0) {
-        list_set_free_fn(addons, addon_free);
+        list_set_free_fn(addons, (ListFreeFn)addon_free);
     }
 
     list_free(addons);
@@ -290,7 +288,7 @@ int cmd_remove(Context *ctx, int argc, const char *argv[], FILE *out)
         return -1;
     }
 
-    for (size_t i = 1; i < argc; i++) {
+    for (int i = 1; i < argc; i++) {
         ListNode *node = list_search(ctx->state->installed, argv[i], (ListCompareFn)cmp_str_to_addon);
         if (node == NULL) {
             PRINT_ERROR3(CMD_ENOT_FOUND_STR, argv[0], argv[i]);
@@ -308,7 +306,7 @@ int cmd_remove(Context *ctx, int argc, const char *argv[], FILE *out)
 
             char remove_path[OS_MAX_PATH];
             int n = snprintf(remove_path, ARRLEN(remove_path), "%s%c%s", ctx->config->addon_path, OS_SEPARATOR, dirname);
-            if (n < 0 || n >= ARRLEN(remove_path)) {
+            if (n < 0 || (size_t)n >= ARRLEN(remove_path)) {
                 PRINT_ERROR3_FMT(CMD_ENAME_TOO_LONG_STR, argv[0], "%s%c%s", ctx->config->addon_path, OS_SEPARATOR, dirname);
                 // result = -1;
                 // goto end;
@@ -413,6 +411,8 @@ int cmd_update(Context *ctx, int argc, const char *argv[], FILE *out)
         return -1;
     }
 
+    curl_global_init(CURL_GLOBAL_DEFAULT);
+
     int err = 0;
     List *addons = list_create();
     if (addons == NULL) {
@@ -430,7 +430,7 @@ int cmd_update(Context *ctx, int argc, const char *argv[], FILE *out)
         }
     } else {
         // Only update the addons that are in args.
-        for (size_t i = 1; i < argc; i++) {
+        for (int i = 1; i < argc; i++) {
             ListNode *found = list_search(ctx->state->installed, argv[i], cmp_str_to_addon);
             if (!found) {
                 PRINT_ERROR3(CMD_ENOT_FOUND_STR, argv[0], argv[i]);
@@ -474,9 +474,11 @@ int cmd_update(Context *ctx, int argc, const char *argv[], FILE *out)
 
 end:
     if (err != 0) {
-        list_set_free_fn(addons, addon_free);
+        list_set_free_fn(addons, (ListFreeFn)addon_free);
     }
     list_free(addons);
+
+    curl_global_cleanup();
 
     return err;
 }
@@ -487,6 +489,8 @@ int cmd_upgrade(Context *ctx, int argc, const char *argv[], FILE *out)
         PRINT_ERROR(CMD_EINVALID_ARGS_STR);
         return -1;
     }
+
+    curl_global_init(CURL_GLOBAL_DEFAULT);
 
     int err = 0;
     List *addons = list_create();
@@ -517,7 +521,7 @@ int cmd_upgrade(Context *ctx, int argc, const char *argv[], FILE *out)
         }
     } else {
         // Only upgrade the addons that are in args.
-        for (size_t i = 1; i < argc; i++) {
+        for (int i = 1; i < argc; i++) {
             ListNode *found_installed = list_search(ctx->state->installed, argv[i], cmp_str_to_addon);
             if (!found_installed) {
                 PRINT_ERROR3(CMD_ENOT_FOUND_STR, argv[0], argv[i]);
@@ -607,10 +611,12 @@ int cmd_upgrade(Context *ctx, int argc, const char *argv[], FILE *out)
 
 end:
     if (err != 0) {
-        list_set_free_fn(addons, addon_free);
+        list_set_free_fn(addons, (ListFreeFn)addon_free);
     }
 
     list_free(addons);
+
+    curl_global_cleanup();
 
     return err;
 }

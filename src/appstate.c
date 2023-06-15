@@ -28,8 +28,8 @@ AppState *appstate_create(void)
             free(result);
             result = NULL;
         } else {
-            list_set_free_fn(result->installed, (void (*)(void *))addon_free);
-            list_set_free_fn(result->latest, (void (*)(void *))addon_free);
+            list_set_free_fn(result->installed, (ListFreeFn)addon_free);
+            list_set_free_fn(result->latest, (ListFreeFn)addon_free);
         }
     }
 
@@ -227,7 +227,11 @@ int appstate_load(AppState *state, const char *path)
         goto end;
     }
 
-    size_t bufsz = s.st_size;
+    if (s.st_size < 0) {
+        err = -1;
+        goto end;
+    }
+    size_t bufsz = (size_t)s.st_size;
     buf = malloc(sizeof(*buf) * bufsz + 1);
 
     if (fread(buf, sizeof(*buf), bufsz, statef) != bufsz) {

@@ -140,7 +140,7 @@ int zipper_unzip(const char *src, const char *dest)
     int err = ZIPPER_OK;
 
     struct os_stat s;
-    if (os_stat(dest, &s) != 0 || !(s.st_mode & S_IFDIR)) {
+    if (os_stat(dest, &s) != 0 || !S_ISDIR(s.st_mode)) {
         return ZIPPER_ENOENT;
     }
 

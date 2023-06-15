@@ -6,6 +6,8 @@
 #include "context.h"
 #include "osstring.h"
 
+#define STATE_JSON_PATH "../../dev_only/state.json"
+
 /**
  * Attempts to save app state if err is 0. Otherwise does not attempt to write to disk.
  *
@@ -14,7 +16,7 @@
 static int try_save_state(Context *ctx, const char *appname, int err)
 {
     if (err == 0) {
-        if (appstate_save(ctx->state, "../../dev_only/state.json") != 0) {
+        if (appstate_save(ctx->state, STATE_JSON_PATH) != 0) {
             fprintf(stderr, "error: %s failed to save app state file\n", appname);
             return -1;
         }
@@ -46,7 +48,7 @@ int main(int argc, const char *argv[])
 
     int err = 0;
 
-    if (appstate_load(ctx.state, "../../dev_only/state.json") != 0) {
+    if (appstate_load(ctx.state, STATE_JSON_PATH) != 0) {
         fprintf(stderr, "error: %s failed to load state.json\n", argv[0]);
         err = -1;
         goto end;

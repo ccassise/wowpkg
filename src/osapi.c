@@ -35,7 +35,7 @@ OsDir *os_opendir(const char *path)
 #ifdef _WIN32
     char path_win[OS_MAX_PATH];
     int n = snprintf(path_win, ARRLEN(path_win), "%s%c*", path, OS_SEPARATOR);
-    if (n >= ARRLEN(path_win) || n < 0) {
+    if (n < 0 || (size_t)n >= ARRLEN(path_win)) {
         errno = ENAMETOOLONG;
         goto error;
     }
@@ -103,6 +103,10 @@ void os_closedir(OsDir *dir)
 
 int os_mkdir(const char *path, OsMode perms)
 {
+    if (*path == '\0') {
+        return 0;
+    }
+
 #ifdef _WIN32
     (void)perms;
     return _mkdir(path);
@@ -188,7 +192,7 @@ int os_remove_all(const char *path)
 
         char p[OS_MAX_PATH];
         int n = snprintf(p, ARRLEN(p), "%s%c%s", path, OS_SEPARATOR, entry->name);
-        if (n >= (int)ARRLEN(p) || n < 0) {
+        if (n < 0 || (size_t)n >= ARRLEN(p)) {
             errno = ENAMETOOLONG;
             err = -1;
             break;
@@ -197,7 +201,7 @@ int os_remove_all(const char *path)
         struct os_stat s;
         os_stat(p, &s);
 
-        if (s.st_mode & S_IFDIR) {
+        if (S_ISDIR(s.st_mode)) {
             err = os_remove_all(p);
         } else {
             err = remove(p);

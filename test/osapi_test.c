@@ -21,7 +21,7 @@ static void test_os_mkdir(void)
     err = os_stat(WOWPKG_TEST_TMPDIR "test_osapi_tmp", &s);
     assert(err == 0);
 
-    assert(s.st_mode & S_IFDIR);
+    assert(S_ISDIR(s.st_mode));
 
     err = os_rmdir(WOWPKG_TEST_TMPDIR "test_osapi_tmp");
     assert(err == 0);
@@ -37,11 +37,11 @@ static void test_os_mkdir_all(void)
     struct os_stat s;
     err = os_stat(WOWPKG_TEST_TMPDIR "test_osapi_tmp", &s);
     assert(err == 0);
-    assert(s.st_mode & S_IFDIR);
+    assert(S_ISDIR(s.st_mode));
 
     err = os_stat(WOWPKG_TEST_TMPDIR "test_osapi_tmp/test_subdir", &s);
     assert(err == 0);
-    assert(s.st_mode & S_IFDIR);
+    assert(S_ISDIR(s.st_mode));
 
     err = os_stat(WOWPKG_TEST_TMPDIR "test_osapi_tmp/test_subsir/test.txt", &s);
     assert(err != 0);
@@ -64,11 +64,11 @@ static void test_os_mkdir_all_win32(void)
     struct os_stat s;
     err = os_stat(WOWPKG_TEST_TMPDIR "test_osapi_tmp", &s);
     assert(err == 0);
-    assert(s.st_mode & S_IFDIR);
+    assert(S_ISDIR(s.st_mode));
 
     err = os_stat(WOWPKG_TEST_TMPDIR "test_osapi_tmp\\test_subdir", &s);
     assert(err == 0);
-    assert(s.st_mode & S_IFDIR);
+    assert(S_ISDIR(s.st_mode));
 
     err = os_stat(WOWPKG_TEST_TMPDIR "test_osapi_tmp\\test_subsir\\test.txt", &s);
     assert(err != 0);
@@ -155,7 +155,7 @@ static void test_os_mkstemp(void)
     struct os_stat s;
     assert(os_stat(template, &s) == 0);
 
-    assert(s.st_mode & S_IFREG);
+    assert(S_ISREG(s.st_mode));
 
     fclose(ftemp);
     remove(template);
@@ -171,7 +171,7 @@ static void test_os_mkdtemp(void)
     struct os_stat s;
     assert(os_stat(template, &s) == 0);
 
-    assert(s.st_mode & S_IFDIR);
+    assert(S_ISDIR(s.st_mode));
 
     os_rmdir(template);
 }
@@ -188,13 +188,13 @@ static void test_os_rename_dir(void)
 
     char actual[OS_MAX_PATH];
     int n = snprintf(actual, ARRLEN(actual), "%s%c%s", src, OS_SEPARATOR, &dest[strlen(WOWPKG_TEST_TMPDIR)]);
-    assert(n > 0 && n < ARRLEN(actual));
+    assert(n > 0 && n < (int)ARRLEN(actual));
 
     assert(os_rename(dest, actual) == 0);
 
     struct os_stat s;
     assert(os_stat(actual, &s) == 0);
-    assert(s.st_mode & S_IFDIR);
+    assert(S_ISDIR(s.st_mode));
 
     os_remove_all(src);
 }
@@ -218,7 +218,7 @@ static void test_os_rename_file(void)
     assert(os_stat(src, &s) != 0);
 
     assert(os_stat(dest, &s) == 0);
-    assert(s.st_mode & S_IFREG);
+    assert(S_ISREG(s.st_mode));
 
     remove(dest);
 }
@@ -245,7 +245,7 @@ static void test_os_rename_file_replace(void)
     assert(os_stat(src, &s) != 0);
 
     assert(os_stat(dest, &s) == 0);
-    assert(s.st_mode & S_IFREG);
+    assert(S_ISREG(s.st_mode));
 
     remove(dest);
 }

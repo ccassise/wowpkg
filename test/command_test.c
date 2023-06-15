@@ -97,14 +97,6 @@ static void test_cmd_search(void)
     free(out_str);
 }
 
-static int cmp_str_to_addon(const void *a, const void *b)
-{
-    const char *str = a;
-    const Addon *addon = b;
-
-    return strcasecmp(str, addon->name);
-}
-
 static void test_cmd_remove(void)
 {
     Context ctx;
@@ -166,7 +158,7 @@ static void test_cmd_remove(void)
 
     list_insert(ctx.state->latest, latest);
 
-    char *argv[] = { "remove", "mockaddon" };
+    const char *argv[] = { "remove", "mockaddon" };
     assert(cmd_remove(&ctx, ARRLEN(argv), argv, stderr) == 0);
 
     assert(list_isempty(ctx.state->installed));
@@ -233,6 +225,7 @@ static void test_cmd_outdated(void)
     assert(strcmp(out_str, "AddonOne (v1.2.3) < (v1.2.5)\nAddonThree (19700101.1) < (20200809.5)\nAddonTwo (v4.5.6) < (v5.6.7)\n") == 0);
 
     fclose(out);
+    free(out_str);
     appstate_free(ctx.state);
 }
 

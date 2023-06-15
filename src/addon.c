@@ -13,8 +13,8 @@
 #define USER_AGENT "CURL"
 
 typedef struct Response {
-    char *data;
     size_t size;
+    char *data;
 } Response;
 
 static size_t write_str_cb(void *data, size_t size, size_t nmemb, void *userdata)
@@ -321,7 +321,7 @@ cJSON *addon_fetch_catalog_meta(const char *name, int *out_err)
 
     char path[OS_MAX_PATH];
     int n = snfind_catalog_path(path, ARRLEN(path), name);
-    if (n >= ARRLEN(path) || n < 0) {
+    if (n < 0 || (size_t)n >= ARRLEN(path)) {
         err = ADDON_ENOTFOUND;
         goto end;
     }
@@ -393,7 +393,7 @@ cJSON *addon_fetch_github_meta(const char *url, int *out_err)
         goto end;
     }
 
-    // curl_easy_setopt(curl, CURLOPT_VERBOSE);
+    // curl_easy_setopt(curl, CURLOPT_VERBOSE, true);
     curl_easy_setopt(curl, CURLOPT_URL, url);
     curl_easy_setopt(curl, CURLOPT_USERAGENT, USER_AGENT);
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_str_cb);
@@ -405,9 +405,9 @@ cJSON *addon_fetch_github_meta(const char *url, int *out_err)
         goto end;
     }
 
-    int http_code = 0;
+    long http_code;
     curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_code);
-    if (http_code != 200 || status == CURLE_ABORTED_BY_CALLBACK) {
+    if (http_code != 200) {
         err = ADDON_EINTERNAL;
         goto end;
     }
@@ -451,11 +451,11 @@ end:
         curl_easy_cleanup(curl);
     }
 
-    if (res.data) {
+    if (res.data != NULL) {
         free(res.data);
     }
 
-    if (resp) {
+    if (resp != NULL) {
         cJSON_Delete(resp);
     }
 
@@ -465,7 +465,7 @@ end:
 
     if (err != ADDON_OK && result != NULL) {
         cJSON_Delete(result);
-        return NULL;
+        result = NULL;
     }
 
     return result;
@@ -533,14 +533,16 @@ int addon_fetch_zip(Addon *a)
         goto end;
     }
 
-    int http_code = 0;
+    long http_code;
     curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_code);
-    if (http_code != 200 || status == CURLE_ABORTED_BY_CALLBACK) {
+    if (http_code != 200) {
         err = ADDON_EINTERNAL;
         goto end;
     }
 
-    res.size--; // Remove terminating null since this should be raw data.
+    if (res.size > 0) {
+        res.size--; // Remove terminating null since this should be raw data.
+    }
 
     char zippath[OS_MAX_PATH];
     int nwrote = snprintf(zippath, ARRLEN(zippath), "%s_%s_XXXXXX", a->name, a->version);
@@ -564,6 +566,7 @@ int addon_fetch_zip(Addon *a)
 
 end:
     curl_easy_cleanup(curl);
+
     if (res.data != NULL) {
         free(res.data);
     }
@@ -582,7 +585,7 @@ int addon_package(Addon *a)
     char tmpdir[OS_MAX_PATH];
 
     int n = snprintf(tmpdir, ARRLEN(tmpdir), "%s%c%s_%s_XXXXXX", tmp_path, OS_SEPARATOR, a->name, a->version);
-    if (n < 0 || n >= ARRLEN(tmpdir)) {
+    if (n < 0 || (size_t)n >= ARRLEN(tmpdir)) {
         return ADDON_ENAME_TOO_LONG;
         // fprintf(stderr, "error: %s %s '%s%c%s_%s_XXXXXX'\n", argv[0], CMD_ENAME_TOO_LONG_STR, tmp_path, OS_SEPARATOR, addon->name, addon->version);
         // result = -1;
@@ -609,7 +612,7 @@ static int move_filename(const char *srcdir, const char *destdir, const char *fi
 
     char dest[OS_MAX_PATH];
     n = snprintf(dest, ARRLEN(dest), "%s%c%s", destdir, OS_SEPARATOR, filename);
-    if (n < 0 || n >= ARRLEN(dest)) {
+    if (n < 0 || (size_t)n >= ARRLEN(dest)) {
         // fprintf(stderr, "error: %s '%s%c%s'\n", CMD_ENAME_TOO_LONG_STR, destdir, OS_SEPARATOR, filename);
         // err = ADDON_ENAME_TOO_LONG;
         // goto end;
@@ -630,7 +633,7 @@ static int move_filename(const char *srcdir, const char *destdir, const char *fi
 
     char src[OS_MAX_PATH];
     n = snprintf(src, ARRLEN(src), "%s%c%s", srcdir, OS_SEPARATOR, filename);
-    if (n < 0 || n >= ARRLEN(src)) {
+    if (n < 0 || (size_t)n >= ARRLEN(src)) {
         // fprintf(stderr, "error: %s '%s%c%s'\n", CMD_ENAME_TOO_LONG_STR, srcdir, OS_SEPARATOR, filename);
         // err = ADDON_ENAME_TOO_LONG;
         // goto end;
@@ -665,11 +668,14 @@ int addon_extract(Addon *a, const char *path)
         }
 
         if ((err = move_filename(a->_package_path, path, entry->name)) != ADDON_OK) {
-            return err;
+            goto end;
         }
 
         list_insert(a->dirs, strdup(entry->name));
     }
+
+end:
+    os_closedir(dir);
 
     return ADDON_OK;
 }

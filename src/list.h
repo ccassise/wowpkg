@@ -2,6 +2,9 @@
 
 #include <stdbool.h>
 
+typedef int (*ListCompareFn)(const void *, const void *);
+typedef void (*ListFreeFn)(void *);
+
 typedef struct ListNode ListNode;
 typedef struct ListNode {
     ListNode *next;
@@ -11,10 +14,8 @@ typedef struct ListNode {
 
 typedef struct List {
     ListNode *head;
-    void (*free)(void *);
+    ListFreeFn free;
 } List;
-
-typedef int (*ListCompareFn)(const void *, const void *);
 
 #define list_foreach(n, l) for ((n) = (n) == NULL ? (l)->head : (n); (n); (n) = (n)->next)
 
