@@ -57,6 +57,8 @@ int main(int argc, const char *argv[])
         err = try_save_state(&ctx, argv[0], err);
     } else if (strcasecmp(argv[1], "list") == 0) {
         err = cmd_list(&ctx, argc - 1, &argv[1], stdout);
+    } else if (strcasecmp(argv[1], "outdated") == 0) {
+        err = cmd_outdated(&ctx, argc - 1, &argv[1], stdout);
     } else if (strcasecmp(argv[1], "search") == 0) {
         err = cmd_search(&ctx, argc - 1, &argv[1], stdout);
     } else if (strcasecmp(argv[1], "remove") == 0) {

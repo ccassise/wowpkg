@@ -181,11 +181,67 @@ static void test_cmd_remove(void)
     os_remove_all(outdir);
 }
 
+static void test_cmd_outdated(void)
+{
+    Addon *addon1 = addon_create();
+    Addon *addon2 = addon_create();
+    Addon *addon3 = addon_create();
+
+    addon_set_str(&addon1->name, strdup("AddonOne"));
+    addon_set_str(&addon1->version, strdup("v1.2.3"));
+    addon_set_str(&addon2->name, strdup("AddonTwo"));
+    addon_set_str(&addon2->version, strdup("v4.5.6"));
+    addon_set_str(&addon3->name, strdup("AddonThree"));
+    addon_set_str(&addon3->version, strdup("19700101.1"));
+
+    Addon *addon1_latest = addon_dup(addon1);
+    Addon *addon2_latest = addon_dup(addon2);
+    Addon *addon3_latest = addon_dup(addon3);
+
+    addon_set_str(&addon1_latest->version, strdup("v1.2.5"));
+    addon_set_str(&addon2_latest->version, strdup("v5.6.7"));
+    addon_set_str(&addon3_latest->version, strdup("20200809.5"));
+
+    Context ctx;
+    memset(&ctx, 0, sizeof(ctx));
+
+    ctx.state = appstate_create();
+    list_insert(ctx.state->installed, addon1);
+    list_insert(ctx.state->installed, addon2);
+    list_insert(ctx.state->installed, addon3);
+
+    list_insert(ctx.state->latest, addon1_latest);
+    list_insert(ctx.state->latest, addon2_latest);
+    list_insert(ctx.state->latest, addon3_latest);
+
+    FILE *out = tmpfile();
+
+    const char *argv[] = { "outdated" };
+    assert(cmd_outdated(&ctx, ARRLEN(argv), argv, out) == 0);
+
+    long out_len = ftell(out);
+    assert(out_len > 0);
+    fseek(out, 0, SEEK_SET);
+
+    char *out_str = malloc(sizeof(*out_str) * (size_t)out_len + 1);
+    assert(out_str != NULL);
+
+    assert(fread(out_str, sizeof(*out_str), (size_t)out_len, out) == (size_t)out_len);
+    out_str[out_len] = '\0';
+
+    // Should be sorted.
+    assert(strcmp(out_str, "AddonOne (v1.2.3) < (v1.2.5)\nAddonThree (19700101.1) < (20200809.5)\nAddonTwo (v4.5.6) < (v5.6.7)\n") == 0);
+
+    fclose(out);
+    appstate_free(ctx.state);
+}
+
 int main(void)
 {
     test_cmd_list();
     test_cmd_search();
     test_cmd_remove();
+    test_cmd_outdated();
 
     return 0;
 }

@@ -8,7 +8,7 @@ int cmd_install(Context *ctx, int argc, const char *argv[], FILE *out);
 
 int cmd_list(Context *ctx, int argc, const char *argv[], FILE *out);
 
-// int cmd_outdated(Context *ctx, int argc, const char *argv[], FILE *out);
+int cmd_outdated(Context *ctx, int argc, const char *argv[], FILE *out);
 
 int cmd_remove(Context *ctx, int argc, const char *argv[], FILE *out);
 
