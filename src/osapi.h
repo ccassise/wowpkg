@@ -4,6 +4,7 @@
 #include <sys/stat.h>
 
 #ifdef _WIN32
+#include <direct.h>
 #include <windows.h>
 #else
 #include <dirent.h>
