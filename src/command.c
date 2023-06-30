@@ -219,6 +219,24 @@ end:
     return err;
 }
 
+int cmd_help(Context *ctx, int argc, const char *argv[], FILE *out)
+{
+    UNUSED(ctx);
+    UNUSED(argc);
+    UNUSED(argv);
+
+    fprintf(out, "Example usage:\n");
+    fprintf(out, "\twowpkg install ADDON...\n");
+    fprintf(out, "\twowpkg list\n");
+    fprintf(out, "\twowpkg outdated\n");
+    fprintf(out, "\twowpkg remove ADDON...\n");
+    fprintf(out, "\twowpkg search TEXT\n");
+    fprintf(out, "\twowpkg update [ADDON...]\n");
+    fprintf(out, "\twowpkg upgrade [ADDON...]\n");
+
+    return 0;
+}
+
 int cmd_list(Context *ctx, int argc, const char *argv[], FILE *out)
 {
     UNUSED(argv);
@@ -313,7 +331,7 @@ int cmd_remove(Context *ctx, int argc, const char *argv[], FILE *out)
                 return -1;
             }
 
-            if (os_remove_all(remove_path) != 0) {
+            if (os_remove_all(remove_path) != 0 && errno != ENOENT) {
                 // TODO: What should the program do if this error occurs? If it
                 // was successful in removing one or more directories then the
                 // addon directory would now be corrupted. How can it be

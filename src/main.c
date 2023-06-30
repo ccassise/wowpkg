@@ -30,7 +30,7 @@ int main(int argc, const char *argv[])
     clock_t start = clock();
 
     if (argc <= 1) {
-        printf("PRINT USAGE\n");
+        fprintf(stderr, "Usage: wowpkg COMMAND [ARGS...]\n");
         exit(1);
     }
 
@@ -72,6 +72,8 @@ int main(int argc, const char *argv[])
     } else if (strcasecmp(argv[1], "upgrade") == 0) {
         err = cmd_upgrade(&ctx, argc - 1, &argv[1], stdout);
         err = try_save_state(&ctx, argv[0], err);
+    } else if (strcasecmp(argv[1], "help") == 0) {
+        err = cmd_help(&ctx, argc - 1, &argv[1], stdout);
     } else {
         fprintf(stderr, "error: %s unknown command '%s'\n", argv[0], argv[1]);
         err = -1;
@@ -84,5 +86,5 @@ end:
     clock_t end = clock();
     printf("Complete in: %.2f seconds\n", (double)(end - start) / CLOCKS_PER_SEC);
 
-    return err == 0 ? 0 : 1;
+    return err < 0 ? 1 : err;
 }

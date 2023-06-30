@@ -5,66 +5,89 @@
 #include "osapi.h"
 #include "zipper.h"
 
-// #ifdef _WIN32
-// static const char *PATH_SEPS = "/\\";
-// #else
-// static const char *PATH_SEPS = "/";
-// #endif
+#define ARRLEN(a) (sizeof(a) / sizeof(*(a)))
 
-// static bool is_sep(char sep)
-// {
-//     for (const char *s = PATH_SEPS; *s; s++) {
-//         if (*s == sep) {
-//             return true;
-//         }
-//     }
+/**
+ * Copies path to the given buffer removing '.', '..', and multiple sequential
+ * separators. Also, converts separators to the OS native separator.
+ *
+ * This function has similar semantics as snprintf(3). Writes no more than n - 1
+ * characters to buffer and buffer will always be null terminated as long as n > 0.
+ *
+ * Returns the number of characters that were written or would have been written
+ * had buffer contained enough space.
+ */
+static int snclean_path(char *buf, size_t n, const char *path)
+{
+    if (n > 0) {
+        buf[0] = '\0';
+    }
 
-//     return false;
-// }
+    if (path[0] == '\0') {
+        return 0;
+    }
 
-// // https://github.com/zlib-ng/minizip-ng/commit/dd808239ddd952079d6061dfd3132933a856a980
-// static int snclean(char *s, size_t n, const char *path)
-// {
-//     const char *p = path;
-//     char *wp = s;
-//     int wrote = 0;
-//     while (1) {
-//         size_t path_end = strcspn(p, PATH_SEPS);
-//         // printf("%lld\n", path_end);
-//         if (path_end == 0 || strncmp(p, "..", path_end) != 0) {
-//             for (size_t i = 0; i < path_end; i++) {
-//                 *wp++ = p[i];
-//                 *wp = '\0';
-//                 wrote++;
-//                 // putchar(p[i]);
-//             }
-//             // putchar('\n');
-//             // printf("here?\n");
-//             *wp++ = OS_SEPARATOR;
-//             *wp = '\0';
-//             wrote++;
-//         }
+    int result = 0;
+    char *writer = buf;
+    const char *filename = path;
+    while (1) {
+        size_t filename_len = strcspn(filename, OS_VALID_SEPARATORS);
+        if (filename == path && filename_len == 0) {
+            // Handle root.
+            if (result < n - 1) {
+                writer[result] = OS_SEPARATOR;
+                writer[result + 1] = '\0';
+            }
+            result++;
+        } else if (filename_len > 0) {
+            if (strncmp(filename, ".", filename_len - 1) != 0 || strncmp(filename, "..", filename_len - 1) != 0) {
+                for (size_t i = 0; i < filename_len; i++) {
+                    if (result < n - 1) {
+                        writer[result] = filename[i];
+                        writer[result + 1] = '\0';
+                    }
 
-//         if (p[path_end] == '\0') {
-//             break;
-//         }
+                    result++;
+                }
 
-//         p += path_end + 1;
-//     }
+                if (filename[filename_len] != '\0') {
+                    if (result < n - 1) {
+                        writer[result] = OS_SEPARATOR;
+                        writer[result + 1] = '\0';
+                    }
 
-//     return wrote;
-// }
+                    result++;
+                }
+            }
+        }
+
+        if (filename[filename_len] == '\0') {
+            break;
+        }
+
+        filename = &filename[filename_len + 1];
+    }
+
+    return result;
+}
 
 static int zipper_unzip_file(unzFile uf, const char *dest)
 {
     int err = ZIPPER_OK;
     unz_file_info64 finfo;
-    char filename[OS_MAX_FILENAME];
     FILE *out_file = NULL;
+    char raw_filename[OS_MAX_FILENAME];
+    char filename[OS_MAX_FILENAME];
 
-    err = unzGetCurrentFileInfo64(uf, &finfo, filename, sizeof(filename), NULL, 0, NULL, 0);
+    err = unzGetCurrentFileInfo64(uf, &finfo, raw_filename, ARRLEN(raw_filename), NULL, 0, NULL, 0);
     if (err != UNZ_OK) {
         return ZIPPER_ENOENT;
+    }
+
+    int filename_len = snclean_path(filename, ARRLEN(filename), raw_filename);
+    if (filename_len >= ARRLEN(filename)) {
+        err = ZIPPER_ENAMETOOLONG;
+        goto end;
     }
 
     err = unzOpenCurrentFile(uf);
@@ -73,8 +96,8 @@ static int zipper_unzip_file(unzFile uf, const char *dest)
     }
 
     char new_path[OS_MAX_PATH];
-    int nwrote = snprintf(new_path, sizeof(new_path), "%s%c%s", dest, OS_SEPARATOR, filename);
-    if (nwrote >= (int)sizeof(new_path) || nwrote < 0) {
+    int n = snprintf(new_path, sizeof(new_path), "%s%c%s", dest, OS_SEPARATOR, filename);
+    if (n < 0 || (size_t)n >= sizeof(new_path)) {
         err = ZIPPER_ENAMETOOLONG;
         goto end;
     }
@@ -85,7 +108,8 @@ static int zipper_unzip_file(unzFile uf, const char *dest)
         goto end;
     }
 
-    if (filename[finfo.size_filename - 1] != '/') {
+    if (finfo.compressed_size != 0) {
+        // File is not a directory.
         out_file = fopen(new_path, "wb");
         if (out_file == NULL) {
             err = ZIPPER_ENOENT;
@@ -95,7 +119,7 @@ static int zipper_unzip_file(unzFile uf, const char *dest)
         unsigned char buf[BUFSIZ];
 
         int nread = 0;
-        while ((nread = unzReadCurrentFile(uf, buf, sizeof(buf) / sizeof(buf[0]))) > 0) {
+        while ((nread = unzReadCurrentFile(uf, buf, ARRLEN(buf))) > 0) {
             if (fwrite(buf, sizeof(*buf), (size_t)nread, out_file) != (size_t)nread) {
                 err = ZIPPER_EWRITE;
                 goto end;
@@ -128,15 +152,6 @@ end:
 
 int zipper_unzip(const char *src, const char *dest)
 {
-    // char tmp[OS_MAX_PATH];
-
-    // int nww = snclean(tmp, OS_MAX_PATH, "/../hello/../world../..hmm../../");
-    // printf("%d: %s\n", nww, tmp);
-
-    // nww = snclean(tmp, OS_MAX_PATH, "/");
-    // printf("%d: %s\n", nww, tmp);
-
-    // return nww;
     int err = ZIPPER_OK;
 
     struct os_stat s;
