@@ -10,6 +10,10 @@
 #include <unistd.h>
 #endif
 
+#ifdef __APPLE__
+#include <sys/syslimits.h>
+#endif
+
 #ifdef _WIN32
 
 #define OS_SEPARATOR '\\'
@@ -27,6 +31,7 @@
 
 #define os_stat _stat
 #define os_rmdir _rmdir
+#define os_getcwd _getcwd
 
 typedef unsigned int OsMode;
 
@@ -39,6 +44,7 @@ typedef unsigned int OsMode;
 
 #define os_stat stat
 #define os_rmdir rmdir
+#define os_getcwd getcwd
 
 typedef mode_t OsMode;
 
@@ -92,7 +98,7 @@ int os_mkdir_all(char *path, OsMode perms);
  * Modifies the template string. The last six characters of template shall be
  * "XXXXXX". Since it will be modified template shall not be a string constant.
  *
- * On success returns an open FILE with "w+b" mode. On error, NULL is returned
+ * On success returns an open FILE with "w+b" mode set. On error, NULL is returned
  * and errno is set.
  */
 FILE *os_mkstemp(char *template);

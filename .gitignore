@@ -54,6 +54,7 @@ dkms.conf
 # Repo ignores
 .vscode/
 build/
+.DS_Store
 
 # Setup development directory so that it is easier to run from source.
 dev_only/**

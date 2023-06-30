@@ -7,16 +7,17 @@ project(wowpkg VERSION 0.1.0 LANGUAGES C)
 
 set(CMAKE_C_STANDARD 11)
 
-set(wowpkg_enable_sanitizers ON)
-set(wowpkg_enable_tests ON)
+set(WOWPKG_ENABLE_SANITIZERS ON)
+set(WOWPKG_ENABLE_TESTS ON)
 
-# Disable tests on release builds because NDEBUG is most likely set so they
-# won't be able to be ran.
+# Disable tests on release builds because NDEBUG is most likely set.
+# With NDEBUG set tests will have weird results or fail to compile since
+# 'assert' will be turned in to a no op.
 if (CMAKE_BUILD_TYPE STREQUAL "Release")
-    set(wowpkg_enable_tests OFF)
+    set(WOWPKG_ENABLE_TESTS OFF)
 endif()
 
-if (wowpkg_enable_tests)
+if (WOWPKG_ENABLE_TESTS)
     include(CTest)
     enable_testing()
 endif()
@@ -30,8 +31,14 @@ endif()
 find_package(CURL CONFIG REQUIRED)
 find_package(cJSON CONFIG REQUIRED)
 
+if (WIN32)
+    set(WOWPKG_LIBS unofficial::minizip::minizip CURL::libcurl cjson)
+else()
+    set(WOWPKG_LIBS minizip::minizip CURL::libcurl cjson)
+endif()
 
-set(src_files
+
+set(SRC_FILES
     ${PROJECT_SOURCE_DIR}/src/addon.c
     ${PROJECT_SOURCE_DIR}/src/appstate.c
     ${PROJECT_SOURCE_DIR}/src/command.c
@@ -42,15 +49,15 @@ set(src_files
 )
 
 if (MSVC)
-    set(cflags_release /O2 /GL /DNDEBUG /Zi /Gy)
-    set(cflags /W4 "$<$<CONFIG:Release>:${cflags_release}>")
+    set(WFLAGS_RELEASE /O2 /GL /DNDEBUG /Zi /Gy)
+    set(WFLAGS /W4 "$<$<CONFIG:Release>:${WFLAGS_RELEASE}>")
 
-    set(ldflags_release /DEBUG /INCREMENTAL:NO /OPT:REF /OPT:ICF)
-    set(ldflags "$<$<CONFIG:Release>:${ldflags_release}>")
+    set(LDFLAGS_RELEASE /DEBUG /INCREMENTAL:NO /OPT:REF /OPT:ICF)
+    set(LDFLAGS "$<$<CONFIG:Release>:${LDFLAGS_RELEASE}>")
 
-    set(cdefs _CRT_SECURE_NO_WARNINGS)
+    set(WOWPKG_DEFINES _CRT_SECURE_NO_WARNINGS)
 else()
-    set (cflags
+    set (WFLAGS
         -Wall
         -Wextra
         -Wshadow
@@ -74,12 +81,14 @@ else()
     )
 endif()
 
-if (wowpkg_enable_sanitizers)
+if (WOWPKG_ENABLE_SANITIZERS)
     message(STATUS "[${PROJECT_NAME}] enabling sanitizers")
     if (MSVC)
-        set(cflags ${cflags} /fsanitize=address)
+        set(SANFLAGS /fsanitize=address)
+
+        set(WFLAGS ${WFLAGS} ${SANFLAGS})
     else()
-        set (sanflags
+        set(SANFLAGS
             -fsanitize=address
             -fsanitize=undefined
             -fno-sanitize-recover=all
@@ -89,19 +98,19 @@ if (wowpkg_enable_sanitizers)
             -fno-sanitize=alignment
         )
 
-        set (cflags ${cflags} ${sanflags})
+        set (WFLAGS ${WFLAGS} ${SANFLAGS})
 
         if (CMAKE_SYSTEM_NAME STREQUAL "Darwin")
-            set(ldflags ${ldflags} ${sanflags} -static-libsan)
+            set(LDFLAGS ${SANFLAGS} -static-libsan)
         else()
-            set(ldflags ${ldflags} ${sanflags} -static-libasan)
+            set(LDFLAGS ${SANFLAGS} -static-libasan)
         endif()
     endif()
 endif()
 
 add_subdirectory(src)
 
-if (wowpkg_enable_tests)
+if (WOWPKG_ENABLE_TESTS)
     add_subdirectory(test)
 endif()
 

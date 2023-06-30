@@ -159,7 +159,7 @@ static void test_cmd_remove(void)
     list_insert(ctx.state->latest, latest);
 
     const char *argv[] = { "remove", "mockaddon" };
-    assert(cmd_remove(&ctx, ARRLEN(argv), argv, stderr) == 0);
+    assert(cmd_remove(&ctx, ARRLEN(argv), argv, stdout) == 0);
 
     assert(list_isempty(ctx.state->installed));
     assert(list_isempty(ctx.state->latest));

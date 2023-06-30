@@ -547,7 +547,7 @@ int addon_fetch_zip(Addon *a)
     char zippath[OS_MAX_PATH];
     int nwrote = snprintf(zippath, ARRLEN(zippath), "%s_%s_XXXXXX", a->name, a->version);
     if (nwrote >= (int)ARRLEN(zippath) || nwrote < 0) {
-        err = ADDON_ENAME_TOO_LONG;
+        err = ADDON_ENAMETOOLONG;
         goto end;
     }
 
@@ -586,10 +586,7 @@ int addon_package(Addon *a)
 
     int n = snprintf(tmpdir, ARRLEN(tmpdir), "%s%c%s_%s_XXXXXX", tmp_path, OS_SEPARATOR, a->name, a->version);
     if (n < 0 || (size_t)n >= ARRLEN(tmpdir)) {
-        return ADDON_ENAME_TOO_LONG;
-        // fprintf(stderr, "error: %s %s '%s%c%s_%s_XXXXXX'\n", argv[0], CMD_ENAME_TOO_LONG_STR, tmp_path, OS_SEPARATOR, addon->name, addon->version);
-        // result = -1;
-        // goto end;
+        return ADDON_ENAMETOOLONG;
     }
 
     if (os_mkdtemp(tmpdir) == NULL) {
@@ -613,20 +610,12 @@ static int move_filename(const char *srcdir, const char *destdir, const char *fi
     char dest[OS_MAX_PATH];
     n = snprintf(dest, ARRLEN(dest), "%s%c%s", destdir, OS_SEPARATOR, filename);
     if (n < 0 || (size_t)n >= ARRLEN(dest)) {
-        // fprintf(stderr, "error: %s '%s%c%s'\n", CMD_ENAME_TOO_LONG_STR, destdir, OS_SEPARATOR, filename);
-        // err = ADDON_ENAME_TOO_LONG;
-        // goto end;
-        return ADDON_ENAME_TOO_LONG;
+        return ADDON_ENAMETOOLONG;
     }
 
     struct os_stat s;
     if (os_stat(dest, &s) == 0) {
-        // fprintf(stderr, "warning: removing existing directory '%s'\n", filename);
         if (os_remove_all(dest) != 0) {
-            // fprintf(stderr, "error: %s '%s'\n", CMD_EREMOVE_DIR_STR, filename);
-            // err = -1;
-            // err = ADDON_EINTERNAL;
-            // goto end;
             return ADDON_EINTERNAL;
         }
     }
@@ -634,21 +623,13 @@ static int move_filename(const char *srcdir, const char *destdir, const char *fi
     char src[OS_MAX_PATH];
     n = snprintf(src, ARRLEN(src), "%s%c%s", srcdir, OS_SEPARATOR, filename);
     if (n < 0 || (size_t)n >= ARRLEN(src)) {
-        // fprintf(stderr, "error: %s '%s%c%s'\n", CMD_ENAME_TOO_LONG_STR, srcdir, OS_SEPARATOR, filename);
-        // err = ADDON_ENAME_TOO_LONG;
-        // goto end;
-        return ADDON_ENAME_TOO_LONG;
+        return ADDON_ENAMETOOLONG;
     }
 
     if (os_rename(src, dest) != 0) {
-        // fprintf(stderr, "error: %s '%s'\n", CMD_EMOVE_STR, filename);
-        // err = ADDON_EINTERNAL;
-        // goto end;
         return ADDON_EINTERNAL;
     }
 
-    // end:
-    // return err;
     return ADDON_OK;
 }
 

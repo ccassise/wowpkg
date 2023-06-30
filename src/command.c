@@ -1,4 +1,5 @@
 #include <ctype.h>
+#include <errno.h>
 #include <stdlib.h>
 
 #include <curl/curl.h>
@@ -19,39 +20,30 @@
 #define CMD_EEXTRACT_STR "failed to extract addon"
 #define CMD_EINVALID_ARGS_STR "invalid args"
 // #define CMD_EMOVE_STR "failed to move file/directory"
-#define CMD_ENAME_TOO_LONG_STR "name too long"
+#define CMD_ENAMETOOLONG_STR "name too long"
 #define CMD_ENOT_FOUND_STR "could not find addon"
 #define CMD_ENO_MEM_STR "memory allocation failed"
 // #define CMD_EOPEN_DIR_STR "failed to open directory"
 #define CMD_EPACKAGE_STR "failed to package addon"
 #define CMD_EREMOVE_DIR_STR "failed to remove existing directory"
 
-#define PRINT_ERROR(error_str)                     \
-    do {                                           \
-        fprintf(stderr, "error: %s\n", error_str); \
-    } while (0)
+#define PRINT_ERROR(...) fprintf(stderr, "Error: " __VA_ARGS__)
 
-#define PRINT_ERROR2(error_str, proc_name)                        \
-    do {                                                          \
-        fprintf(stderr, "error: %s: %s\n", proc_name, error_str); \
-    } while (0)
+#define PRINT_ERROR1(error_str) PRINT_ERROR("%s\n", error_str)
+#define PRINT_ERROR2(error_str, proc_name) PRINT_ERROR("%s: %s\n", proc_name, error_str)
+#define PRINT_ERROR3(error_str, proc_name, name) PRINT_ERROR("%s: %s '%s'\n", proc_name, error_str, name)
+#define PRINT_ERROR3_FMT(error_str, proc_name, fmt, ...) PRINT_ERROR("%s: %s '" fmt "'\n", proc_name, error_str, __VA_ARGS__)
 
-#define PRINT_ERROR3(error_str, proc_name, name)                             \
-    do {                                                                     \
-        fprintf(stderr, "error: %s: %s '%s'\n", proc_name, error_str, name); \
-    } while (0)
+#define PRINT_WARNING(...) fprintf(stderr, "Warning: " __VA_ARGS__)
 
-#define PRINT_ERROR3_FMT(error_str, proc_name, fmt, ...)                                 \
-    do {                                                                                 \
-        fprintf(stderr, "error: %s: %s '" fmt "'\n", proc_name, error_str, __VA_ARGS__); \
-    } while (0)
+#define PRINT_WARNING3(error_str, proc_name, name) PRINT_WARNING("%s: %s '%s'\n", proc_name, error_str, name)
 
-#define PRINT_NO_UPDATED_META_WARNING(proc_name, name)                          \
-    do {                                                                        \
-        fprintf(stderr, "warning: %s skipping addon '%s'\n", proc_name, name);  \
-        fprintf(stderr, "warning: '%s' has no updated metadata entry\n", name); \
-        fprintf(stderr, "warning: this should not happen\n");                   \
-        fprintf(stderr, "warning: try running 'update' to fix this problem\n"); \
+#define PRINT_NO_UPDATED_META_WARNING(proc_name, name)               \
+    do {                                                             \
+        PRINT_WARNING("%s skipping addon '%s'\n", proc_name, name);  \
+        PRINT_WARNING("'%s' has no updated metadata entry\n", name); \
+        PRINT_WARNING("this should not happen\n");                   \
+        PRINT_WARNING("try running 'update' to fix this problem\n"); \
     } while (0)
 
 /**
@@ -104,7 +96,7 @@ static int cmp_addon(const void *a, const void *b)
 int cmd_install(Context *ctx, int argc, const char *argv[], FILE *out)
 {
     if (argc < 2) {
-        PRINT_ERROR(CMD_EINVALID_ARGS_STR);
+        PRINT_ERROR1(CMD_EINVALID_ARGS_STR);
         return -1;
     }
 
@@ -131,7 +123,7 @@ int cmd_install(Context *ctx, int argc, const char *argv[], FILE *out)
 
         err = addon_fetch_all_meta(addon, argv[i]);
         if (err == ADDON_ENOTFOUND) {
-            PRINT_ERROR3(CMD_ENOT_FOUND_STR, argv[0], argv[i]);
+            PRINT_WARNING3(CMD_ENOT_FOUND_STR, argv[0], argv[i]);
             err = 0;
             goto loop_error;
         } else if (err != ADDON_OK) {
@@ -157,12 +149,27 @@ int cmd_install(Context *ctx, int argc, const char *argv[], FILE *out)
         }
     }
 
-    // if (list_isempty(addons)) {
-    //     err = -1;
-    //     goto end;
-    // }
-
     ListNode *node = NULL;
+    list_foreach(node, addons)
+    {
+        Addon *addon = node->value;
+
+        ListNode *found = list_search(ctx->state->installed, addon, cmp_addon);
+        if (found) {
+            fprintf(out, "==> Found existing addon %s\n", addon->name);
+
+            const char *args[2];
+            args[0] = argv[0];
+            args[1] = addon->name;
+
+            if (cmd_remove(ctx, ARRLEN(args), args, out) != 0) {
+                PRINT_WARNING("failed to remove existing addon %s\n", addon->name);
+                PRINT_WARNING("attempting to reinstall anyway...\n");
+            }
+        }
+    }
+
+    node = NULL;
     list_foreach(node, addons)
     {
         Addon *addon = node->value;
@@ -242,7 +249,7 @@ int cmd_list(Context *ctx, int argc, const char *argv[], FILE *out)
     UNUSED(argv);
 
     if (argc != 1) {
-        PRINT_ERROR(CMD_EINVALID_ARGS_STR);
+        PRINT_ERROR1(CMD_EINVALID_ARGS_STR);
         return -1;
     }
 
@@ -261,7 +268,7 @@ int cmd_list(Context *ctx, int argc, const char *argv[], FILE *out)
 int cmd_outdated(Context *ctx, int argc, const char *argv[], FILE *out)
 {
     if (argc != 1) {
-        PRINT_ERROR(CMD_EINVALID_ARGS_STR);
+        PRINT_ERROR1(CMD_EINVALID_ARGS_STR);
         return -1;
     }
 
@@ -302,14 +309,14 @@ static int cmp_str_to_addon(const void *str, const void *addon)
 int cmd_remove(Context *ctx, int argc, const char *argv[], FILE *out)
 {
     if (argc <= 1) {
-        PRINT_ERROR(CMD_EINVALID_ARGS_STR);
+        PRINT_ERROR1(CMD_EINVALID_ARGS_STR);
         return -1;
     }
 
     for (int i = 1; i < argc; i++) {
         ListNode *node = list_search(ctx->state->installed, argv[i], (ListCompareFn)cmp_str_to_addon);
         if (node == NULL) {
-            PRINT_ERROR3(CMD_ENOT_FOUND_STR, argv[0], argv[i]);
+            PRINT_WARNING3(CMD_ENOT_FOUND_STR, argv[0], argv[i]);
             continue;
         }
 
@@ -325,9 +332,7 @@ int cmd_remove(Context *ctx, int argc, const char *argv[], FILE *out)
             char remove_path[OS_MAX_PATH];
             int n = snprintf(remove_path, ARRLEN(remove_path), "%s%c%s", ctx->config->addon_path, OS_SEPARATOR, dirname);
             if (n < 0 || (size_t)n >= ARRLEN(remove_path)) {
-                PRINT_ERROR3_FMT(CMD_ENAME_TOO_LONG_STR, argv[0], "%s%c%s", ctx->config->addon_path, OS_SEPARATOR, dirname);
-                // result = -1;
-                // goto end;
+                PRINT_ERROR3_FMT(CMD_ENAMETOOLONG_STR, argv[0], "%s%c%s", ctx->config->addon_path, OS_SEPARATOR, dirname);
                 return -1;
             }
 
@@ -338,13 +343,9 @@ int cmd_remove(Context *ctx, int argc, const char *argv[], FILE *out)
                 // recovered? How should the user be notified? Should the
                 // program try to continue?
                 PRINT_ERROR3(CMD_EREMOVE_DIR_STR, argv[0], dirname);
-                // result = -1;
-                // goto end;
                 return -1;
             }
         }
-
-        fprintf(out, "==> Removed addon %s\n", addon->name);
 
         ListNode *n = NULL;
 
@@ -367,7 +368,7 @@ int cmd_search(Context *ctx, int argc, const char *argv[], FILE *out)
     UNUSED(ctx);
 
     if (argc != 2) {
-        PRINT_ERROR(CMD_EINVALID_ARGS_STR);
+        PRINT_ERROR1(CMD_EINVALID_ARGS_STR);
         return -1;
     }
 
@@ -425,7 +426,7 @@ end:
 int cmd_update(Context *ctx, int argc, const char *argv[], FILE *out)
 {
     if (argc < 1) {
-        PRINT_ERROR(CMD_EINVALID_ARGS_STR);
+        PRINT_ERROR1(CMD_EINVALID_ARGS_STR);
         return -1;
     }
 
@@ -451,7 +452,7 @@ int cmd_update(Context *ctx, int argc, const char *argv[], FILE *out)
         for (int i = 1; i < argc; i++) {
             ListNode *found = list_search(ctx->state->installed, argv[i], cmp_str_to_addon);
             if (!found) {
-                PRINT_ERROR3(CMD_ENOT_FOUND_STR, argv[0], argv[i]);
+                PRINT_WARNING3(CMD_ENOT_FOUND_STR, argv[0], argv[i]);
                 continue;
             }
 
@@ -469,7 +470,7 @@ int cmd_update(Context *ctx, int argc, const char *argv[], FILE *out)
 
         err = addon_fetch_all_meta(addon, addon->name);
         if (err == ADDON_ENOTFOUND) {
-            PRINT_ERROR3(CMD_ENOT_FOUND_STR, argv[0], addon->name);
+            PRINT_WARNING3(CMD_ENOT_FOUND_STR, argv[0], addon->name);
             err = 0;
             continue;
         } else if (err != ADDON_OK) {
@@ -504,7 +505,7 @@ end:
 int cmd_upgrade(Context *ctx, int argc, const char *argv[], FILE *out)
 {
     if (argc < 1) {
-        PRINT_ERROR(CMD_EINVALID_ARGS_STR);
+        PRINT_ERROR1(CMD_EINVALID_ARGS_STR);
         return -1;
     }
 
@@ -533,7 +534,7 @@ int cmd_upgrade(Context *ctx, int argc, const char *argv[], FILE *out)
             Addon *latest = found->value;
 
             if (strcmp(latest->version, installed->version) != 0) {
-                fprintf(out, "==> Upgrading %s\n", installed->name);
+                fprintf(out, "==> Upgrading %s (%s) -> (%s)\n", installed->name, installed->version, latest->version);
                 list_insert(addons, addon_dup(latest));
             }
         }
@@ -542,7 +543,7 @@ int cmd_upgrade(Context *ctx, int argc, const char *argv[], FILE *out)
         for (int i = 1; i < argc; i++) {
             ListNode *found_installed = list_search(ctx->state->installed, argv[i], cmp_str_to_addon);
             if (!found_installed) {
-                PRINT_ERROR3(CMD_ENOT_FOUND_STR, argv[0], argv[i]);
+                PRINT_WARNING3(CMD_ENOT_FOUND_STR, argv[0], argv[i]);
                 continue;
             }
 
@@ -557,7 +558,7 @@ int cmd_upgrade(Context *ctx, int argc, const char *argv[], FILE *out)
             Addon *latest = found_latest->value;
 
             if (strcmp(latest->version, installed->version) != 0) {
-                fprintf(out, "==> Upgrading %s\n", installed->name);
+                fprintf(out, "==> Upgrading %s (%s) -> (%s)\n", installed->name, installed->version, latest->version);
                 list_insert(addons, addon_dup(latest));
             } else {
                 fprintf(out, "==> Addon is up-to-date %s\n", installed->name);
@@ -584,18 +585,29 @@ int cmd_upgrade(Context *ctx, int argc, const char *argv[], FILE *out)
     {
         Addon *addon = node->value;
 
-        const char *args[2];
-        args[0] = argv[0];
-        args[1] = addon->name;
+        ListNode *found = list_search(ctx->state->installed, addon, cmp_addon);
+        if (found) {
+            fprintf(out, "==> Cleaning up old addon %s\n", addon->name);
+
+            const char *args[2];
+            args[0] = argv[0];
+            args[1] = addon->name;
+
+            if (cmd_remove(ctx, ARRLEN(args), args, out) != 0) {
+                PRINT_WARNING("failed to remove old addon %s\n", addon->name);
+                PRINT_WARNING("attempting to upgrade anyway...\n");
+            }
+        }
+    }
+
+    node = NULL;
+    list_foreach(node, addons)
+    {
+        Addon *addon = node->value;
 
         fprintf(out, "==> Packaging %s\n", addon->name);
         if (addon_package(addon) != ADDON_OK) {
             PRINT_ERROR3(CMD_EPACKAGE_STR, argv[0], addon->name);
-            err = -1;
-            goto end;
-        }
-
-        if (cmd_remove(ctx, ARRLEN(args), args, out) != 0) {
             err = -1;
             goto end;
         }

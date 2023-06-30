@@ -1,5 +1,5 @@
 set(
-	tests
+	TESTS
 
 	addon
 	appstate
@@ -10,20 +10,17 @@ set(
 	zipper
 )
 
-foreach(test IN LISTS tests)
-	set(test_name ${test}_test)
-	add_executable(${test_name} ${test_name}.c ${src_files})
+foreach(TEST IN LISTS TESTS)
+	set(TEST_NAME ${TEST}_test)
+	add_executable(${TEST_NAME} ${TEST_NAME}.c ${SRC_FILES})
 
-	target_compile_options(${test_name} PRIVATE ${cflags})
-	target_compile_definitions(${test_name} PRIVATE ${cdefs} WOWPKG_TEST_TMPDIR="${PROJECT_SOURCE_DIR}/dev_only/tmp/" WOWPKG_TEST_MOCKSDIR="${PROJECT_SOURCE_DIR}/test/mocks/")
+	target_link_libraries(${TEST_NAME} PRIVATE ${WOWPKG_LIBS})
 
-	if (WIN32)
-		target_link_libraries(${test_name} PRIVATE unofficial::minizip::minizip CURL::libcurl cjson)
-	else()
-		target_link_libraries(${test_name} PRIVATE minizip::minizip CURL::libcurl cjson)
-	endif()
+	target_compile_definitions(${TEST_NAME} PRIVATE ${cdefs} WOWPKG_TEST_TMPDIR="${PROJECT_SOURCE_DIR}/dev_only/tmp/" WOWPKG_TEST_MOCKSDIR="${PROJECT_SOURCE_DIR}/test/mocks/")
+	target_compile_options(${TEST_NAME} PRIVATE ${WFLAGS})
+	target_link_options(${TEST_NAME} PRIVATE ${LDFLAGS})
 
-	target_include_directories(${test_name} PRIVATE ${PROJECT_SOURCE_DIR}/src)
+	target_include_directories(${TEST_NAME} PRIVATE ${PROJECT_SOURCE_DIR}/src)
 
-	add_test(${test_name} ${test_name})
+	add_test(${TEST_NAME} ${TEST_NAME})
 endforeach()

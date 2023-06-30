@@ -3,6 +3,7 @@
 #include <sys/stat.h>
 
 #include "osapi.h"
+#include "osstring.h"
 #include "zipper.h"
 
 #define ARRLEN(a) (sizeof(a) / sizeof(*(a)))
@@ -27,7 +28,7 @@ static int snclean_path(char *buf, size_t n, const char *path)
         return 0;
     }
 
-    int result = 0;
+    size_t result = 0;
     char *writer = buf;
     const char *filename = path;
     while (1) {
@@ -68,7 +69,7 @@ static int snclean_path(char *buf, size_t n, const char *path)
         filename = &filename[filename_len + 1];
     }
 
-    return result;
+    return (int)result;
 }
 
 static int zipper_unzip_file(unzFile uf, const char *dest)
@@ -85,7 +86,7 @@ static int zipper_unzip_file(unzFile uf, const char *dest)
     }
 
     int filename_len = snclean_path(filename, ARRLEN(filename), raw_filename);
-    if (filename_len >= ARRLEN(filename)) {
+    if (filename_len >= (int)ARRLEN(filename)) {
         err = ZIPPER_ENAMETOOLONG;
         goto end;
     }

@@ -13,7 +13,7 @@ enum {
     ADDON_ENOENT, // File/directory doesn't exist.
     ADDON_EBADJSON, // Failed to parse JSON.
     ADDON_ENO_ZIP_ASSET, // Could not find .zip asset in Github release.
-    ADDON_ENAME_TOO_LONG, // Path or filename is too long.
+    ADDON_ENAMETOOLONG, // Path or filename is too long.
     ADDON_EUNZIP, // Failed to extract .zip.
     ADDON_EINTERNAL, // Internal error.
 };
