@@ -53,6 +53,14 @@ static char *create_str_from_property(const cJSON *restrict json, const char *re
     return NULL;
 }
 
+static struct curl_slist *set_github_headers(struct curl_slist *list)
+{
+    list = curl_slist_append(list, "Accept: application/vnd.github+json");
+    list = curl_slist_append(list, "X-GitHub-Api-Version: 2022-11-28");
+
+    return list;
+}
+
 Addon *addon_create(void)
 {
     Addon *result = malloc(sizeof(*result));
@@ -405,9 +413,10 @@ end:
 cJSON *addon_fetch_github_meta(const char *restrict url, int *restrict out_err)
 {
     int err = ADDON_OK;
+    Response res = { .data = NULL, .size = 0 };
     cJSON *resp = NULL;
     cJSON *result = NULL;
-    Response res = { .data = NULL, .size = 0 };
+    struct curl_slist *headers = NULL;
 
     CURL *curl = curl_easy_init();
     if (curl == NULL) {
@@ -415,11 +424,14 @@ cJSON *addon_fetch_github_meta(const char *restrict url, int *restrict out_err)
         goto end;
     }
 
+    headers = set_github_headers(headers);
+
     // curl_easy_setopt(curl, CURLOPT_VERBOSE, true);
     curl_easy_setopt(curl, CURLOPT_URL, url);
     curl_easy_setopt(curl, CURLOPT_USERAGENT, WOWPKG_USER_AGENT);
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_str_cb);
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void *)&res);
+    curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
 
     CURLcode status = curl_easy_perform(curl);
     if (status != CURLE_OK) {
@@ -430,7 +442,11 @@ cJSON *addon_fetch_github_meta(const char *restrict url, int *restrict out_err)
     long http_code;
     curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_code);
     if (http_code != 200) {
-        err = ADDON_EINTERNAL;
+        if (http_code == 403) {
+            err = ADDON_ERATE_LIMIT;
+        } else {
+            err = ADDON_EINTERNAL;
+        }
         goto end;
     }
 
@@ -471,6 +487,10 @@ cJSON *addon_fetch_github_meta(const char *restrict url, int *restrict out_err)
 end:
     if (curl != NULL) {
         curl_easy_cleanup(curl);
+    }
+
+    if (headers != NULL) {
+        curl_slist_free_all(headers);
     }
 
     if (res.data != NULL) {
@@ -535,19 +555,23 @@ end:
 int addon_fetch_zip(Addon *restrict a)
 {
     int err = ADDON_OK;
-    Response res = { .data = NULL, .size = 0 };
     FILE *fzip = NULL;
+    Response res = { .data = NULL, .size = 0 };
+    struct curl_slist *headers = NULL;
 
     CURL *curl = curl_easy_init();
     if (curl == NULL) {
         return ADDON_EINTERNAL;
     }
 
+    headers = set_github_headers(headers);
+
     curl_easy_setopt(curl, CURLOPT_URL, a->url);
     curl_easy_setopt(curl, CURLOPT_USERAGENT, WOWPKG_USER_AGENT);
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_str_cb);
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void *)&res);
     curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1);
+    curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
 
     CURLcode status = curl_easy_perform(curl);
     if (status != CURLE_OK) {
@@ -558,7 +582,11 @@ int addon_fetch_zip(Addon *restrict a)
     long http_code;
     curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_code);
     if (http_code != 200) {
-        err = ADDON_EINTERNAL;
+        if (http_code == 403) {
+            err = ADDON_ERATE_LIMIT;
+        } else {
+            err = ADDON_EINTERNAL;
+        }
         goto end;
     }
 
@@ -587,6 +615,10 @@ int addon_fetch_zip(Addon *restrict a)
     addon_set_str(&a->_zip_path, strdup(zippath));
 
 end:
+    if (headers != NULL) {
+        curl_slist_free_all(headers);
+    }
+
     curl_easy_cleanup(curl);
 
     if (res.data != NULL) {

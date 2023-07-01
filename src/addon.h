@@ -16,6 +16,7 @@ enum {
     ADDON_ENAMETOOLONG, // Path or filename is too long.
     ADDON_EUNZIP, // Failed to extract .zip.
     ADDON_EINTERNAL, // Internal error.
+    ADDON_ERATE_LIMIT, // Failed because rate limit to external API exceeded.
 };
 
 typedef struct Addon {

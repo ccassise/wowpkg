@@ -12,17 +12,18 @@
 #include "osstring.h"
 #include "wowpkg.h"
 
-#define CMD_EMETADATA_STR "failed to get metadata"
 // #define CMD_ECREATE_TMP_DIR_STR "failed to create temp directory"
+// #define CMD_EMOVE_STR "failed to move file/directory"
+// #define CMD_EOPEN_DIR_STR "failed to open directory"
 #define CMD_EDOWNLOAD_STR "failed to make HTTP request"
 #define CMD_EEXTRACT_STR "failed to extract addon"
 #define CMD_EINVALID_ARGS_STR "invalid args"
-// #define CMD_EMOVE_STR "failed to move file/directory"
+#define CMD_EMETADATA_STR "failed to get metadata"
 #define CMD_ENAMETOOLONG_STR "name too long"
 #define CMD_ENOT_FOUND_STR "could not find addon"
 #define CMD_ENO_MEM_STR "memory allocation failed"
-// #define CMD_EOPEN_DIR_STR "failed to open directory"
 #define CMD_EPACKAGE_STR "failed to package addon"
+#define CMD_ERATE_LIMIT_STR "rate limit exceeded"
 #define CMD_EREMOVE_DIR_STR "failed to remove existing directory"
 
 #define PRINT_ERROR(...) fprintf(stderr, "Error: " __VA_ARGS__)
@@ -133,6 +134,10 @@ int cmd_install(Context *restrict ctx, int argc, const char *restrict argv[], FI
         err = addon_fetch_all_meta(addon, argv[i]);
         if (err == ADDON_ENOTFOUND) {
             PRINT_WARNING3(CMD_ENOT_FOUND_STR, argv[0], argv[i]);
+            err = 0;
+            goto loop_error;
+        } else if (err == ADDON_ERATE_LIMIT) {
+            PRINT_ERROR2(CMD_ERATE_LIMIT_STR, argv[i]);
             err = 0;
             goto loop_error;
         } else if (err != ADDON_OK) {
@@ -468,6 +473,10 @@ int cmd_update(Context *restrict ctx, int argc, const char *restrict argv[], FIL
         err = addon_fetch_all_meta(addon, addon->name);
         if (err == ADDON_ENOTFOUND) {
             PRINT_WARNING3(CMD_ENOT_FOUND_STR, argv[0], addon->name);
+            err = 0;
+            continue;
+        } else if (err == ADDON_ERATE_LIMIT) {
+            PRINT_ERROR2(CMD_ERATE_LIMIT_STR, addon->name);
             err = 0;
             continue;
         } else if (err != ADDON_OK) {
