@@ -12,7 +12,7 @@
 #include "osstring.h"
 #include "wowpkg.h"
 
-#define CMD_EMETADATA "failed to get metadata"
+#define CMD_EMETADATA_STR "failed to get metadata"
 // #define CMD_ECREATE_TMP_DIR_STR "failed to create temp directory"
 #define CMD_EDOWNLOAD_STR "failed to make HTTP request"
 #define CMD_EEXTRACT_STR "failed to extract addon"
@@ -136,7 +136,7 @@ int cmd_install(Context *restrict ctx, int argc, const char *restrict argv[], FI
             err = 0;
             goto loop_error;
         } else if (err != ADDON_OK) {
-            PRINT_ERROR3(CMD_EMETADATA, argv[0], argv[i]);
+            PRINT_ERROR3(CMD_EMETADATA_STR, argv[0], argv[i]);
             err = -1;
             goto loop_error;
         }
@@ -471,7 +471,7 @@ int cmd_update(Context *restrict ctx, int argc, const char *restrict argv[], FIL
             err = 0;
             continue;
         } else if (err != ADDON_OK) {
-            PRINT_ERROR3(CMD_EMETADATA, argv[0], addon->name);
+            PRINT_ERROR3(CMD_EMETADATA_STR, argv[0], addon->name);
             err = -1;
             goto end;
         }
