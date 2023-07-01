@@ -67,4 +67,3 @@ dev_only/tmp/**
 !dev_only/state.json
 !dev_only/tmp/
 !dev_only/tmp/README.md
-wowpkg

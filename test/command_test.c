@@ -8,8 +8,7 @@
 #include "context.h"
 #include "osapi.h"
 #include "osstring.h"
-
-#define ARRLEN(a) (sizeof(a) / sizeof(*(a)))
+#include "wowpkg.h"
 
 static void test_cmd_list(void)
 {

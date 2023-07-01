@@ -6,13 +6,13 @@ typedef struct AppState {
 } AppState;
 
 AppState *appstate_create(void);
-void appstate_free(AppState *state);
+void appstate_free(AppState *restrict state);
 
-int appstate_from_json(AppState *state, const char *json_str);
-char *appstate_to_json(AppState *state);
+int appstate_from_json(AppState *restrict state, const char *restrict json_str);
+char *appstate_to_json(AppState *restrict state);
 
 /**
  * Saves or loads the appstate to/from a given JSON file.
  */
-int appstate_save(AppState *state, const char *path);
-int appstate_load(AppState *state, const char *path);
+int appstate_save(AppState *restrict state, const char *restrict path);
+int appstate_load(AppState *restrict state, const char *restrict path);

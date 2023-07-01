@@ -78,6 +78,7 @@ else()
         -Wparentheses
         -Wunused-macros
         -Wswitch-enum
+        -Wstrict-aliasing
     )
 endif()
 

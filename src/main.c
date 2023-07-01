@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
-// #include <time.h>
+#include <time.h>
 
 #include "command.h"
 #include "context.h"
@@ -8,6 +8,7 @@
 #include "osstring.h"
 
 #define STATE_JSON_PATH "../../dev_only/state.json"
+#define CONFIG_JSON_PATH "../../dev_only/config.json"
 
 /**
  * Attempts to save app state if err is 0. Otherwise does not attempt to write to disk.
@@ -31,7 +32,7 @@ static int try_save_state(Context *ctx, int err)
 
 int main(int argc, const char *argv[])
 {
-    // clock_t start = clock();
+    clock_t start = clock();
 
     if (argc <= 1) {
         fprintf(stderr, "Usage: wowpkg COMMAND [ARGS...]\n");
@@ -48,8 +49,6 @@ int main(int argc, const char *argv[])
         exit(1);
     }
 
-    ctx.config->addon_path = strdup("../../dev_only/addons");
-
     int err = 0;
 
     if (appstate_load(ctx.state, STATE_JSON_PATH) != 0) {
@@ -63,6 +62,30 @@ int main(int argc, const char *argv[])
         fprintf(stderr, "Error: the minimal expected JSON object is: {\"installed\":[],\"latest\":[]}\n");
 
         free(cwd);
+
+        err = -1;
+        goto end;
+    }
+
+    if (config_load(ctx.config, CONFIG_JSON_PATH) != 0) {
+        char *cwd = os_getcwd(NULL, 0);
+
+        fprintf(stderr, "Error: failed to load user config file %s%c%s\n",
+            cwd == NULL ? "." : cwd,
+            OS_SEPARATOR,
+            CONFIG_JSON_PATH);
+        fprintf(stderr, "Error: ensure file exists and is valid JSON\n");
+
+        free(cwd);
+
+        err = -1;
+        goto end;
+    }
+
+    // Test that addon path actually exists.
+    struct os_stat s;
+    if (os_stat(ctx.config->addon_path, &s) != 0 || !S_ISDIR(s.st_mode)) {
+        fprintf(stderr, "Error: addon path from config.json does not exist or is not a directory\n");
 
         err = -1;
         goto end;
@@ -97,8 +120,8 @@ end:
     config_free(ctx.config);
     appstate_free(ctx.state);
 
-    // clock_t end = clock();
-    // printf("Complete in: %.2f seconds\n", (double)(end - start) / CLOCKS_PER_SEC);
+    clock_t end = clock();
+    printf("Complete in: %.2f seconds\n", (double)(end - start) / CLOCKS_PER_SEC);
 
     return err < 0 ? 1 : err;
 }

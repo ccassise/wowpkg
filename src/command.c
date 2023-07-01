@@ -10,9 +10,7 @@
 #include "list.h"
 #include "osapi.h"
 #include "osstring.h"
-
-#define UNUSED(a) ((void)(a))
-#define ARRLEN(a) (sizeof(a) / sizeof(*(a)))
+#include "wowpkg.h"
 
 #define CMD_EMETADATA "failed to get metadata"
 // #define CMD_ECREATE_TMP_DIR_STR "failed to create temp directory"
@@ -93,7 +91,18 @@ static int cmp_addon(const void *a, const void *b)
     return strcmp(aa->name, bb->name);
 }
 
-int cmd_install(Context *ctx, int argc, const char *argv[], FILE *out)
+/**
+ * Compares a string a to the Addon b's name.
+ */
+static int cmp_str_to_addon(const void *str, const void *addon)
+{
+    const char *s = str;
+    const Addon *a = addon;
+
+    return strcasecmp(s, a->name);
+}
+
+int cmd_install(Context *restrict ctx, int argc, const char *restrict argv[], FILE *out)
 {
     if (argc < 2) {
         PRINT_ERROR1(CMD_EINVALID_ARGS_STR);
@@ -167,12 +176,6 @@ int cmd_install(Context *ctx, int argc, const char *argv[], FILE *out)
                 PRINT_WARNING("attempting to reinstall anyway...\n");
             }
         }
-    }
-
-    node = NULL;
-    list_foreach(node, addons)
-    {
-        Addon *addon = node->value;
 
         fprintf(out, "==> Packaging %s\n", addon->name);
         if (addon_package(addon) != ADDON_OK) {
@@ -226,7 +229,7 @@ end:
     return err;
 }
 
-int cmd_help(Context *ctx, int argc, const char *argv[], FILE *out)
+int cmd_help(Context *restrict ctx, int argc, const char *restrict argv[], FILE *out)
 {
     UNUSED(ctx);
     UNUSED(argc);
@@ -244,7 +247,7 @@ int cmd_help(Context *ctx, int argc, const char *argv[], FILE *out)
     return 0;
 }
 
-int cmd_list(Context *ctx, int argc, const char *argv[], FILE *out)
+int cmd_list(Context *restrict ctx, int argc, const char *restrict argv[], FILE *out)
 {
     UNUSED(argv);
 
@@ -265,7 +268,7 @@ int cmd_list(Context *ctx, int argc, const char *argv[], FILE *out)
     return 0;
 }
 
-int cmd_outdated(Context *ctx, int argc, const char *argv[], FILE *out)
+int cmd_outdated(Context *restrict ctx, int argc, const char *restrict argv[], FILE *out)
 {
     if (argc != 1) {
         PRINT_ERROR1(CMD_EINVALID_ARGS_STR);
@@ -295,18 +298,7 @@ int cmd_outdated(Context *ctx, int argc, const char *argv[], FILE *out)
     return 0;
 }
 
-/**
- * Compares a string a to the Addon b's name.
- */
-static int cmp_str_to_addon(const void *str, const void *addon)
-{
-    const char *s = str;
-    const Addon *a = addon;
-
-    return strcasecmp(s, a->name);
-}
-
-int cmd_remove(Context *ctx, int argc, const char *argv[], FILE *out)
+int cmd_remove(Context *restrict ctx, int argc, const char *restrict argv[], FILE *out)
 {
     if (argc <= 1) {
         PRINT_ERROR1(CMD_EINVALID_ARGS_STR);
@@ -336,14 +328,19 @@ int cmd_remove(Context *ctx, int argc, const char *argv[], FILE *out)
                 return -1;
             }
 
-            if (os_remove_all(remove_path) != 0 && errno != ENOENT) {
-                // TODO: What should the program do if this error occurs? If it
-                // was successful in removing one or more directories then the
-                // addon directory would now be corrupted. How can it be
-                // recovered? How should the user be notified? Should the
-                // program try to continue?
-                PRINT_ERROR3(CMD_EREMOVE_DIR_STR, argv[0], dirname);
-                return -1;
+            fprintf(out, "Remove: %s\n", remove_path);
+            if (os_remove_all(remove_path) != 0) {
+                if (errno == ENOENT) {
+                    PRINT_WARNING("directory does not exist %s\n", remove_path);
+                } else {
+                    // TODO: What should the program do if this error occurs? If it
+                    // was successful in removing one or more directories then the
+                    // addon directory would now be corrupted. How can it be
+                    // recovered? How should the user be notified? Should the
+                    // program try to continue?
+                    PRINT_ERROR3(CMD_EREMOVE_DIR_STR, argv[0], dirname);
+                    return -1;
+                }
             }
         }
 
@@ -363,7 +360,7 @@ int cmd_remove(Context *ctx, int argc, const char *argv[], FILE *out)
     return 0;
 }
 
-int cmd_search(Context *ctx, int argc, const char *argv[], FILE *out)
+int cmd_search(Context *restrict ctx, int argc, const char *restrict argv[], FILE *out)
 {
     UNUSED(ctx);
 
@@ -423,7 +420,7 @@ end:
     return err;
 }
 
-int cmd_update(Context *ctx, int argc, const char *argv[], FILE *out)
+int cmd_update(Context *restrict ctx, int argc, const char *restrict argv[], FILE *out)
 {
     if (argc < 1) {
         PRINT_ERROR1(CMD_EINVALID_ARGS_STR);
@@ -502,7 +499,7 @@ end:
     return err;
 }
 
-int cmd_upgrade(Context *ctx, int argc, const char *argv[], FILE *out)
+int cmd_upgrade(Context *restrict ctx, int argc, const char *restrict argv[], FILE *out)
 {
     if (argc < 1) {
         PRINT_ERROR1(CMD_EINVALID_ARGS_STR);
@@ -598,12 +595,6 @@ int cmd_upgrade(Context *ctx, int argc, const char *argv[], FILE *out)
                 PRINT_WARNING("attempting to upgrade anyway...\n");
             }
         }
-    }
-
-    node = NULL;
-    list_foreach(node, addons)
-    {
-        Addon *addon = node->value;
 
         fprintf(out, "==> Packaging %s\n", addon->name);
         if (addon_package(addon) != ADDON_OK) {

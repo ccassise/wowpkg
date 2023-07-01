@@ -36,14 +36,14 @@ AppState *appstate_create(void)
     return result;
 }
 
-void appstate_free(AppState *state)
+void appstate_free(AppState *restrict state)
 {
     list_free(state->installed);
     list_free(state->latest);
     free(state);
 }
 
-int appstate_from_json(AppState *state, const char *json_str)
+int appstate_from_json(AppState *restrict state, const char *restrict json_str)
 {
     int err = 0;
 
@@ -93,7 +93,7 @@ end:
     return err;
 }
 
-char *appstate_to_json(AppState *state)
+char *appstate_to_json(AppState *restrict state)
 {
     int err = 0;
     char *result = NULL;
@@ -173,14 +173,14 @@ end:
     return result;
 }
 
-int appstate_save(AppState *state, const char *path)
+int appstate_save(AppState *restrict state, const char *restrict path)
 {
     int err = 0;
-    FILE *statef = NULL;
+    FILE *f = NULL;
     char *json_str = NULL;
 
-    statef = fopen(path, "wb");
-    if (statef == NULL) {
+    f = fopen(path, "wb");
+    if (f == NULL) {
         err = -1;
         goto end;
     }
@@ -192,14 +192,14 @@ int appstate_save(AppState *state, const char *path)
     }
 
     size_t json_strlen = strlen(json_str);
-    if (fwrite(json_str, sizeof(*json_str), json_strlen, statef) != json_strlen) {
+    if (fwrite(json_str, sizeof(*json_str), json_strlen, f) != json_strlen) {
         err = -1;
         goto end;
     }
 
 end:
-    if (statef != NULL) {
-        fclose(statef);
+    if (f != NULL) {
+        fclose(f);
     }
 
     if (json_str != NULL) {
@@ -209,14 +209,14 @@ end:
     return err;
 }
 
-int appstate_load(AppState *state, const char *path)
+int appstate_load(AppState *restrict state, const char *restrict path)
 {
     int err = 0;
-    FILE *statef = NULL;
+    FILE *f = NULL;
     char *buf = NULL;
 
-    statef = fopen(path, "rb");
-    if (statef == NULL) {
+    f = fopen(path, "rb");
+    if (f == NULL) {
         err = -1;
         goto end;
     }
@@ -234,7 +234,7 @@ int appstate_load(AppState *state, const char *path)
     size_t bufsz = (size_t)s.st_size;
     buf = malloc(sizeof(*buf) * bufsz + 1);
 
-    if (fread(buf, sizeof(*buf), bufsz, statef) != bufsz) {
+    if (fread(buf, sizeof(*buf), bufsz, f) != bufsz) {
         err = -1;
         goto end;
     }
@@ -247,8 +247,8 @@ int appstate_load(AppState *state, const char *path)
     }
 
 end:
-    if (statef != NULL) {
-        fclose(statef);
+    if (f != NULL) {
+        fclose(f);
     }
 
     if (buf != NULL) {

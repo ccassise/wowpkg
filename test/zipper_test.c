@@ -3,11 +3,10 @@
 
 #include "osapi.h"
 #include "osstring.h"
+#include "wowpkg.h"
 #include "zipper.h"
 
-#define ARRLEN(a) (sizeof(a) / sizeof(*(a)))
-
-static void test_zipper_unzip(const char *outpath)
+static void test_zipper_unzip(const char *restrict outpath)
 {
     assert(zipper_unzip(WOWPKG_TEST_MOCKSDIR "mock_zip.zip", outpath) == ZIPPER_ENOENT);
 

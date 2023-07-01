@@ -6,18 +6,15 @@
 #include "addon.h"
 #include "osapi.h"
 #include "osstring.h"
+#include "wowpkg.h"
 #include "zipper.h"
-
-#define ARRLEN(a) (sizeof(a) / sizeof(*(a)))
-
-#define USER_AGENT "CURL"
 
 typedef struct Response {
     size_t size;
     char *data;
 } Response;
 
-static size_t write_str_cb(void *data, size_t size, size_t nmemb, void *userdata)
+static size_t write_str_cb(void *restrict data, size_t size, size_t nmemb, void *restrict userdata)
 {
     size_t realsize = size * nmemb;
     Response *res = userdata;
@@ -35,7 +32,7 @@ static size_t write_str_cb(void *data, size_t size, size_t nmemb, void *userdata
     return realsize;
 }
 
-static int json_check_string(const cJSON *value)
+static int json_check_string(const cJSON *restrict value)
 {
     return cJSON_IsString(value) && value->valuestring != NULL;
 }
@@ -46,7 +43,7 @@ static int json_check_string(const cJSON *value)
  * On success return a newly allocated string that the caller shall free. If the
  * property is not found or has no value then NULL is returned.
  */
-static char *create_str_from_property(const cJSON *json, const char *property)
+static char *create_str_from_property(const cJSON *restrict json, const char *restrict property)
 {
     cJSON *prop = cJSON_GetObjectItemCaseSensitive(json, property);
     if (json_check_string(prop)) {
@@ -73,7 +70,7 @@ Addon *addon_create(void)
     return result;
 }
 
-void addon_free(Addon *a)
+void addon_free(Addon *restrict a)
 {
     if (a->handler != NULL) {
         free(a->handler);
@@ -104,7 +101,115 @@ void addon_free(Addon *a)
     free(a);
 }
 
-void addon_cleanup_files(Addon *a)
+static int move_filename(const char *restrict srcdir, const char *restrict destdir, const char *restrict filename)
+{
+    int n;
+
+    char dest[OS_MAX_PATH];
+    n = snprintf(dest, ARRLEN(dest), "%s%c%s", destdir, OS_SEPARATOR, filename);
+    if (n < 0 || (size_t)n >= ARRLEN(dest)) {
+        return ADDON_ENAMETOOLONG;
+    }
+
+    struct os_stat s;
+    if (os_stat(dest, &s) == 0) {
+        if (os_remove_all(dest) != 0) {
+            return ADDON_EINTERNAL;
+        }
+    }
+
+    char src[OS_MAX_PATH];
+    n = snprintf(src, ARRLEN(src), "%s%c%s", srcdir, OS_SEPARATOR, filename);
+    if (n < 0 || (size_t)n >= ARRLEN(src)) {
+        return ADDON_ENAMETOOLONG;
+    }
+
+    if (os_rename(src, dest) != 0) {
+        return ADDON_EINTERNAL;
+    }
+
+    return ADDON_OK;
+}
+
+/**
+ * Returns a reference to a cJSON string that contains the .zip download link.
+ *
+ * IMPORTANT: It shall not attempt to be freed. It shall not outlive the
+ * lifetime of the passed in cJSON object.
+ */
+static const char *gh_resp_find_asset_zip(const cJSON *restrict json)
+{
+    char *result = NULL;
+    cJSON *assets = cJSON_GetObjectItemCaseSensitive(json, "assets");
+    if (!cJSON_IsArray(assets)) {
+        return NULL;
+    }
+
+    cJSON *asset = NULL;
+    cJSON_ArrayForEach(asset, assets)
+    {
+        cJSON *content_type = cJSON_GetObjectItemCaseSensitive(asset, "content_type");
+        if (!json_check_string(content_type)) {
+            continue;
+        }
+
+        if (strcmp(content_type->valuestring, "application/zip") != 0) {
+            continue;
+        }
+
+        cJSON *download_url = cJSON_GetObjectItemCaseSensitive(asset, "browser_download_url");
+        if (!json_check_string(download_url)) {
+            continue;
+        }
+
+        result = download_url->valuestring;
+    }
+
+    return result;
+}
+
+/**
+ * Finds the catalog item path and stores it in s. s will always be null
+ * terminated. If the amount of characters that would be written to s is equal
+ * to or larger than n, then the characters that could fit will be in s and the
+ * returned value will equal the amount of characters that would have been wrote
+ * if s had sufficient space.
+ */
+static int snfind_catalog_path(char *restrict s, size_t n, const char *restrict name)
+{
+    int result = -1;
+
+    const char *catalog_path = "../../catalog";
+
+    OsDir *dir = dir = os_opendir(catalog_path);
+    if (dir == NULL) {
+        return -1;
+    }
+
+    OsDirEnt *entry;
+    while ((entry = os_readdir(dir)) != NULL) {
+        if (strcmp(entry->name, ".") == 0 || strcmp(entry->name, "..") == 0) {
+            continue;
+        }
+
+        char *ext_start = strstr(entry->name, ".json");
+        if (ext_start == NULL) {
+            continue;
+        }
+
+        if (strncasecmp(entry->name, name, (size_t)(ext_start - entry->name)) == 0) {
+            result = snprintf(s, n, "%s%c%s", catalog_path, OS_SEPARATOR, entry->name);
+
+            break;
+        }
+    }
+
+    os_closedir(dir);
+
+    return result;
+}
+
+void addon_cleanup_files(Addon *restrict a)
 {
     if (a->_zip_path != NULL) {
         remove(a->_zip_path);
@@ -119,7 +224,7 @@ void addon_cleanup_files(Addon *a)
     }
 }
 
-Addon *addon_dup(Addon *a)
+Addon *addon_dup(Addon *restrict a)
 {
     Addon *result = addon_create();
     if (result) {
@@ -133,7 +238,7 @@ Addon *addon_dup(Addon *a)
     return result;
 }
 
-int addon_from_json(Addon *a, const cJSON *json)
+int addon_from_json(Addon *restrict a, const cJSON *restrict json)
 {
     addon_set_str(&a->handler, create_str_from_property(json, ADDON_HANDLER));
     addon_set_str(&a->name, create_str_from_property(json, ADDON_NAME));
@@ -157,7 +262,7 @@ int addon_from_json(Addon *a, const cJSON *json)
     return ADDON_OK;
 }
 
-char *addon_to_json(Addon *a)
+char *addon_to_json(Addon *restrict a)
 {
     int err = ADDON_OK;
     char *result = NULL;
@@ -216,7 +321,7 @@ end:
     return result;
 }
 
-void addon_set_str(char **old, char *new)
+void addon_set_str(char **restrict old, char *restrict new)
 {
     if (*old == new || new == NULL) {
         return;
@@ -229,90 +334,7 @@ void addon_set_str(char **old, char *new)
     *old = new;
 }
 
-/**
- * Returns a reference to a cJSON string that contains the .zip download link.
- *
- * IMPORTANT: It shall not attempt to be freed. It shall not outlive the
- * lifetime of the passed in cJSON object.
- */
-static const char *gh_resp_find_asset_zip(const cJSON *json)
-{
-    char *result = NULL;
-    cJSON *assets = cJSON_GetObjectItemCaseSensitive(json, "assets");
-    if (!cJSON_IsArray(assets)) {
-        return NULL;
-    }
-
-    cJSON *asset = NULL;
-    cJSON_ArrayForEach(asset, assets)
-    {
-        cJSON *content_type = cJSON_GetObjectItemCaseSensitive(asset, "content_type");
-        if (!json_check_string(content_type)) {
-            continue;
-        }
-
-        if (strcmp(content_type->valuestring, "application/zip") != 0) {
-            continue;
-        }
-
-        cJSON *download_url = cJSON_GetObjectItemCaseSensitive(asset, "browser_download_url");
-        if (!json_check_string(download_url)) {
-            continue;
-        }
-
-        result = download_url->valuestring;
-    }
-
-    return result;
-}
-
-/**
- * Finds the catalog item path and stores it in s. s will always be null
- * terminated. If the amount of characters that would be written to s is equal
- * to or larger than n, then the characters that could fit will be in s and the
- * returned value will equal the amount of characters that would have been wrote
- * if s had sufficient space.
- */
-static int snfind_catalog_path(char *s, size_t n, const char *name)
-{
-    int err = -1;
-
-    const char *catalog_path = "../../catalog";
-
-    OsDir *dir = dir = os_opendir(catalog_path);
-    if (dir == NULL) {
-        return -1;
-    }
-
-    OsDirEnt *entry;
-    while ((entry = os_readdir(dir)) != NULL) {
-        if (strcmp(entry->name, ".") == 0 || strcmp(entry->name, "..") == 0) {
-            continue;
-        }
-
-        char basename[OS_MAX_FILENAME];
-        snprintf(basename, sizeof(basename), "%s", entry->name);
-
-        char *ext_start = strstr(basename, ".json");
-        if (ext_start == NULL) {
-            continue;
-        }
-
-        *ext_start = '\0';
-
-        if (strcasecmp(basename, name) == 0) {
-            err = snprintf(s, n, "%s%c%s", catalog_path, OS_SEPARATOR, entry->name);
-
-            break;
-        }
-    }
-
-    os_closedir(dir);
-
-    return err;
-}
-
-cJSON *addon_fetch_catalog_meta(const char *name, int *out_err)
+cJSON *addon_fetch_catalog_meta(const char *restrict name, int *restrict out_err)
 {
     int err = ADDON_OK;
     FILE *f = NULL;
@@ -380,7 +402,7 @@ end:
     return result;
 }
 
-cJSON *addon_fetch_github_meta(const char *url, int *out_err)
+cJSON *addon_fetch_github_meta(const char *restrict url, int *restrict out_err)
 {
     int err = ADDON_OK;
     cJSON *resp = NULL;
@@ -395,7 +417,7 @@ cJSON *addon_fetch_github_meta(const char *url, int *out_err)
 
     // curl_easy_setopt(curl, CURLOPT_VERBOSE, true);
     curl_easy_setopt(curl, CURLOPT_URL, url);
-    curl_easy_setopt(curl, CURLOPT_USERAGENT, USER_AGENT);
+    curl_easy_setopt(curl, CURLOPT_USERAGENT, WOWPKG_USER_AGENT);
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_str_cb);
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void *)&res);
 
@@ -471,7 +493,7 @@ end:
     return result;
 }
 
-int addon_fetch_all_meta(Addon *a, const char *name)
+int addon_fetch_all_meta(Addon *restrict a, const char *restrict name)
 {
     int err = ADDON_OK;
 
@@ -510,7 +532,7 @@ end:
     return err;
 }
 
-int addon_fetch_zip(Addon *a)
+int addon_fetch_zip(Addon *restrict a)
 {
     int err = ADDON_OK;
     Response res = { .data = NULL, .size = 0 };
@@ -522,7 +544,7 @@ int addon_fetch_zip(Addon *a)
     }
 
     curl_easy_setopt(curl, CURLOPT_URL, a->url);
-    curl_easy_setopt(curl, CURLOPT_USERAGENT, USER_AGENT);
+    curl_easy_setopt(curl, CURLOPT_USERAGENT, WOWPKG_USER_AGENT);
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_str_cb);
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void *)&res);
     curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1);
@@ -546,7 +568,7 @@ int addon_fetch_zip(Addon *a)
 
     char zippath[OS_MAX_PATH];
     int nwrote = snprintf(zippath, ARRLEN(zippath), "%s_%s_XXXXXX", a->name, a->version);
-    if (nwrote >= (int)ARRLEN(zippath) || nwrote < 0) {
+    if (nwrote < 0 || (size_t)nwrote >= ARRLEN(zippath)) {
         err = ADDON_ENAMETOOLONG;
         goto end;
     }
@@ -578,7 +600,7 @@ end:
     return err;
 }
 
-int addon_package(Addon *a)
+int addon_package(Addon *restrict a)
 {
     const char *tmp_path = "../../dev_only/tmp";
 
@@ -602,38 +624,7 @@ int addon_package(Addon *a)
     return ADDON_OK;
 }
 
-static int move_filename(const char *srcdir, const char *destdir, const char *filename)
-{
-    // int err = ADDON_OK;
-    int n;
-
-    char dest[OS_MAX_PATH];
-    n = snprintf(dest, ARRLEN(dest), "%s%c%s", destdir, OS_SEPARATOR, filename);
-    if (n < 0 || (size_t)n >= ARRLEN(dest)) {
-        return ADDON_ENAMETOOLONG;
-    }
-
-    struct os_stat s;
-    if (os_stat(dest, &s) == 0) {
-        if (os_remove_all(dest) != 0) {
-            return ADDON_EINTERNAL;
-        }
-    }
-
-    char src[OS_MAX_PATH];
-    n = snprintf(src, ARRLEN(src), "%s%c%s", srcdir, OS_SEPARATOR, filename);
-    if (n < 0 || (size_t)n >= ARRLEN(src)) {
-        return ADDON_ENAMETOOLONG;
-    }
-
-    if (os_rename(src, dest) != 0) {
-        return ADDON_EINTERNAL;
-    }
-
-    return ADDON_OK;
-}
-
-int addon_extract(Addon *a, const char *path)
+int addon_extract(Addon *restrict a, const char *restrict path)
 {
     int err = ADDON_OK;
 
@@ -658,5 +649,5 @@ int addon_extract(Addon *a, const char *path)
 end:
     os_closedir(dir);
 
-    return ADDON_OK;
+    return err;
 }

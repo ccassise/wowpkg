@@ -40,19 +40,19 @@ typedef struct Addon {
 Addon *addon_create(void);
 
 /**
- * Frees all memory used by given addon. Also deletes any created files except
- * for the ones that have been extracted to a path with addon_extract.
+ * Frees all memory used by given addon. Also deletes any files that addon
+ * currently has a handle to.
  */
-void addon_free(Addon *a);
+void addon_free(Addon *restrict a);
 
 /**
- * Removes all files created by given addon. Does not remove files that were
- * extracted with addon_extract.
+ * Deletes all files that addon currently has a handle to. If files were
+ * extracted with addon_extract then those files will not be deleted.
  *
  * NOTE: This function is called implicitly by addon_free. Calling it after
  * addon_free does nothing.
  */
-void addon_cleanup_files(Addon *a);
+void addon_cleanup_files(Addon *restrict a);
 
 /**
  * Creates and returns a new addon that was deep copied from the given addon.
@@ -60,7 +60,7 @@ void addon_cleanup_files(Addon *a);
  * NOTE: Does not copy the contents of Addon.dirs. The returned addon will just
  * contain an empty list.
  */
-Addon *addon_dup(Addon *a);
+Addon *addon_dup(Addon *restrict a);
 
 /**
  * Converts an addon to/from JSON. All public properties will be converted. If a
@@ -72,28 +72,28 @@ Addon *addon_dup(Addon *a);
  * addon_to_json returns a string that shall be freed by the caller on success,
  * and NULL on error.
  */
-int addon_from_json(Addon *a, const cJSON *json);
-char *addon_to_json(Addon *a);
+int addon_from_json(Addon *restrict a, const cJSON *restrict json);
+char *addon_to_json(Addon *restrict a);
 
 /**
  * Sets the string pointed to by old to the string pointed to by new. If old is
  * not NULL then it will be free'd before getting set.
  */
-void addon_set_str(char **old, char *new);
+void addon_set_str(char **restrict old, char *restrict new);
 
 /**
  * Retrieves addon metadata from the catalog.
  *
  * Returns NULL on error and sets out_err.
  */
-cJSON *addon_fetch_catalog_meta(const char *name, int *out_err);
+cJSON *addon_fetch_catalog_meta(const char *restrict name, int *restrict out_err);
 
 /**
  * Retrieves addon metadata from Github.
  *
  * Returns NULL on error and sets out_err.
  */
-cJSON *addon_fetch_github_meta(const char *url, int *out_err);
+cJSON *addon_fetch_github_meta(const char *restrict url, int *restrict out_err);
 
 /**
  * Fetches all metadata for addon that matches the given name. On success the
@@ -102,20 +102,20 @@ cJSON *addon_fetch_github_meta(const char *url, int *out_err);
  *
  * Returns ADDON_ENOT_FOUND if name doesn't match any known addons.
  */
-int addon_fetch_all_meta(Addon *a, const char *name);
+int addon_fetch_all_meta(Addon *restrict a, const char *restrict name);
 
 /**
  * Downloads the .zip associated to Addon. Addon.url shall be a download link to
  * the .zip before calling this function.
  */
-int addon_fetch_zip(Addon *a);
+int addon_fetch_zip(Addon *restrict a);
 
 /**
- * Packages an addon.
+ * Prepares addon for extraction.
  *
  * Returns non zero on errors.
  */
-int addon_package(Addon *a);
+int addon_package(Addon *restrict a);
 
 /**
  * Moves all packaged files from the package directory to the given path. First
@@ -124,4 +124,4 @@ int addon_package(Addon *a);
  *
  * NOTE: addon_package shall be called before this function.
  */
-int addon_extract(Addon *a, const char *path);
+int addon_extract(Addon *restrict a, const char *restrict path);

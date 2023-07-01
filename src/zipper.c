@@ -4,9 +4,8 @@
 
 #include "osapi.h"
 #include "osstring.h"
+#include "wowpkg.h"
 #include "zipper.h"
-
-#define ARRLEN(a) (sizeof(a) / sizeof(*(a)))
 
 /**
  * Copies path to the given buffer removing '.', '..', and multiple sequential
@@ -18,7 +17,7 @@
  * Returns the number of characters that were written or would have been written
  * had buffer contained enough space.
  */
-static int snclean_path(char *buf, size_t n, const char *path)
+static int snclean_path(char *restrict buf, size_t n, const char *restrict path)
 {
     if (n > 0) {
         buf[0] = '\0';
@@ -72,7 +71,7 @@ static int snclean_path(char *buf, size_t n, const char *path)
     return (int)result;
 }
 
-static int zipper_unzip_file(unzFile uf, const char *dest)
+static int zipper_unzip_file(unzFile uf, const char *restrict dest)
 {
     int err = ZIPPER_OK;
     unz_file_info64 finfo;
@@ -151,7 +150,7 @@ end:
     return err;
 }
 
-int zipper_unzip(const char *src, const char *dest)
+int zipper_unzip(const char *restrict src, const char *restrict dest)
 {
     int err = ZIPPER_OK;
 

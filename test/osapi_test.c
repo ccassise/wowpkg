@@ -9,8 +9,7 @@
 #endif
 
 #include "osapi.h"
-
-#define ARRLEN(a) (sizeof(a) / sizeof(*(a)))
+#include "wowpkg.h"
 
 static void test_os_mkdir(void)
 {
@@ -188,7 +187,7 @@ static void test_os_rename_dir(void)
 
     char actual[OS_MAX_PATH];
     int n = snprintf(actual, ARRLEN(actual), "%s%c%s", src, OS_SEPARATOR, &dest[strlen(WOWPKG_TEST_TMPDIR)]);
-    assert(n > 0 && n < (int)ARRLEN(actual));
+    assert(n > 0 && (size_t)n < ARRLEN(actual));
 
     assert(os_rename(dest, actual) == 0);
 

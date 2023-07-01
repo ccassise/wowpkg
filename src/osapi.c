@@ -10,20 +10,9 @@
 #endif
 
 #include "osapi.h"
+#include "wowpkg.h"
 
-#define ARRLEN(a) (sizeof(a) / sizeof(*(a)))
-
-#ifdef _WIN32
-
-static const char *OS_PATH_SEPS = "/\\";
-
-#else
-
-static const char *OS_PATH_SEPS = "/";
-
-#endif
-
-OsDir *os_opendir(const char *path)
+OsDir *os_opendir(const char *restrict path)
 {
     OsDir *result = malloc(sizeof(*result));
     if (result == NULL) {
@@ -62,7 +51,7 @@ error:
     return NULL;
 }
 
-OsDirEnt *os_readdir(OsDir *dir)
+OsDirEnt *os_readdir(OsDir *restrict dir)
 {
 #ifdef _WIN32
     if (dir->_is_first == TRUE) {
@@ -89,7 +78,7 @@ OsDirEnt *os_readdir(OsDir *dir)
 #endif
 }
 
-void os_closedir(OsDir *dir)
+void os_closedir(OsDir *restrict dir)
 {
 #ifdef _WIN32
     FindClose(dir->dir);
@@ -100,28 +89,28 @@ void os_closedir(OsDir *dir)
 #endif
 }
 
-int os_mkdir(const char *path, OsMode perms)
+int os_mkdir(const char *restrict path, OsMode perms)
 {
     if (*path == '\0') {
         return 0;
     }
 
 #ifdef _WIN32
-    (void)perms;
+    UNUSED(perms);
     return _mkdir(path);
 #else
     return mkdir(path, perms);
 #endif
 }
 
-int os_mkdir_all(char *path, OsMode perms)
+int os_mkdir_all(char *restrict path, OsMode perms)
 {
 #ifdef _WIN32
-    (void)perms;
+    UNUSED(perms);
 #endif
 
     char *sep = path;
-    while (*(sep += strcspn(sep, OS_PATH_SEPS)) != '\0') {
+    while (*(sep += strcspn(sep, OS_VALID_SEPARATORS)) != '\0') {
         char sep_ch = *sep;
         *sep = '\0';
 
@@ -138,7 +127,7 @@ int os_mkdir_all(char *path, OsMode perms)
     return 0;
 }
 
-FILE *os_mkstemp(char *template)
+FILE *os_mkstemp(char *restrict template)
 {
 #ifdef _WIN32
     char *tmp = _mktemp(template);
@@ -157,7 +146,7 @@ FILE *os_mkstemp(char *template)
 #endif
 }
 
-char *os_mkdtemp(char *template)
+char *os_mkdtemp(char *restrict template)
 {
 #ifdef _WIN32
     char *result = _mktemp(template);
@@ -175,7 +164,7 @@ char *os_mkdtemp(char *template)
 #endif
 }
 
-int os_remove_all(const char *path)
+int os_remove_all(const char *restrict path)
 {
     int err = 0;
     OsDir *dir = os_opendir(path);
@@ -216,7 +205,7 @@ int os_remove_all(const char *path)
     return err;
 }
 
-int os_rename(const char *src, const char *dest)
+int os_rename(const char *restrict src, const char *restrict dest)
 {
 #ifdef _WIN32
     if (!MoveFileEx(src, dest, MOVEFILE_REPLACE_EXISTING)) {

@@ -1,8 +1,10 @@
+#include <stdio.h>
 #include <stdlib.h>
 
 #include <cjson/cJSON.h>
 
 #include "config.h"
+#include "osapi.h"
 #include "osstring.h"
 
 Config *config_create(void)
@@ -15,7 +17,13 @@ Config *config_create(void)
     return result;
 }
 
-int config_from_json(Config *cfg, const char *json_str)
+void config_free(Config *restrict cfg)
+{
+    free(cfg->addon_path);
+    free(cfg);
+}
+
+int config_from_json(Config *restrict cfg, const char *restrict json_str)
 {
     int err = 0;
 
@@ -41,7 +49,7 @@ end:
     return err;
 }
 
-char *config_to_json(Config *cfg)
+char *config_to_json(Config *restrict cfg)
 {
     int err = 0;
     char *result = NULL;
@@ -69,8 +77,51 @@ end:
     return result;
 }
 
-void config_free(Config *cfg)
+int config_load(Config *restrict cfg, const char *restrict path)
 {
-    free(cfg->addon_path);
-    free(cfg);
+    int err = 0;
+    FILE *f = NULL;
+    char *buf = NULL;
+
+    f = fopen(path, "rb");
+    if (f == NULL) {
+        err = -1;
+        goto end;
+    }
+
+    struct os_stat s;
+    if (os_stat(path, &s) != 0) {
+        err = -1;
+        goto end;
+    }
+
+    if (s.st_size < 0) {
+        err = -1;
+        goto end;
+    }
+    size_t bufsz = (size_t)s.st_size;
+    buf = malloc(sizeof(*buf) * bufsz + 1);
+
+    if (fread(buf, sizeof(*buf), bufsz, f) != bufsz) {
+        err = -1;
+        goto end;
+    }
+
+    buf[bufsz] = '\0';
+
+    if (config_from_json(cfg, buf) != 0) {
+        err = -1;
+        goto end;
+    }
+
+end:
+    if (f != NULL) {
+        fclose(f);
+    }
+
+    if (buf != NULL) {
+        free(buf);
+    }
+
+    return err;
 }
