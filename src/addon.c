@@ -316,7 +316,7 @@ end:
 
 void addon_set_str(char **restrict oldstr, char *restrict newstr)
 {
-    if (*newstr == NULL) {
+    if (newstr == NULL) {
         return;
     }
 
