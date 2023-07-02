@@ -205,7 +205,8 @@ static int snfind_catalog_path(char *restrict s, size_t n, const char *restrict 
             continue;
         }
 
-        if (strncasecmp(entry->name, name, (size_t)(ext_start - entry->name)) == 0) {
+        size_t filename_len = (size_t)(ext_start - entry->name);
+        if (strncasecmp(entry->name, name, filename_len) == 0 && strlen(name) == filename_len) {
             result = snprintf(s, n, "%s%c%s", catalog_path, OS_SEPARATOR, entry->name);
 
             break;
