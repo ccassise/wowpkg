@@ -71,7 +71,7 @@ static int snclean_path(char *restrict buf, size_t n, const char *restrict path)
     return (int)result;
 }
 
-static int zipper_unzip_file(unzFile uf, const char *restrict dest)
+static int zipper_unzip_file(unzFile uf, const char *dest)
 {
     int err = ZIPPER_OK;
     unz_file_info64 finfo;
@@ -150,7 +150,7 @@ end:
     return err;
 }
 
-int zipper_unzip(const char *restrict src, const char *restrict dest)
+int zipper_unzip(const char *src, const char *dest)
 {
     int err = ZIPPER_OK;
 

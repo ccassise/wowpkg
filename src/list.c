@@ -14,8 +14,12 @@ List *list_create(void)
     return result;
 }
 
-void list_free(List *restrict l)
+void list_free(List *l)
 {
+    if (l == NULL) {
+        return;
+    }
+
     ListNode *node = NULL;
     while ((node = l->head) != NULL) {
         list_remove(l, node);
@@ -24,7 +28,7 @@ void list_free(List *restrict l)
     free(l);
 }
 
-ListNode *list_insert(List *restrict l, void *restrict value)
+ListNode *list_insert(List *l, void *value)
 {
     ListNode *node = malloc(sizeof(*node));
     if (node != NULL) {
@@ -40,7 +44,7 @@ ListNode *list_insert(List *restrict l, void *restrict value)
     return node;
 }
 
-ListNode *list_search(List *restrict l, const void *restrict value, ListCompareFn cmp)
+ListNode *list_search(List *l, const void *value, ListCompareFn cmp)
 {
     ListNode *result = NULL;
     list_foreach(result, l)
@@ -53,7 +57,7 @@ ListNode *list_search(List *restrict l, const void *restrict value, ListCompareF
     return result;
 }
 
-ListNode *list_search_ptr(List *restrict l, const void *restrict value)
+ListNode *list_search_ptr(List *l, const void *value)
 {
     ListNode *result = NULL;
     list_foreach(result, l)
@@ -66,7 +70,7 @@ ListNode *list_search_ptr(List *restrict l, const void *restrict value)
     return result;
 }
 
-void list_remove(List *restrict l, ListNode *restrict node)
+void list_remove(List *l, ListNode *node)
 {
     if (node == NULL) {
         return;
@@ -89,7 +93,7 @@ void list_remove(List *restrict l, ListNode *restrict node)
     free(node);
 }
 
-void list_sort(List *restrict l, ListCompareFn cmp)
+void list_sort(List *l, ListCompareFn cmp)
 {
     size_t insize = 1;
 

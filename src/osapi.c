@@ -12,7 +12,7 @@
 #include "osapi.h"
 #include "wowpkg.h"
 
-OsDir *os_opendir(const char *restrict path)
+OsDir *os_opendir(const char *path)
 {
     OsDir *result = malloc(sizeof(*result));
     if (result == NULL) {
@@ -51,7 +51,7 @@ error:
     return NULL;
 }
 
-OsDirEnt *os_readdir(OsDir *restrict dir)
+OsDirEnt *os_readdir(OsDir *dir)
 {
 #ifdef _WIN32
     if (dir->_is_first == TRUE) {
@@ -78,8 +78,12 @@ OsDirEnt *os_readdir(OsDir *restrict dir)
 #endif
 }
 
-void os_closedir(OsDir *restrict dir)
+void os_closedir(OsDir *dir)
 {
+    if (dir == NULL) {
+        return;
+    }
+
 #ifdef _WIN32
     FindClose(dir->dir);
     free(dir);
@@ -89,7 +93,7 @@ void os_closedir(OsDir *restrict dir)
 #endif
 }
 
-int os_mkdir(const char *restrict path, OsMode perms)
+int os_mkdir(const char *path, OsMode perms)
 {
     if (*path == '\0') {
         return 0;
@@ -103,7 +107,7 @@ int os_mkdir(const char *restrict path, OsMode perms)
 #endif
 }
 
-int os_mkdir_all(char *restrict path, OsMode perms)
+int os_mkdir_all(char *path, OsMode perms)
 {
 #ifdef _WIN32
     UNUSED(perms);
@@ -127,7 +131,7 @@ int os_mkdir_all(char *restrict path, OsMode perms)
     return 0;
 }
 
-FILE *os_mkstemp(char *restrict template)
+FILE *os_mkstemp(char *template)
 {
 #ifdef _WIN32
     char *tmp = _mktemp(template);
@@ -146,7 +150,7 @@ FILE *os_mkstemp(char *restrict template)
 #endif
 }
 
-char *os_mkdtemp(char *restrict template)
+char *os_mkdtemp(char *template)
 {
 #ifdef _WIN32
     char *result = _mktemp(template);
@@ -164,7 +168,7 @@ char *os_mkdtemp(char *restrict template)
 #endif
 }
 
-int os_remove_all(const char *restrict path)
+int os_remove_all(const char *path)
 {
     int err = 0;
     OsDir *dir = os_opendir(path);
@@ -205,7 +209,7 @@ int os_remove_all(const char *restrict path)
     return err;
 }
 
-int os_rename(const char *restrict src, const char *restrict dest)
+int os_rename(const char *src, const char *dest)
 {
 #ifdef _WIN32
     if (!MoveFileEx(src, dest, MOVEFILE_REPLACE_EXISTING)) {

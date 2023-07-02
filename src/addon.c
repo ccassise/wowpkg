@@ -32,7 +32,7 @@ static size_t write_str_cb(void *restrict data, size_t size, size_t nmemb, void 
     return realsize;
 }
 
-static int json_check_string(const cJSON *restrict value)
+static int json_check_string(const cJSON *value)
 {
     return cJSON_IsString(value) && value->valuestring != NULL;
 }
@@ -43,7 +43,7 @@ static int json_check_string(const cJSON *restrict value)
  * On success return a newly allocated string that the caller shall free. If the
  * property is not found or has no value then NULL is returned.
  */
-static char *create_str_from_property(const cJSON *restrict json, const char *restrict property)
+static char *create_str_from_property(const cJSON *json, const char *property)
 {
     cJSON *prop = cJSON_GetObjectItemCaseSensitive(json, property);
     if (json_check_string(prop)) {
@@ -78,32 +78,18 @@ Addon *addon_create(void)
     return result;
 }
 
-void addon_free(Addon *restrict a)
+void addon_free(Addon *a)
 {
-    if (a->handler != NULL) {
-        free(a->handler);
+    if (a == NULL) {
+        return;
     }
 
-    if (a->name != NULL) {
-        free(a->name);
-    }
-
-    if (a->desc != NULL) {
-        free(a->desc);
-    }
-
-    if (a->url != NULL) {
-        free(a->url);
-    }
-
-    if (a->version != NULL) {
-        free(a->version);
-    }
-
-    if (a->dirs != NULL) {
-        list_free(a->dirs);
-    }
-
+    free(a->handler);
+    free(a->name);
+    free(a->desc);
+    free(a->url);
+    free(a->version);
+    list_free(a->dirs);
     addon_cleanup_files(a);
 
     free(a);
@@ -145,7 +131,7 @@ static int move_filename(const char *restrict srcdir, const char *restrict destd
  * IMPORTANT: It shall not attempt to be freed. It shall not outlive the
  * lifetime of the passed in cJSON object.
  */
-static const char *gh_resp_find_asset_zip(const cJSON *restrict json)
+static const char *gh_resp_find_asset_zip(const cJSON *json)
 {
     char *result = NULL;
     cJSON *assets = cJSON_GetObjectItemCaseSensitive(json, "assets");
@@ -218,7 +204,7 @@ static int snfind_catalog_path(char *restrict s, size_t n, const char *restrict 
     return result;
 }
 
-void addon_cleanup_files(Addon *restrict a)
+void addon_cleanup_files(Addon *a)
 {
     if (a->_zip_path != NULL) {
         remove(a->_zip_path);
@@ -233,7 +219,7 @@ void addon_cleanup_files(Addon *restrict a)
     }
 }
 
-Addon *addon_dup(Addon *restrict a)
+Addon *addon_dup(Addon *a)
 {
     Addon *result = addon_create();
     if (result) {
@@ -247,7 +233,7 @@ Addon *addon_dup(Addon *restrict a)
     return result;
 }
 
-int addon_from_json(Addon *restrict a, const cJSON *restrict json)
+int addon_from_json(Addon *a, const cJSON *json)
 {
     addon_set_str(&a->handler, create_str_from_property(json, ADDON_HANDLER));
     addon_set_str(&a->name, create_str_from_property(json, ADDON_NAME));
@@ -271,7 +257,7 @@ int addon_from_json(Addon *restrict a, const cJSON *restrict json)
     return ADDON_OK;
 }
 
-char *addon_to_json(Addon *restrict a)
+char *addon_to_json(Addon *a)
 {
     int err = ADDON_OK;
     char *result = NULL;
@@ -323,27 +309,25 @@ end:
         result = cJSON_PrintUnformatted(json);
     }
 
-    if (json != NULL) {
-        cJSON_Delete(json);
-    }
+    cJSON_Delete(json);
 
     return result;
 }
 
-void addon_set_str(char **restrict old, char *restrict new)
+void addon_set_str(char **restrict oldstr, char *restrict newstr)
 {
-    if (*old == new || new == NULL) {
+    if (*newstr == NULL) {
         return;
     }
 
-    if (*old != NULL) {
-        free(*old);
-        *old = NULL;
+    if (*oldstr != NULL) {
+        free(*oldstr);
+        *oldstr = NULL;
     }
-    *old = new;
+    *oldstr = newstr;
 }
 
-cJSON *addon_fetch_catalog_meta(const char *restrict name, int *restrict out_err)
+cJSON *addon_fetch_catalog_meta(const char *name, int *out_err)
 {
     int err = ADDON_OK;
     FILE *f = NULL;
@@ -391,19 +375,17 @@ cJSON *addon_fetch_catalog_meta(const char *restrict name, int *restrict out_err
     }
 
 end:
+    free(catalog);
+
     if (f != NULL) {
         fclose(f);
-    }
-
-    if (catalog != NULL) {
-        free(catalog);
     }
 
     if (out_err != NULL) {
         *out_err = err;
     }
 
-    if (err != ADDON_OK && result != NULL) {
+    if (err != ADDON_OK) {
         cJSON_Delete(result);
         return NULL;
     }
@@ -411,7 +393,7 @@ end:
     return result;
 }
 
-cJSON *addon_fetch_github_meta(const char *restrict url, int *restrict out_err)
+cJSON *addon_fetch_github_meta(const char *url, int *out_err)
 {
     int err = ADDON_OK;
     Response res = { .data = NULL, .size = 0 };
@@ -486,27 +468,16 @@ cJSON *addon_fetch_github_meta(const char *restrict url, int *restrict out_err)
     }
 
 end:
-    if (curl != NULL) {
-        curl_easy_cleanup(curl);
-    }
-
-    if (headers != NULL) {
-        curl_slist_free_all(headers);
-    }
-
-    if (res.data != NULL) {
-        free(res.data);
-    }
-
-    if (resp != NULL) {
-        cJSON_Delete(resp);
-    }
+    curl_easy_cleanup(curl);
+    curl_slist_free_all(headers);
+    free(res.data);
+    cJSON_Delete(resp);
 
     if (out_err != NULL) {
         *out_err = err;
     }
 
-    if (err != ADDON_OK && result != NULL) {
+    if (err != ADDON_OK) {
         cJSON_Delete(result);
         result = NULL;
     }
@@ -514,7 +485,7 @@ end:
     return result;
 }
 
-int addon_fetch_all_meta(Addon *restrict a, const char *restrict name)
+int addon_fetch_all_meta(Addon *a, const char *name)
 {
     int err = ADDON_OK;
 
@@ -542,18 +513,13 @@ int addon_fetch_all_meta(Addon *restrict a, const char *restrict name)
     }
 
 end:
-    if (catalog_json != NULL) {
-        cJSON_Delete(catalog_json);
-    }
-
-    if (gh_json != NULL) {
-        cJSON_Delete(gh_json);
-    }
+    cJSON_Delete(catalog_json);
+    cJSON_Delete(gh_json);
 
     return err;
 }
 
-int addon_fetch_zip(Addon *restrict a)
+int addon_fetch_zip(Addon *a)
 {
     int err = ADDON_OK;
     FILE *fzip = NULL;
@@ -616,24 +582,18 @@ int addon_fetch_zip(Addon *restrict a)
     addon_set_str(&a->_zip_path, strdup(zippath));
 
 end:
-    if (headers != NULL) {
-        curl_slist_free_all(headers);
-    }
-
-    curl_easy_cleanup(curl);
-
-    if (res.data != NULL) {
-        free(res.data);
-    }
-
     if (fzip != NULL) {
         fclose(fzip);
     }
 
+    curl_slist_free_all(headers);
+    curl_easy_cleanup(curl);
+    free(res.data);
+
     return err;
 }
 
-int addon_package(Addon *restrict a)
+int addon_package(Addon *a)
 {
     const char *tmp_path = "../../dev_only/tmp";
 
@@ -657,7 +617,7 @@ int addon_package(Addon *restrict a)
     return ADDON_OK;
 }
 
-int addon_extract(Addon *restrict a, const char *restrict path)
+int addon_extract(Addon *a, const char *path)
 {
     int err = ADDON_OK;
 

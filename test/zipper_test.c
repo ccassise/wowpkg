@@ -6,7 +6,7 @@
 #include "wowpkg.h"
 #include "zipper.h"
 
-static void test_zipper_unzip(const char *restrict outpath)
+static void test_zipper_unzip(const char *outpath)
 {
     assert(zipper_unzip(WOWPKG_TEST_MOCKSDIR "mock_zip.zip", outpath) == ZIPPER_ENOENT);
 

@@ -76,9 +76,9 @@ struct OsDir {
 typedef struct OsDir OsDir;
 #endif
 
-OsDir *os_opendir(const char *restrict path);
-OsDirEnt *os_readdir(OsDir *restrict dir);
-void os_closedir(OsDir *restrict dir);
+OsDir *os_opendir(const char *path);
+OsDirEnt *os_readdir(OsDir *dir);
+void os_closedir(OsDir *dir);
 
 /**
  * Creates a directory at the given path with the given permissions. On Windows,
@@ -89,8 +89,8 @@ void os_closedir(OsDir *restrict dir);
  *
  * On success returns 0, otherwise returns -1 and sets errno on errors.
  */
-int os_mkdir(const char *restrict path, OsMode perms);
-int os_mkdir_all(char *restrict path, OsMode perms);
+int os_mkdir(const char *path, OsMode perms);
+int os_mkdir_all(char *path, OsMode perms);
 
 /**
  * Generates a unique temporary filename from template. Creates and opens the
@@ -102,7 +102,7 @@ int os_mkdir_all(char *restrict path, OsMode perms);
  * On success returns an open FILE with "w+b" mode set. On error, NULL is returned
  * and errno is set.
  */
-FILE *os_mkstemp(char *restrict template);
+FILE *os_mkstemp(char *template);
 
 /**
  * Generates a unique temporary filename from template. Creates a directory with
@@ -114,7 +114,7 @@ FILE *os_mkstemp(char *restrict template);
  * On success returns the modified template string. Otherwise returns NULL and
  * sets errno on errors.
  */
-char *os_mkdtemp(char *restrict template);
+char *os_mkdtemp(char *template);
 
 /**
  * Removes the file at path. If path is a directory then it recursively removes
@@ -122,7 +122,7 @@ char *os_mkdtemp(char *restrict template);
  *
  * On success returns 0, otherwise returns -1 and sets errno on errors.
  */
-int os_remove_all(const char *restrict path);
+int os_remove_all(const char *path);
 
 /**
  * See rename(2) for *nix and MoveFileEx with MOVEFILE_REPLACE_EXISTING for
@@ -130,4 +130,4 @@ int os_remove_all(const char *restrict path);
  *
  * Returns non-zero on errors.
  */
-int os_rename(const char *restrict src, const char *restrict dest);
+int os_rename(const char *src, const char *dest);

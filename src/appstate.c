@@ -36,14 +36,18 @@ AppState *appstate_create(void)
     return result;
 }
 
-void appstate_free(AppState *restrict state)
+void appstate_free(AppState *state)
 {
+    if (state == NULL) {
+        return;
+    }
+
     list_free(state->installed);
     list_free(state->latest);
     free(state);
 }
 
-int appstate_from_json(AppState *restrict state, const char *restrict json_str)
+int appstate_from_json(AppState *state, const char *json_str)
 {
     int err = 0;
 
@@ -86,14 +90,12 @@ int appstate_from_json(AppState *restrict state, const char *restrict json_str)
     }
 
 end:
-    if (json != NULL) {
-        cJSON_Delete(json);
-    }
+    cJSON_Delete(json);
 
     return err;
 }
 
-char *appstate_to_json(AppState *restrict state)
+char *appstate_to_json(AppState *state)
 {
     int err = 0;
     char *result = NULL;
@@ -166,14 +168,12 @@ end:
         result = cJSON_PrintUnformatted(json);
     }
 
-    if (json != NULL) {
-        cJSON_Delete(json);
-    }
+    cJSON_Delete(json);
 
     return result;
 }
 
-int appstate_save(AppState *restrict state, const char *restrict path)
+int appstate_save(AppState *state, const char *path)
 {
     int err = 0;
     FILE *f = NULL;
@@ -202,14 +202,12 @@ end:
         fclose(f);
     }
 
-    if (json_str != NULL) {
-        free(json_str);
-    }
+    free(json_str);
 
     return err;
 }
 
-int appstate_load(AppState *restrict state, const char *restrict path)
+int appstate_load(AppState *state, const char *path)
 {
     int err = 0;
     FILE *f = NULL;
@@ -251,9 +249,7 @@ end:
         fclose(f);
     }
 
-    if (buf != NULL) {
-        free(buf);
-    }
+    free(buf);
 
     return err;
 }

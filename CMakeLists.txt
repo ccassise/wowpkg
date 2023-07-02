@@ -7,13 +7,15 @@ project(wowpkg VERSION 0.1.0 LANGUAGES C)
 
 set(CMAKE_C_STANDARD 11)
 
-set(WOWPKG_ENABLE_SANITIZERS ON)
-set(WOWPKG_ENABLE_TESTS ON)
+option(WOWPKG_ENABLE_SANITIZERS OFF)
+option(WOWPKG_ENABLE_TESTS OFF)
+
 
 # Disable tests on release builds because NDEBUG is most likely set.
 # With NDEBUG set tests will have weird results or fail to compile since
 # 'assert' will be turned in to a no op.
-if (CMAKE_BUILD_TYPE STREQUAL "Release")
+if (CMAKE_BUILD_TYPE STREQUAL "Release" AND WOWPKG_ENABLE_TESTS)
+    message(STATUS "[${PROJECT_NAME}] forcefully disabling tests as they will not work in release mode")
     set(WOWPKG_ENABLE_TESTS OFF)
 endif()
 
@@ -112,6 +114,7 @@ endif()
 add_subdirectory(src)
 
 if (WOWPKG_ENABLE_TESTS)
+    message(STATUS "[${PROJECT_NAME}] enabling tests")
     add_subdirectory(test)
 endif()
 

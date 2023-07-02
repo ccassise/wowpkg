@@ -17,13 +17,17 @@ Config *config_create(void)
     return result;
 }
 
-void config_free(Config *restrict cfg)
+void config_free(Config *cfg)
 {
+    if (cfg == NULL) {
+        return;
+    }
+
     free(cfg->addon_path);
     free(cfg);
 }
 
-int config_from_json(Config *restrict cfg, const char *restrict json_str)
+int config_from_json(Config *cfg, const char *json_str)
 {
     int err = 0;
 
@@ -42,14 +46,12 @@ int config_from_json(Config *restrict cfg, const char *restrict json_str)
     cfg->addon_path = strdup(addon_path->valuestring);
 
 end:
-    if (json != NULL) {
-        cJSON_Delete(json);
-    }
+    cJSON_Delete(json);
 
     return err;
 }
 
-char *config_to_json(Config *restrict cfg)
+char *config_to_json(Config *cfg)
 {
     int err = 0;
     char *result = NULL;
@@ -70,14 +72,12 @@ end:
         result = cJSON_PrintUnformatted(json);
     }
 
-    if (json != NULL) {
-        cJSON_Delete(json);
-    }
+    cJSON_Delete(json);
 
     return result;
 }
 
-int config_load(Config *restrict cfg, const char *restrict path)
+int config_load(Config *cfg, const char *path)
 {
     int err = 0;
     FILE *f = NULL;
@@ -119,9 +119,7 @@ end:
         fclose(f);
     }
 
-    if (buf != NULL) {
-        free(buf);
-    }
+    free(buf);
 
     return err;
 }

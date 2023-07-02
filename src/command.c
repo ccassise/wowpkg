@@ -103,7 +103,7 @@ static int cmp_str_to_addon(const void *str, const void *addon)
     return strcasecmp(s, a->name);
 }
 
-int cmd_install(Context *restrict ctx, int argc, const char *restrict argv[], FILE *out)
+int cmd_install(Context *ctx, int argc, const char *argv[], FILE *out)
 {
     if (argc < 2) {
         PRINT_ERROR1(CMD_EINVALID_ARGS_STR);
@@ -234,7 +234,7 @@ end:
     return err;
 }
 
-int cmd_help(Context *restrict ctx, int argc, const char *restrict argv[], FILE *out)
+int cmd_help(Context *ctx, int argc, const char *argv[], FILE *out)
 {
     UNUSED(ctx);
     UNUSED(argc);
@@ -252,7 +252,7 @@ int cmd_help(Context *restrict ctx, int argc, const char *restrict argv[], FILE 
     return 0;
 }
 
-int cmd_list(Context *restrict ctx, int argc, const char *restrict argv[], FILE *out)
+int cmd_list(Context *ctx, int argc, const char *argv[], FILE *out)
 {
     UNUSED(argv);
 
@@ -273,7 +273,7 @@ int cmd_list(Context *restrict ctx, int argc, const char *restrict argv[], FILE 
     return 0;
 }
 
-int cmd_outdated(Context *restrict ctx, int argc, const char *restrict argv[], FILE *out)
+int cmd_outdated(Context *ctx, int argc, const char *argv[], FILE *out)
 {
     if (argc != 1) {
         PRINT_ERROR1(CMD_EINVALID_ARGS_STR);
@@ -303,7 +303,7 @@ int cmd_outdated(Context *restrict ctx, int argc, const char *restrict argv[], F
     return 0;
 }
 
-int cmd_remove(Context *restrict ctx, int argc, const char *restrict argv[], FILE *out)
+int cmd_remove(Context *ctx, int argc, const char *argv[], FILE *out)
 {
     if (argc <= 1) {
         PRINT_ERROR1(CMD_EINVALID_ARGS_STR);
@@ -365,7 +365,7 @@ int cmd_remove(Context *restrict ctx, int argc, const char *restrict argv[], FIL
     return 0;
 }
 
-int cmd_search(Context *restrict ctx, int argc, const char *restrict argv[], FILE *out)
+int cmd_search(Context *ctx, int argc, const char *argv[], FILE *out)
 {
     UNUSED(ctx);
 
@@ -416,16 +416,14 @@ int cmd_search(Context *restrict ctx, int argc, const char *restrict argv[], FIL
     }
 
 end:
-    if (dir != NULL) {
-        os_closedir(dir);
-    }
+    os_closedir(dir);
 
     list_free(found);
 
     return err;
 }
 
-int cmd_update(Context *restrict ctx, int argc, const char *restrict argv[], FILE *out)
+int cmd_update(Context *ctx, int argc, const char *argv[], FILE *out)
 {
     if (argc < 1) {
         PRINT_ERROR1(CMD_EINVALID_ARGS_STR);
@@ -508,7 +506,7 @@ end:
     return err;
 }
 
-int cmd_upgrade(Context *restrict ctx, int argc, const char *restrict argv[], FILE *out)
+int cmd_upgrade(Context *ctx, int argc, const char *argv[], FILE *out)
 {
     if (argc < 1) {
         PRINT_ERROR1(CMD_EINVALID_ARGS_STR);

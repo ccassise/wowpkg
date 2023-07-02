@@ -24,7 +24,15 @@ typedef struct List {
 #define list_isempty(l) ((l)->head == NULL)
 
 List *list_create(void);
-void list_free(List *restrict l);
+
+/**
+ * Destroys each node in list, calling ListFreeFn on each node and then destroys
+ * the list.
+ *
+ * Passing a NULL pointer will make this function return immediately with no
+ * action.
+ */
+void list_free(List *l);
 
 /**
  * Creates a new node and inserts it at the beginning of the list with the given
@@ -32,13 +40,13 @@ void list_free(List *restrict l);
  *
  * Returns the newly inserted node. On error returns NULL.
  */
-ListNode *list_insert(List *restrict l, void *restrict value);
+ListNode *list_insert(List *l, void *value);
 
 /**
  * Removes the given node from the list. If node is NULL then the list is
  * unchanged.
  */
-void list_remove(List *restrict l, ListNode *restrict node);
+void list_remove(List *l, ListNode *node);
 
 /**
  * Search the list for the node that contains the given value.
@@ -50,8 +58,8 @@ void list_remove(List *restrict l, ListNode *restrict node);
  * that matches the given pointer.
  *
  */
-ListNode *list_search(List *restrict l, const void *restrict value, ListCompareFn cmp);
-ListNode *list_search_ptr(List *restrict l, const void *restrict value);
+ListNode *list_search(List *l, const void *value, ListCompareFn cmp);
+ListNode *list_search_ptr(List *l, const void *value);
 
 /**
  * Sorts the list based off the given compare function. The compare function
@@ -59,4 +67,4 @@ ListNode *list_search_ptr(List *restrict l, const void *restrict value);
  *
  * The sort is stable.
  */
-void list_sort(List *restrict l, ListCompareFn cmp);
+void list_sort(List *l, ListCompareFn cmp);
