@@ -87,7 +87,7 @@ static int zipper_unzip_file(unzFile uf, const char *dest)
     int filename_len = snclean_path(filename, ARRLEN(filename), raw_filename);
     if (filename_len >= (int)ARRLEN(filename)) {
         err = ZIPPER_ENAMETOOLONG;
-        goto end;
+        goto cleanup;
     }
 
     err = unzOpenCurrentFile(uf);
@@ -99,13 +99,13 @@ static int zipper_unzip_file(unzFile uf, const char *dest)
     int n = snprintf(new_path, sizeof(new_path), "%s%c%s", dest, OS_SEPARATOR, filename);
     if (n < 0 || (size_t)n >= sizeof(new_path)) {
         err = ZIPPER_ENAMETOOLONG;
-        goto end;
+        goto cleanup;
     }
 
     err = os_mkdir_all(new_path, 0755);
     if (err != 0) {
         err = ZIPPER_ENOENT;
-        goto end;
+        goto cleanup;
     }
 
     if (finfo.compressed_size != 0) {
@@ -113,7 +113,7 @@ static int zipper_unzip_file(unzFile uf, const char *dest)
         out_file = fopen(new_path, "wb");
         if (out_file == NULL) {
             err = ZIPPER_ENOENT;
-            goto end;
+            goto cleanup;
         }
 
         unsigned char buf[BUFSIZ];
@@ -122,17 +122,17 @@ static int zipper_unzip_file(unzFile uf, const char *dest)
         while ((nread = unzReadCurrentFile(uf, buf, ARRLEN(buf))) > 0) {
             if (fwrite(buf, sizeof(*buf), (size_t)nread, out_file) != (size_t)nread) {
                 err = ZIPPER_EWRITE;
-                goto end;
+                goto cleanup;
             }
         }
 
         if (nread < 0) {
             err = ZIPPER_EREAD;
-            goto end;
+            goto cleanup;
         }
     }
 
-end:
+cleanup:
     unzCloseCurrentFile(uf);
     if (out_file != NULL) {
         fclose(out_file);
@@ -168,7 +168,7 @@ int zipper_unzip(const char *src, const char *dest)
     err = unzGetGlobalInfo64(uf, &ufinfo);
     if (err != UNZ_OK) {
         err = ZIPPER_ENOENT;
-        goto end;
+        goto cleanup;
     }
 
     for (size_t i = 0; i < ufinfo.number_entry; i++) {
@@ -181,7 +181,7 @@ int zipper_unzip(const char *src, const char *dest)
         }
     }
 
-end:
+cleanup:
     unzClose(uf);
     return err;
 }

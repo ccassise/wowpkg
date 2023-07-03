@@ -34,18 +34,18 @@ int config_from_json(Config *cfg, const char *json_str)
     cJSON *json = cJSON_Parse(json_str);
     if (json == NULL) {
         err = -1;
-        goto end;
+        goto cleanup;
     }
 
     cJSON *addon_path = cJSON_GetObjectItemCaseSensitive(json, "addon_path");
     if (addon_path == NULL || !cJSON_IsString(addon_path)) {
         err = -1;
-        goto end;
+        goto cleanup;
     }
 
     cfg->addon_path = strdup(addon_path->valuestring);
 
-end:
+cleanup:
     cJSON_Delete(json);
 
     return err;
@@ -59,15 +59,15 @@ char *config_to_json(Config *cfg)
     cJSON *json = cJSON_CreateObject();
     if (json == NULL) {
         err = -1;
-        goto end;
+        goto cleanup;
     }
 
     if (cJSON_AddStringToObject(json, "addon_path", cfg->addon_path) == NULL) {
         err = -1;
-        goto end;
+        goto cleanup;
     }
 
-end:
+cleanup:
     if (err == 0) {
         result = cJSON_PrintUnformatted(json);
     }
@@ -86,35 +86,35 @@ int config_load(Config *cfg, const char *path)
     f = fopen(path, "rb");
     if (f == NULL) {
         err = -1;
-        goto end;
+        goto cleanup;
     }
 
     struct os_stat s;
     if (os_stat(path, &s) != 0) {
         err = -1;
-        goto end;
+        goto cleanup;
     }
 
     if (s.st_size < 0) {
         err = -1;
-        goto end;
+        goto cleanup;
     }
     size_t bufsz = (size_t)s.st_size;
     buf = malloc(sizeof(*buf) * bufsz + 1);
 
     if (fread(buf, sizeof(*buf), bufsz, f) != bufsz) {
         err = -1;
-        goto end;
+        goto cleanup;
     }
 
     buf[bufsz] = '\0';
 
     if (config_from_json(cfg, buf) != 0) {
         err = -1;
-        goto end;
+        goto cleanup;
     }
 
-end:
+cleanup:
     if (f != NULL) {
         fclose(f);
     }

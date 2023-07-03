@@ -264,38 +264,38 @@ char *addon_to_json(Addon *a)
     cJSON *json = cJSON_CreateObject();
     if (json == NULL) {
         err = ADDON_EINTERNAL;
-        goto end;
+        goto cleanup;
     }
 
     if (cJSON_AddStringToObject(json, ADDON_NAME, a->name) == NULL) {
         err = ADDON_EINTERNAL;
-        goto end;
+        goto cleanup;
     }
 
     if (cJSON_AddStringToObject(json, ADDON_DESC, a->desc) == NULL) {
         err = ADDON_EINTERNAL;
-        goto end;
+        goto cleanup;
     }
 
     if (cJSON_AddStringToObject(json, ADDON_VERSION, a->version) == NULL) {
         err = ADDON_EINTERNAL;
-        goto end;
+        goto cleanup;
     }
 
     if (cJSON_AddStringToObject(json, ADDON_URL, a->url) == NULL) {
         err = ADDON_EINTERNAL;
-        goto end;
+        goto cleanup;
     }
 
     if (cJSON_AddStringToObject(json, ADDON_HANDLER, a->handler) == NULL) {
         err = ADDON_EINTERNAL;
-        goto end;
+        goto cleanup;
     }
 
     cJSON *dirs = cJSON_AddArrayToObject(json, ADDON_DIRS);
     if (dirs == NULL) {
         err = ADDON_EINTERNAL;
-        goto end;
+        goto cleanup;
     }
 
     ListNode *node = NULL;
@@ -304,7 +304,7 @@ char *addon_to_json(Addon *a)
         cJSON_AddItemToArray(dirs, cJSON_CreateString((char *)node->value));
     }
 
-end:
+cleanup:
     if (err == ADDON_OK) {
         result = cJSON_PrintUnformatted(json);
     }
@@ -338,19 +338,19 @@ cJSON *addon_fetch_catalog_meta(const char *name, int *out_err)
     int n = snfind_catalog_path(path, ARRLEN(path), name);
     if (n < 0 || (size_t)n >= ARRLEN(path)) {
         err = ADDON_ENOTFOUND;
-        goto end;
+        goto cleanup;
     }
 
     f = fopen(path, "rb");
     if (f == NULL) {
         err = ADDON_ENOENT;
-        goto end;
+        goto cleanup;
     }
 
     struct os_stat s;
     if (os_stat(path, &s) != 0) {
         err = ADDON_ENOENT;
-        goto end;
+        goto cleanup;
     }
 
     size_t fsz = (size_t)s.st_size;
@@ -358,12 +358,12 @@ cJSON *addon_fetch_catalog_meta(const char *name, int *out_err)
     catalog = malloc(fsz + 1);
     if (catalog == NULL) {
         err = ADDON_EINTERNAL;
-        goto end;
+        goto cleanup;
     }
 
     if (fread(catalog, sizeof(*catalog), fsz, f) != fsz) {
         err = ADDON_EBADJSON;
-        goto end;
+        goto cleanup;
     }
 
     catalog[fsz] = '\0';
@@ -371,10 +371,10 @@ cJSON *addon_fetch_catalog_meta(const char *name, int *out_err)
     result = cJSON_Parse(catalog);
     if (result == NULL) {
         err = ADDON_EBADJSON;
-        goto end;
+        goto cleanup;
     }
 
-end:
+cleanup:
     free(catalog);
 
     if (f != NULL) {
@@ -404,7 +404,7 @@ cJSON *addon_fetch_github_meta(const char *url, int *out_err)
     CURL *curl = curl_easy_init();
     if (curl == NULL) {
         err = ADDON_EINTERNAL;
-        goto end;
+        goto cleanup;
     }
 
     headers = set_github_headers(headers);
@@ -419,7 +419,7 @@ cJSON *addon_fetch_github_meta(const char *url, int *out_err)
     CURLcode status = curl_easy_perform(curl);
     if (status != CURLE_OK) {
         err = ADDON_EINTERNAL;
-        goto end;
+        goto cleanup;
     }
 
     long http_code;
@@ -430,44 +430,44 @@ cJSON *addon_fetch_github_meta(const char *url, int *out_err)
         } else {
             err = ADDON_EINTERNAL;
         }
-        goto end;
+        goto cleanup;
     }
 
     resp = cJSON_Parse(res.data);
     if (resp == NULL) {
         err = ADDON_EINTERNAL;
-        goto end;
+        goto cleanup;
     }
 
     cJSON *tag_name = cJSON_GetObjectItemCaseSensitive(resp, "tag_name");
     if (!json_check_string(tag_name)) {
         err = ADDON_EBADJSON;
-        goto end;
+        goto cleanup;
     }
 
     result = cJSON_CreateObject();
     if (result == NULL) {
         err = ADDON_EINTERNAL;
-        goto end;
+        goto cleanup;
     }
 
     if (cJSON_AddStringToObject(result, "version", tag_name->valuestring) == NULL) {
         err = ADDON_EINTERNAL;
-        goto end;
+        goto cleanup;
     }
 
     const char *zip_url = gh_resp_find_asset_zip(resp);
     if (zip_url == NULL) {
         err = ADDON_ENO_ZIP_ASSET;
-        goto end;
+        goto cleanup;
     }
 
     if (cJSON_AddStringToObject(result, "url", zip_url) == NULL) {
         err = ADDON_EINTERNAL;
-        goto end;
+        goto cleanup;
     }
 
-end:
+cleanup:
     curl_easy_cleanup(curl);
     curl_slist_free_all(headers);
     free(res.data);
@@ -494,25 +494,25 @@ int addon_fetch_all_meta(Addon *a, const char *name)
 
     catalog_json = addon_fetch_catalog_meta(name, &err);
     if (err != ADDON_OK) {
-        goto end;
+        goto cleanup;
     }
 
     err = addon_from_json(a, catalog_json);
     if (err != ADDON_OK) {
-        goto end;
+        goto cleanup;
     }
 
     gh_json = addon_fetch_github_meta(a->url, &err);
     if (err != ADDON_OK) {
-        goto end;
+        goto cleanup;
     }
 
     err = addon_from_json(a, gh_json);
     if (err != ADDON_OK) {
-        goto end;
+        goto cleanup;
     }
 
-end:
+cleanup:
     cJSON_Delete(catalog_json);
     cJSON_Delete(gh_json);
 
@@ -543,7 +543,7 @@ int addon_fetch_zip(Addon *a)
     CURLcode status = curl_easy_perform(curl);
     if (status != CURLE_OK) {
         err = ADDON_EINTERNAL;
-        goto end;
+        goto cleanup;
     }
 
     long http_code;
@@ -554,34 +554,37 @@ int addon_fetch_zip(Addon *a)
         } else {
             err = ADDON_EINTERNAL;
         }
-        goto end;
+        goto cleanup;
     }
 
     if (res.size > 0) {
         res.size--; // Remove terminating null since this should be raw data.
     }
 
+    const char *zip_ext = ".zip";
     char zippath[OS_MAX_PATH];
-    int nwrote = snprintf(zippath, ARRLEN(zippath), "%s_%s_XXXXXX", a->name, a->version);
+
+    // Creates a string with a value 'path/to/temp/wowpkg_<addon_name>_<addon_version>_XXXXXX.zip'.
+    int nwrote = snprintf(zippath, ARRLEN(zippath), "%s%c%s_%s_%s_XXXXXX%s", os_tempdir(), OS_SEPARATOR, WOWPKG_NAME, a->name, a->version, zip_ext);
     if (nwrote < 0 || (size_t)nwrote >= ARRLEN(zippath)) {
         err = ADDON_ENAMETOOLONG;
-        goto end;
+        goto cleanup;
     }
 
-    fzip = os_mkstemp(zippath);
+    fzip = os_mkstemps(zippath, strlen(zip_ext));
     if (fzip == NULL) {
         err = ADDON_EINTERNAL;
-        goto end;
+        goto cleanup;
     }
 
     if (fwrite(res.data, sizeof(*res.data), res.size, fzip) != res.size) {
         err = ADDON_EINTERNAL;
-        goto end;
+        goto cleanup;
     }
 
     addon_set_str(&a->_zip_path, strdup(zippath));
 
-end:
+cleanup:
     if (fzip != NULL) {
         fclose(fzip);
     }
@@ -595,11 +598,10 @@ end:
 
 int addon_package(Addon *a)
 {
-    const char *tmp_path = "../../dev_only/tmp";
-
     char tmpdir[OS_MAX_PATH];
 
-    int n = snprintf(tmpdir, ARRLEN(tmpdir), "%s%c%s_%s_XXXXXX", tmp_path, OS_SEPARATOR, a->name, a->version);
+    // Creates a string with a value 'path/to/temp/wowpkg_<addon_name>_<addon_version>_XXXXXX'.
+    int n = snprintf(tmpdir, ARRLEN(tmpdir), "%s%c%s_%s_%s_XXXXXX", os_tempdir(), OS_SEPARATOR, WOWPKG_NAME, a->name, a->version);
     if (n < 0 || (size_t)n >= ARRLEN(tmpdir)) {
         return ADDON_ENAMETOOLONG;
     }
@@ -633,13 +635,13 @@ int addon_extract(Addon *a, const char *path)
         }
 
         if ((err = move_filename(a->_package_path, path, entry->name)) != ADDON_OK) {
-            goto end;
+            goto cleanup;
         }
 
         list_insert(a->dirs, strdup(entry->name));
     }
 
-end:
+cleanup:
     os_closedir(dir);
 
     return err;

@@ -105,6 +105,10 @@ static int cmp_str_to_addon(const void *str, const void *addon)
 
 int cmd_install(Context *ctx, int argc, const char *argv[], FILE *out)
 {
+    // TODO: If an addon successfully installs/upgrades but another addon
+    // errors, the app state will not be saved for next session even though
+    // files may have already been moved to user's addon folder.
+
     if (argc < 2) {
         PRINT_ERROR1(CMD_EINVALID_ARGS_STR);
         return -1;
@@ -118,7 +122,7 @@ int cmd_install(Context *ctx, int argc, const char *argv[], FILE *out)
     if (addons == NULL) {
         PRINT_ERROR2(CMD_ENO_MEM_STR, argv[0]);
         err = -1;
-        goto end;
+        goto cleanup;
     }
 
     for (int i = 1; i < argc; i++) {
@@ -128,7 +132,7 @@ int cmd_install(Context *ctx, int argc, const char *argv[], FILE *out)
         if (addon == NULL) {
             PRINT_ERROR2(CMD_ENO_MEM_STR, argv[0]);
             err = -1;
-            goto end;
+            goto cleanup;
         }
 
         err = addon_fetch_all_meta(addon, argv[i]);
@@ -159,7 +163,7 @@ int cmd_install(Context *ctx, int argc, const char *argv[], FILE *out)
     loop_error:
         addon_free(addon);
         if (err != 0) {
-            goto end;
+            goto cleanup;
         }
     }
 
@@ -186,14 +190,14 @@ int cmd_install(Context *ctx, int argc, const char *argv[], FILE *out)
         if (addon_package(addon) != ADDON_OK) {
             PRINT_ERROR3(CMD_EPACKAGE_STR, argv[0], addon->name);
             err = -1;
-            goto end;
+            goto cleanup;
         }
 
         fprintf(out, "==> Extracting %s\n", addon->name);
         if (addon_extract(addon, ctx->config->addon_path) != ADDON_OK) {
             PRINT_ERROR3(CMD_EEXTRACT_STR, argv[0], addon->name);
             err = -1;
-            goto end;
+            goto cleanup;
         }
 
         addon_cleanup_files(addon);
@@ -219,7 +223,7 @@ int cmd_install(Context *ctx, int argc, const char *argv[], FILE *out)
         list_insert(ctx->state->latest, addon_dup(addon));
     }
 
-end:
+cleanup:
     // Addons list should only contain addons that have had their ownership
     // transferred to appstate. However if there was an error then ownership may
     // not have been transferred and need to be cleaned up.
@@ -380,7 +384,7 @@ int cmd_search(Context *ctx, int argc, const char *argv[], FILE *out)
     OsDir *dir = os_opendir("../../catalog");
     if (dir == NULL) {
         err = -1;
-        goto end;
+        goto cleanup;
     }
 
     OsDirEnt *entry = NULL;
@@ -393,7 +397,7 @@ int cmd_search(Context *ctx, int argc, const char *argv[], FILE *out)
             char *basename = strdup(entry->name);
             if (basename == NULL) {
                 err = -1;
-                goto end;
+                goto cleanup;
             }
 
             char *ext_start = strstr(basename, ".json");
@@ -415,7 +419,7 @@ int cmd_search(Context *ctx, int argc, const char *argv[], FILE *out)
         fprintf(out, "%s\n", (char *)node->value);
     }
 
-end:
+cleanup:
     os_closedir(dir);
 
     list_free(found);
@@ -480,7 +484,7 @@ int cmd_update(Context *ctx, int argc, const char *argv[], FILE *out)
         } else if (err != ADDON_OK) {
             PRINT_ERROR3(CMD_EMETADATA_STR, argv[0], addon->name);
             err = -1;
-            goto end;
+            goto cleanup;
         }
     }
 
@@ -495,7 +499,7 @@ int cmd_update(Context *ctx, int argc, const char *argv[], FILE *out)
         list_insert(ctx->state->latest, addon);
     }
 
-end:
+cleanup:
     if (err != 0) {
         list_set_free_fn(addons, (ListFreeFn)addon_free);
     }
@@ -508,6 +512,10 @@ end:
 
 int cmd_upgrade(Context *ctx, int argc, const char *argv[], FILE *out)
 {
+    // TODO: If an addon successfully installs/upgrades but another addon
+    // errors, the app state will not be saved for next session even though
+    // files may have already been moved to user's addon folder.
+
     if (argc < 1) {
         PRINT_ERROR1(CMD_EINVALID_ARGS_STR);
         return -1;
@@ -580,7 +588,7 @@ int cmd_upgrade(Context *ctx, int argc, const char *argv[], FILE *out)
         if (addon_fetch_zip(addon) != ADDON_OK) {
             PRINT_ERROR3(CMD_EDOWNLOAD_STR, argv[0], addon->name);
             err = -1;
-            goto end;
+            goto cleanup;
         }
     }
 
@@ -607,14 +615,14 @@ int cmd_upgrade(Context *ctx, int argc, const char *argv[], FILE *out)
         if (addon_package(addon) != ADDON_OK) {
             PRINT_ERROR3(CMD_EPACKAGE_STR, argv[0], addon->name);
             err = -1;
-            goto end;
+            goto cleanup;
         }
 
         fprintf(out, "==> Extracting %s\n", addon->name);
         if (addon_extract(addon, ctx->config->addon_path) != ADDON_OK) {
             PRINT_ERROR3(CMD_EEXTRACT_STR, argv[0], addon->name);
             err = -1;
-            goto end;
+            goto cleanup;
         }
 
         addon_cleanup_files(addon);
@@ -637,7 +645,7 @@ int cmd_upgrade(Context *ctx, int argc, const char *argv[], FILE *out)
         list_insert(ctx->state->latest, addon_dup(addon));
     }
 
-end:
+cleanup:
     if (err != 0) {
         list_set_free_fn(addons, (ListFreeFn)addon_free);
     }

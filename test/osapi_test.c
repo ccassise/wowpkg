@@ -1,4 +1,5 @@
 #include <assert.h>
+#include <errno.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
@@ -146,10 +147,12 @@ static void test_os_remove_all(void)
 static void test_os_mkstemp(void)
 {
     char template[] = WOWPKG_TEST_TMPDIR "test_os_mkstemp_XXXXXX";
+    const char *prefix = WOWPKG_TEST_TMPDIR "test_os_mkstemp_";
 
     FILE *ftemp = os_mkstemp(template);
     assert(ftemp != NULL);
-    assert(strcmp(template, WOWPKG_TEST_TMPDIR "test_os_mkstemp_XXXXXX") != 0);
+    assert(strncmp(template, prefix, strlen(prefix)) == 0);
+    assert(strlen(template) == strlen(prefix) + 6); // 6 is number of 'X' in template.
 
     struct os_stat s;
     assert(os_stat(template, &s) == 0);
@@ -158,6 +161,49 @@ static void test_os_mkstemp(void)
 
     fclose(ftemp);
     remove(template);
+}
+
+static void test_os_mkstemps(void)
+{
+    char template[] = WOWPKG_TEST_TMPDIR "test_os_mkstemps_XXXXXXsuffix";
+    const char *prefix = WOWPKG_TEST_TMPDIR "test_os_mkstemps_";
+    const char *suffix = "suffix";
+
+    FILE *ftemp = os_mkstemps(template, strlen(suffix));
+    assert(ftemp != NULL);
+    assert(strncmp(template, prefix, strlen(prefix)) == 0);
+    assert(strncmp(&template[strlen(prefix) + 6], suffix, strlen(suffix)) == 0);
+    assert(strlen(template) == strlen(prefix) + 6 + strlen(suffix)); // 6 is number of 'X' in template.
+
+    struct os_stat s;
+    assert(os_stat(template, &s) == 0);
+
+    assert(S_ISREG(s.st_mode));
+
+    fclose(ftemp);
+    remove(template);
+}
+
+static void test_os_mkstemps_suffixlen_too_large(void)
+{
+    char template[] = WOWPKG_TEST_TMPDIR "test_os_mkstemps_XXXXXXsuffix";
+    const char *prefix = WOWPKG_TEST_TMPDIR "test_os_mkstemps_";
+    const char *suffix = "suffix";
+
+    FILE *ftemp = os_mkstemps(template, 4096);
+    assert(ftemp == NULL);
+    assert(errno == EINVAL);
+    assert(strncmp(template, prefix, strlen(prefix)) == 0);
+    assert(strncmp(&template[strlen(prefix)], "XXXXXX", 6) == 0); // 6 is number of 'X' in template.
+    assert(strncmp(&template[strlen(prefix) + 6], suffix, strlen(suffix)) == 0);
+    assert(strlen(template) == strlen(prefix) + 6 + strlen(suffix));
+
+    ftemp = os_mkstemps(template, -1);
+    assert(ftemp == NULL);
+    assert(errno == EINVAL);
+
+    struct os_stat s;
+    assert(os_stat(template, &s) != 0);
 }
 
 static void test_os_mkdtemp(void)
@@ -256,6 +302,8 @@ int main(void)
     test_os_readdir();
     test_os_remove_all();
     test_os_mkstemp();
+    test_os_mkstemps();
+    test_os_mkstemps_suffixlen_too_large();
     test_os_mkdtemp();
     test_os_rename_dir();
     test_os_rename_file();

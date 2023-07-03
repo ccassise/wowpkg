@@ -16,13 +16,13 @@ foreach(TEST IN LISTS TESTS)
 
 	target_link_libraries(${TEST_NAME} PRIVATE ${WOWPKG_LIBS})
 
+	target_compile_options(${TEST_NAME} PRIVATE ${WFLAGS})
+	target_link_options(${TEST_NAME} PRIVATE ${LDFLAGS})
 	target_compile_definitions(${TEST_NAME} PRIVATE
 		${WOWPKG_DEFINES}
 		WOWPKG_TEST_TMPDIR="${PROJECT_SOURCE_DIR}/dev_only/tmp/"
 		WOWPKG_TEST_MOCKSDIR="${PROJECT_SOURCE_DIR}/test/mocks/"
 	)
-	target_compile_options(${TEST_NAME} PRIVATE ${WFLAGS})
-	target_link_options(${TEST_NAME} PRIVATE ${LDFLAGS})
 
 	target_include_directories(${TEST_NAME} PRIVATE ${PROJECT_SOURCE_DIR}/src)
 

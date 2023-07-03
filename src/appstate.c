@@ -54,13 +54,13 @@ int appstate_from_json(AppState *state, const char *json_str)
     cJSON *json = cJSON_Parse(json_str);
     if (json == NULL) {
         err = -1;
-        goto end;
+        goto cleanup;
     }
 
     cJSON *installed = cJSON_GetObjectItemCaseSensitive(json, "installed");
     if (!cJSON_IsArray(installed)) {
         err = -1;
-        goto end;
+        goto cleanup;
     }
 
     cJSON *addon_json = NULL;
@@ -77,7 +77,7 @@ int appstate_from_json(AppState *state, const char *json_str)
     cJSON *latest = cJSON_GetObjectItemCaseSensitive(json, "latest");
     if (!cJSON_IsArray(latest)) {
         err = -1;
-        goto end;
+        goto cleanup;
     }
 
     addon_json = NULL;
@@ -89,7 +89,7 @@ int appstate_from_json(AppState *state, const char *json_str)
         list_insert(state->latest, addon);
     }
 
-end:
+cleanup:
     cJSON_Delete(json);
 
     return err;
@@ -104,14 +104,14 @@ char *appstate_to_json(AppState *state)
     cJSON *json = cJSON_CreateObject();
     if (json == NULL) {
         err = -1;
-        goto end;
+        goto cleanup;
     }
 
     // Installed
     cJSON *installed = cJSON_AddArrayToObject(json, "installed");
     if (json == NULL) {
         err = -1;
-        goto end;
+        goto cleanup;
     }
 
     node = NULL;
@@ -120,14 +120,14 @@ char *appstate_to_json(AppState *state)
         char *addon_json_str = addon_to_json((Addon *)node->value);
         if (addon_json_str == NULL) {
             err = -1;
-            goto end;
+            goto cleanup;
         }
 
         cJSON *addon_json = cJSON_Parse(addon_json_str);
         if (addon_json == NULL) {
             free(addon_json_str);
             err = -1;
-            goto end;
+            goto cleanup;
         }
 
         cJSON_AddItemToArray(installed, addon_json);
@@ -139,7 +139,7 @@ char *appstate_to_json(AppState *state)
     cJSON *latest = cJSON_AddArrayToObject(json, "latest");
     if (json == NULL) {
         err = -1;
-        goto end;
+        goto cleanup;
     }
 
     node = NULL;
@@ -148,14 +148,14 @@ char *appstate_to_json(AppState *state)
         char *addon_json_str = addon_to_json((Addon *)node->value);
         if (addon_json_str == NULL) {
             err = -1;
-            goto end;
+            goto cleanup;
         }
 
         cJSON *addon_json = cJSON_Parse(addon_json_str);
         if (addon_json == NULL) {
             free(addon_json_str);
             err = -1;
-            goto end;
+            goto cleanup;
         }
 
         cJSON_AddItemToArray(latest, addon_json);
@@ -163,7 +163,7 @@ char *appstate_to_json(AppState *state)
         free(addon_json_str);
     }
 
-end:
+cleanup:
     if (err == 0) {
         result = cJSON_PrintUnformatted(json);
     }
@@ -182,22 +182,22 @@ int appstate_save(AppState *state, const char *path)
     f = fopen(path, "wb");
     if (f == NULL) {
         err = -1;
-        goto end;
+        goto cleanup;
     }
 
     json_str = appstate_to_json(state);
     if (json_str == NULL) {
         err = -1;
-        goto end;
+        goto cleanup;
     }
 
     size_t json_strlen = strlen(json_str);
     if (fwrite(json_str, sizeof(*json_str), json_strlen, f) != json_strlen) {
         err = -1;
-        goto end;
+        goto cleanup;
     }
 
-end:
+cleanup:
     if (f != NULL) {
         fclose(f);
     }
@@ -216,35 +216,35 @@ int appstate_load(AppState *state, const char *path)
     f = fopen(path, "rb");
     if (f == NULL) {
         err = -1;
-        goto end;
+        goto cleanup;
     }
 
     struct os_stat s;
     if (os_stat(path, &s) != 0) {
         err = -1;
-        goto end;
+        goto cleanup;
     }
 
     if (s.st_size < 0) {
         err = -1;
-        goto end;
+        goto cleanup;
     }
     size_t bufsz = (size_t)s.st_size;
     buf = malloc(sizeof(*buf) * bufsz + 1);
 
     if (fread(buf, sizeof(*buf), bufsz, f) != bufsz) {
         err = -1;
-        goto end;
+        goto cleanup;
     }
 
     buf[bufsz] = '\0';
 
     if (appstate_from_json(state, buf) != 0) {
         err = -1;
-        goto end;
+        goto cleanup;
     }
 
-end:
+cleanup:
     if (f != NULL) {
         fclose(f);
     }

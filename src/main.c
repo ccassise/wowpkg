@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <time.h>
+// #include <time.h>
 
 #include "command.h"
 #include "context.h"
@@ -32,7 +32,7 @@ static int try_save_state(Context *ctx, int err)
 
 int main(int argc, const char *argv[])
 {
-    clock_t start = clock();
+    // clock_t start = clock();
 
     if (argc <= 1) {
         fprintf(stderr, "Usage: wowpkg COMMAND [ARGS...]\n");
@@ -64,7 +64,7 @@ int main(int argc, const char *argv[])
         free(cwd);
 
         err = -1;
-        goto end;
+        goto cleanup;
     }
 
     if (config_load(ctx.config, CONFIG_JSON_PATH) != 0) {
@@ -79,7 +79,7 @@ int main(int argc, const char *argv[])
         free(cwd);
 
         err = -1;
-        goto end;
+        goto cleanup;
     }
 
     // Test that addon path actually exists.
@@ -88,7 +88,7 @@ int main(int argc, const char *argv[])
         fprintf(stderr, "Error: addon path from config.json does not exist or is not a directory\n");
 
         err = -1;
-        goto end;
+        goto cleanup;
     }
 
     if (strcasecmp(argv[1], "install") == 0) {
@@ -116,12 +116,12 @@ int main(int argc, const char *argv[])
         err = -1;
     }
 
-end:
+cleanup:
     config_free(ctx.config);
     appstate_free(ctx.state);
 
-    clock_t end = clock();
-    printf("Complete in: %.2f seconds\n", (double)(end - start) / CLOCKS_PER_SEC);
+    // clock_t end = clock();
+    // printf("Complete in: %.2f seconds\n", (double)(end - start) / CLOCKS_PER_SEC);
 
     return err < 0 ? 1 : err;
 }

@@ -2,10 +2,11 @@
 
 #define WOWPKG_NAME "wowpkg"
 
+// This should be set from cmake at compile time.
 #ifdef WOWPKG_VERSION
 #define WOWPKG_USER_AGENT WOWPKG_NAME "/" WOWPKG_VERSION
 #else
-#define WOWPKG_VERSION
+#define WOWPKG_VERSION ""
 #define WOWPKG_USER_AGENT WOWPKG_NAME
 #endif
 

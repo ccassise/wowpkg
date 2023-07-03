@@ -76,6 +76,10 @@ struct OsDir {
 typedef struct OsDir OsDir;
 #endif
 
+/**
+ * These functions behave like the POSIX functions with similar names. See
+ * opendir(3), readdir(3), and closedir(3).
+ */
 OsDir *os_opendir(const char *path);
 OsDirEnt *os_readdir(OsDir *dir);
 void os_closedir(OsDir *dir);
@@ -99,10 +103,14 @@ int os_mkdir_all(char *path, OsMode perms);
  * Modifies the template string. The last six characters of template shall be
  * "XXXXXX". Since it will be modified template shall not be a string constant.
  *
+ * os_mkstemps includes a suffix after the six characters of template. So,
+ * template would be in the form of prefixXXXXXXsuffix.
+ *
  * On success returns an open FILE with "w+b" mode set. On error, NULL is returned
  * and errno is set.
  */
 FILE *os_mkstemp(char *template);
+FILE *os_mkstemps(char *template, int suffixlen);
 
 /**
  * Generates a unique temporary filename from template. Creates a directory with
@@ -117,6 +125,22 @@ FILE *os_mkstemp(char *template);
 char *os_mkdtemp(char *template);
 
 /**
+ * Attempts to get the temp directory for the current OS. If no value was found
+ * then it returns the current working directory ".". This functions promises
+ * that, at least at the time of the call, the directory exists.
+ *
+ * WARNING: The returned string may be statically allocated and as such shall
+ * not be modified. Future calls of this function may change the contents of
+ * previously returned strings.
+ *
+ * On Windows, it returns the first non-empty value from %TMP%, %TEMP%, or
+ * %USERPROFILE%.
+ *
+ * On Unix systems, it returns the first non-empty value from $TMPDIR or /tmp.
+ */
+const char *os_tempdir(void);
+
+/**
  * Removes the file at path. If path is a directory then it recursively removes
  * all files and subdirectories.
  *
@@ -125,8 +149,8 @@ char *os_mkdtemp(char *template);
 int os_remove_all(const char *path);
 
 /**
- * See rename(2) for *nix and MoveFileEx with MOVEFILE_REPLACE_EXISTING for
- * Windows.
+ * See rename(2) for *nix and MoveFileEx with MOVEFILE_REPLACE_EXISTING and
+ * MOVEFILE_COPY_ALLOWED for Windows.
  *
  * Returns non-zero on errors.
  */
