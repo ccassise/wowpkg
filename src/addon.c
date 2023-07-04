@@ -173,9 +173,7 @@ static int snfind_catalog_path(char *restrict s, size_t n, const char *restrict 
 {
     int result = -1;
 
-    const char *catalog_path = "../../catalog";
-
-    OsDir *dir = dir = os_opendir(catalog_path);
+    OsDir *dir = dir = os_opendir(WOWPKG_CATALOG_PATH);
     if (dir == NULL) {
         return -1;
     }
@@ -193,7 +191,7 @@ static int snfind_catalog_path(char *restrict s, size_t n, const char *restrict 
 
         size_t filename_len = (size_t)(ext_start - entry->name);
         if (strncasecmp(entry->name, name, filename_len) == 0 && strlen(name) == filename_len) {
-            result = snprintf(s, n, "%s%c%s", catalog_path, OS_SEPARATOR, entry->name);
+            result = snprintf(s, n, "%s%c%s", WOWPKG_CATALOG_PATH, OS_SEPARATOR, entry->name);
 
             break;
         }
@@ -571,7 +569,7 @@ int addon_fetch_zip(Addon *a)
         goto cleanup;
     }
 
-    fzip = os_mkstemps(zippath, strlen(zip_ext));
+    fzip = os_mkstemps(zippath, (int)strlen(zip_ext));
     if (fzip == NULL) {
         err = ADDON_EINTERNAL;
         goto cleanup;

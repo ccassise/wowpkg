@@ -1,7 +1,7 @@
 #pragma once
 
 typedef struct Config {
-    char *addon_path;
+    char *addons_path;
 } Config;
 
 Config *config_create(void);

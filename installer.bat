@@ -10,11 +10,11 @@ SET wow_dir=World of Warcraft
 SET install_path=%APPDATA%\%app_name%
 SET bin_path=%install_path%\bin
 
-SET addon_path=_retail_\Interface\AddOns
+SET addons_path=_retail_\Interface\AddOns
 
 SET catalog_dir=catalog
 SET config_json=config.json
-SET state_json=state.json
+SET state_json=_wowpkg_state
 
 TITLE %app_name% installer
 
@@ -65,8 +65,8 @@ if not EXIST "%install_path%\%config_json%" (
 		exit /B 1
 	)
 
-	if not EXIST "!wow_path!\%addon_path%\" (
-		ECHO Error: !wow_path!\%addon_path% does not exist
+	if not EXIST "!wow_path!\%addons_path%\" (
+		ECHO Error: !wow_path!\%addons_path% does not exist
 		exit /B 1
 	)
 ) else (
@@ -92,7 +92,7 @@ if not EXIST "%bin_path%\" (
 
 if not EXIST "%install_path%\%config_json%" (
 	ECHO Creating %config_json% file in %install_path%
-	ECHO { "addon_path": "%wow_path:\=\\%\\%addon_path:\=\\%" } > %install_path%\%config_json%
+	ECHO { "addons_path": "%wow_path:\=\\%\\%addons_path:\=\\%" } > %install_path%\%config_json%
 )
 
 if not EXIST "%install_path%\%state_json%" (

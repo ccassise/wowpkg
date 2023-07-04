@@ -112,7 +112,7 @@ static void test_cmd_remove(void)
     char outdir_test_b_txt[] = WOWPKG_TEST_TMPDIR "test_cmd_remove/test_b/test_b.txt";
     char outdir_test_c_txt[] = WOWPKG_TEST_TMPDIR "test_cmd_remove/test_c/test_c.txt";
 
-    ctx.config->addon_path = strdup(outdir);
+    ctx.config->addons_path = strdup(outdir);
 
     assert(os_mkdir_all(outdir_test_a_txt, 0755) == 0);
     assert(os_mkdir_all(outdir_test_b_txt, 0755) == 0);
@@ -228,12 +228,59 @@ static void test_cmd_outdated(void)
     appstate_free(ctx.state);
 }
 
+static void test_cmd_info(void)
+{
+    Context ctx;
+    ctx.state = appstate_create();
+
+    Addon *addon = addon_create();
+    addon->name = strdup("Simulationcraft");
+    addon->url = strdup("zip_url");
+    addon->version = strdup("v1.2.3");
+
+    list_insert(ctx.state->installed, addon); // Transfer ownership of addon to ctx.state.
+
+    FILE *out = tmpfile();
+    assert(out != NULL);
+
+    const char *argv[] = { "info", "plater", "___not_found___", "SIMULATIONCRAFT" };
+    assert(cmd_info(&ctx, ARRLEN(argv), argv, out) == 0);
+
+    long out_len = ftell(out);
+    assert(out_len > 0);
+    fseek(out, 0, SEEK_SET);
+
+    char *actual = malloc(sizeof(*actual) * (size_t)out_len + 1);
+    assert(actual != NULL);
+
+    assert(fread(actual, sizeof(*actual), (size_t)out_len, out) == (size_t)out_len);
+    actual[out_len] = '\0';
+
+    const char *expect = ("==> Plater\n"
+                          "Description:     Nameplate addon designed for advanced users.\n"
+                          "From:            https://api.github.com/repos/Tercioo/Plater-Nameplates/releases/latest\n"
+                          "Installed:       No\n"
+                          "==> Simulationcraft\n"
+                          "Description:     Constructs SimC export strings\n"
+                          "From:            https://api.github.com/repos/simulationcraft/simc-addon/releases/latest\n"
+                          "Installed:       Yes\n"
+                          "Version:         v1.2.3\n"
+                          "ZIP:             zip_url\n");
+
+    assert(strcmp(expect, actual) == 0);
+
+    appstate_free(ctx.state);
+    fclose(out);
+    free(actual);
+}
+
 int main(void)
 {
     test_cmd_list();
     test_cmd_search();
     test_cmd_remove();
     test_cmd_outdated();
+    test_cmd_info();
 
     return 0;
 }

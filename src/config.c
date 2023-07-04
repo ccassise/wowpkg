@@ -23,7 +23,7 @@ void config_free(Config *cfg)
         return;
     }
 
-    free(cfg->addon_path);
+    free(cfg->addons_path);
     free(cfg);
 }
 
@@ -37,13 +37,13 @@ int config_from_json(Config *cfg, const char *json_str)
         goto cleanup;
     }
 
-    cJSON *addon_path = cJSON_GetObjectItemCaseSensitive(json, "addon_path");
-    if (addon_path == NULL || !cJSON_IsString(addon_path)) {
+    cJSON *addons_path = cJSON_GetObjectItemCaseSensitive(json, "addons_path");
+    if (addons_path == NULL || !cJSON_IsString(addons_path)) {
         err = -1;
         goto cleanup;
     }
 
-    cfg->addon_path = strdup(addon_path->valuestring);
+    cfg->addons_path = strdup(addons_path->valuestring);
 
 cleanup:
     cJSON_Delete(json);
@@ -62,7 +62,7 @@ char *config_to_json(Config *cfg)
         goto cleanup;
     }
 
-    if (cJSON_AddStringToObject(json, "addon_path", cfg->addon_path) == NULL) {
+    if (cJSON_AddStringToObject(json, "addons_path", cfg->addons_path) == NULL) {
         err = -1;
         goto cleanup;
     }

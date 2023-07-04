@@ -14,8 +14,9 @@ project(
 
 set(CMAKE_C_STANDARD 11)
 
-option(WOWPKG_ENABLE_SANITIZERS OFF)
-option(WOWPKG_ENABLE_TESTS OFF)
+option(WOWPKG_ENABLE_SANITIZERS "Build with or without sanitizers" OFF)
+option(WOWPKG_ENABLE_TESTS "Build tests" OFF)
+option(WOWPKG_USE_DEVELOPMENT_PATHS "Determines what paths will be used to find some files" OFF)
 
 # Disable tests on release builds because NDEBUG is most likely set.
 # With NDEBUG set tests will have weird results or fail to compile since
@@ -124,6 +125,15 @@ set(
 
 list(APPEND WOWPKG_DEFINES WOWPKG_VERSION="${PROJECT_VERSION}")
 
+if(WOWPKG_USE_DEVELOPMENT_PATHS)
+    message(STATUS "[${PROJECT_NAME}] building with development paths")
+    list(APPEND WOWPKG_DEFINES
+        WOWPKG_STATE_FILE_PATH="${PROJECT_SOURCE_DIR}/dev_only/_wowpkg_state"
+        WOWPKG_CONFIG_FILE_PATH="${PROJECT_SOURCE_DIR}/dev_only/config.json"
+        WOWPKG_CATALOG_PATH="${PROJECT_SOURCE_DIR}/catalog"
+    )
+endif()
+
 add_subdirectory(src)
 
 if (WOWPKG_ENABLE_TESTS)
@@ -131,6 +141,27 @@ if (WOWPKG_ENABLE_TESTS)
     add_subdirectory(test)
 endif()
 
+install(
+    TARGETS wowpkg
+    CONFIGURATIONS Release
+    RUNTIME DESTINATION bin
+)
+
+install(DIRECTORY catalog/ DESTINATION catalog)
+
+set(CPACK_VERBATIM_VARIABLES true)
+
 set(CPACK_PROJECT_NAME ${PROJECT_NAME})
 set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})
+
+set(CPACK_PACKAGE_VENDOR ${PROJECT_NAME})
+set(CPACK_PACKAGE_DESCRIPTION_SUMMARY ${PROJECT_DESCRIPTION})
+# set(CPACK_PACKAGE_INSTALL_DIRECTORY "~/.${PROJECT_NAME}")
+# set(CPACK_PACKAGE_FILE_NAME ${PROJECT_NAME})
+
+set(CPACK_RESOURCE_FILE_LICENSE ${PROJECT_SOURCE_DIR}/LICENSE)
+set(CPACK_RESOURCE_FILE_README ${PROJECT_SOURCE_DIR}/README.md)
+
+set(CPACK_MONOLITHIC_INSTALL true)
+
 include(CPack)

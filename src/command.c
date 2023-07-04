@@ -103,11 +103,80 @@ static int cmp_str_to_addon(const void *str, const void *addon)
     return strcasecmp(s, a->name);
 }
 
+int cmd_help(Context *ctx, int argc, const char *argv[], FILE *out)
+{
+    UNUSED(ctx);
+    UNUSED(argc);
+    UNUSED(argv);
+
+    fprintf(out, "Example usage:\n");
+    fprintf(out, "\twowpkg info ADDON...\n");
+    fprintf(out, "\twowpkg install ADDON...\n");
+    fprintf(out, "\twowpkg list\n");
+    fprintf(out, "\twowpkg outdated\n");
+    fprintf(out, "\twowpkg remove ADDON...\n");
+    fprintf(out, "\twowpkg search TEXT\n");
+    fprintf(out, "\twowpkg update [ADDON...]\n");
+    fprintf(out, "\twowpkg upgrade [ADDON...]\n");
+
+    return 0;
+}
+
+int cmd_info(Context *ctx, int argc, const char *argv[], FILE *out)
+{
+    if (argc < 2) {
+        PRINT_ERROR1(CMD_EINVALID_ARGS_STR);
+        return -1;
+    }
+
+    for (int i = 1; i < argc; i++) {
+        int err = 0;
+        Addon *addon = addon_create();
+
+        cJSON *json = addon_fetch_catalog_meta(argv[i], &err);
+        if (json == NULL) {
+            if (err == ADDON_ENOTFOUND) {
+                PRINT_WARNING3(CMD_ENOT_FOUND_STR, argv[0], argv[i]);
+            } else {
+                PRINT_ERROR3(CMD_EMETADATA_STR, argv[0], argv[i]);
+            }
+
+            err = -1;
+            goto cleanup;
+        }
+
+        if (addon_from_json(addon, json) != 0) {
+            PRINT_ERROR3(CMD_EMETADATA_STR, argv[0], argv[i]);
+            err = -1;
+            goto cleanup;
+        }
+
+        ListNode *installed_node = list_search(ctx->state->installed, addon, cmp_addon);
+
+        int width = 16;
+        fprintf(out, "==> %s\n", addon->name);
+        fprintf(out, "%-*s %s\n", width, "Description:", addon->desc);
+        fprintf(out, "%-*s %s\n", width, "From:", addon->url);
+        fprintf(out, "%-*s %s\n", width, "Installed:", installed_node ? "Yes" : "No");
+
+        if (installed_node) {
+            Addon *installed = installed_node->value;
+            fprintf(out, "%-*s %s\n", width, "Version:", installed->version);
+            fprintf(out, "%-*s %s\n", width, "ZIP:", installed->url);
+        }
+
+    cleanup:
+        addon_free(addon);
+    }
+
+    return 0;
+}
+
 int cmd_install(Context *ctx, int argc, const char *argv[], FILE *out)
 {
     // TODO: If an addon successfully installs/upgrades but another addon
     // errors, the app state will not be saved for next session even though
-    // files may have already been moved to user's addon folder.
+    // files may have already been deleted/moved from/to user's addon folder.
 
     if (argc < 2) {
         PRINT_ERROR1(CMD_EINVALID_ARGS_STR);
@@ -194,7 +263,7 @@ int cmd_install(Context *ctx, int argc, const char *argv[], FILE *out)
         }
 
         fprintf(out, "==> Extracting %s\n", addon->name);
-        if (addon_extract(addon, ctx->config->addon_path) != ADDON_OK) {
+        if (addon_extract(addon, ctx->config->addons_path) != ADDON_OK) {
             PRINT_ERROR3(CMD_EEXTRACT_STR, argv[0], addon->name);
             err = -1;
             goto cleanup;
@@ -236,24 +305,6 @@ cleanup:
     curl_global_cleanup();
 
     return err;
-}
-
-int cmd_help(Context *ctx, int argc, const char *argv[], FILE *out)
-{
-    UNUSED(ctx);
-    UNUSED(argc);
-    UNUSED(argv);
-
-    fprintf(out, "Example usage:\n");
-    fprintf(out, "\twowpkg install ADDON...\n");
-    fprintf(out, "\twowpkg list\n");
-    fprintf(out, "\twowpkg outdated\n");
-    fprintf(out, "\twowpkg remove ADDON...\n");
-    fprintf(out, "\twowpkg search TEXT\n");
-    fprintf(out, "\twowpkg update [ADDON...]\n");
-    fprintf(out, "\twowpkg upgrade [ADDON...]\n");
-
-    return 0;
 }
 
 int cmd_list(Context *ctx, int argc, const char *argv[], FILE *out)
@@ -331,9 +382,9 @@ int cmd_remove(Context *ctx, int argc, const char *argv[], FILE *out)
             const char *dirname = dirnode->value;
 
             char remove_path[OS_MAX_PATH];
-            int n = snprintf(remove_path, ARRLEN(remove_path), "%s%c%s", ctx->config->addon_path, OS_SEPARATOR, dirname);
+            int n = snprintf(remove_path, ARRLEN(remove_path), "%s%c%s", ctx->config->addons_path, OS_SEPARATOR, dirname);
             if (n < 0 || (size_t)n >= ARRLEN(remove_path)) {
-                PRINT_ERROR3_FMT(CMD_ENAMETOOLONG_STR, argv[0], "%s%c%s", ctx->config->addon_path, OS_SEPARATOR, dirname);
+                PRINT_ERROR3_FMT(CMD_ENAMETOOLONG_STR, argv[0], "%s%c%s", ctx->config->addons_path, OS_SEPARATOR, dirname);
                 return -1;
             }
 
@@ -381,7 +432,7 @@ int cmd_search(Context *ctx, int argc, const char *argv[], FILE *out)
     int err = 0;
     List *found = list_create();
     list_set_free_fn(found, free);
-    OsDir *dir = os_opendir("../../catalog");
+    OsDir *dir = os_opendir(WOWPKG_CATALOG_PATH);
     if (dir == NULL) {
         err = -1;
         goto cleanup;
@@ -514,7 +565,7 @@ int cmd_upgrade(Context *ctx, int argc, const char *argv[], FILE *out)
 {
     // TODO: If an addon successfully installs/upgrades but another addon
     // errors, the app state will not be saved for next session even though
-    // files may have already been moved to user's addon folder.
+    // files may have already been deleted/moved from/to user's addon folder.
 
     if (argc < 1) {
         PRINT_ERROR1(CMD_EINVALID_ARGS_STR);
@@ -619,7 +670,7 @@ int cmd_upgrade(Context *ctx, int argc, const char *argv[], FILE *out)
         }
 
         fprintf(out, "==> Extracting %s\n", addon->name);
-        if (addon_extract(addon, ctx->config->addon_path) != ADDON_OK) {
+        if (addon_extract(addon, ctx->config->addons_path) != ADDON_OK) {
             PRINT_ERROR3(CMD_EEXTRACT_STR, argv[0], addon->name);
             err = -1;
             goto cleanup;

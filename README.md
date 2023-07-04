@@ -108,10 +108,10 @@ From a terminal run the included `installer.sh`. This will create `$HOME/.wowpkg
 2. Create `config.json` with the following contents.
 	```
 	{
-		"addon_path": "path/to/World of Warcraft"
+		"addons_path": "path/to/World of Warcraft"
 	}
 	```
-3. Create `state.json` with the contents being an empty json object: `{}`.
+3. Create `_wowpkg_state` with the contents being an empty json object: `{}`.
 4. Add the path to `wowpkg/bin` to PATH. This makes it easy to run in a terminal from any location.
 ### File structure
 ```
@@ -125,7 +125,7 @@ wowpkg/
 |   |
 |   +-- *.json
 |
-+-- state.json
++-- _wowpkg_state
 +-- config.json
 ```
 ## Uninstalling
@@ -144,6 +144,6 @@ Assuming wowpkg was installed with the included installer:
 3. `$ mkdir dev_test/addons`
 4. `$ go run ./cmd/wowpkg/`
 
-The repo is setup so that the above should work without issues. However, if you are wanting to run the executable in a different way there are a few things to be aware of. There are three paths that need to be set. The two configuration files' path (state.json and config.json) and the catalog path.
+The repo is setup so that the above should work without issues. However, if you are wanting to run the executable in a different way there are a few things to be aware of. There are three paths that need to be set. The two configuration files' path (_wowpkg_state and config.json) and the catalog path.
 
 These are found in `addon.go`'s `CatalogPath()` and `config.go`'s `CfgPath()` and `StatePath()`.

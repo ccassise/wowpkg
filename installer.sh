@@ -2,14 +2,14 @@
 
 app_name=wowpkg
 
-addon_path="_retail_/Interface/AddOns"
+addons_path="_retail_/Interface/AddOns"
 
 install_path="$HOME/.$app_name"
 
 wow_dir="World of Warcraft"
 catalog_dir=catalog
 config_json=config.json
-state_json=state.json
+state_json=_wowpkg_state
 
 # Check that all necessary files are present for installation.
 required_files=($app_name $catalog_dir)
@@ -88,13 +88,13 @@ if ! cp $app_name "$install_path/bin"; then
 fi
 
 if ! test -f "$install_path/$state_json"; then
-    echo "Creating state.json"
+    echo "Creating _wowpkg_state"
     echo "{}" > $install_path/$state_json
 fi
 
 if ! test -f "$install_path/$config_json"; then
     echo "Creating config.json"
-    echo "{\n\t\"addon_path\": \"$wow_path/$addon_path\"\n}" > $install_path/$config_json
+    echo "{\n\t\"addons_path\": \"$wow_path/$addons_path\"\n}" > $install_path/$config_json
 fi
 
 echo "Done"

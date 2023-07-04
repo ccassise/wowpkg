@@ -4,9 +4,11 @@
 
 #include "context.h"
 
-int cmd_install(Context *ctx, int argc, const char *argv[], FILE *out);
-
 int cmd_help(Context *ctx, int argc, const char *argv[], FILE *out);
+
+int cmd_info(Context *ctx, int argc, const char *argv[], FILE *out);
+
+int cmd_install(Context *ctx, int argc, const char *argv[], FILE *out);
 
 int cmd_list(Context *ctx, int argc, const char *argv[], FILE *out);
 

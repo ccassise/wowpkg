@@ -7,11 +7,11 @@
 static void test_config_to_json(void)
 {
     Config *cfg = config_create();
-    cfg->addon_path = strdup("test/addon/path");
+    cfg->addons_path = strdup("test/addon/path");
 
     char *actual = config_to_json(cfg);
 
-    assert(strcmp(actual, "{\"addon_path\":\"test/addon/path\"}") == 0);
+    assert(strcmp(actual, "{\"addons_path\":\"test/addon/path\"}") == 0);
 
     free(actual);
     config_free(cfg);
@@ -20,7 +20,7 @@ static void test_config_to_json(void)
 static void test_config_from_json(void)
 {
     Config *cfg = config_create();
-    cfg->addon_path = strdup("test/addon/path");
+    cfg->addons_path = strdup("test/addon/path");
 
     char *actual = config_to_json(cfg);
 
@@ -29,7 +29,7 @@ static void test_config_from_json(void)
     cfg = config_create();
     assert(config_from_json(cfg, actual) == 0);
 
-    assert(strcmp(cfg->addon_path, "test/addon/path") == 0);
+    assert(strcmp(cfg->addons_path, "test/addon/path") == 0);
 
     free(actual);
     config_free(cfg);

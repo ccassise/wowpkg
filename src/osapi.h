@@ -19,6 +19,7 @@
 
 #define OS_SEPARATOR '\\'
 #define OS_VALID_SEPARATORS "\\/"
+#define OS_PATH_ENV_DELIMITER ";"
 #define OS_MAX_PATH MAX_PATH
 #define OS_MAX_FILENAME _MAX_FNAME
 
@@ -40,6 +41,7 @@ typedef unsigned int OsMode;
 
 #define OS_SEPARATOR '/'
 #define OS_VALID_SEPARATORS "/"
+#define OS_PATH_ENV_DELIMITER ":"
 #define OS_MAX_PATH PATH_MAX
 #define OS_MAX_FILENAME FILENAME_MAX
 
