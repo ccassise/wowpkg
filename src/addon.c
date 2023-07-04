@@ -118,6 +118,8 @@ static int move_filename(const char *restrict srcdir, const char *restrict destd
         return ADDON_ENAMETOOLONG;
     }
 
+    // TODO: If this fails should check if errno is EXDEV and if so it should
+    // copy the directory and then delete.
     if (os_rename(src, dest) != 0) {
         return ADDON_EINTERNAL;
     }

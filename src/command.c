@@ -131,10 +131,18 @@ int cmd_info(Context *ctx, int argc, const char *argv[], FILE *out)
 
     for (int i = 1; i < argc; i++) {
         int err = 0;
-        Addon *addon = addon_create();
+        Addon *addon = NULL;
+        cJSON *json = NULL;
 
-        cJSON *json = addon_fetch_catalog_meta(argv[i], &err);
-        if (json == NULL) {
+        addon = addon_create();
+        if (addon == NULL) {
+            PRINT_ERROR2(CMD_ENO_MEM_STR, argv[0]);
+            err = -1;
+            goto cleanup;
+        }
+
+        json = addon_fetch_catalog_meta(argv[i], &err);
+        if (json == NULL || err != 0) {
             if (err == ADDON_ENOTFOUND) {
                 PRINT_WARNING3(CMD_ENOT_FOUND_STR, argv[0], argv[i]);
             } else {
@@ -166,6 +174,7 @@ int cmd_info(Context *ctx, int argc, const char *argv[], FILE *out)
         }
 
     cleanup:
+        cJSON_Delete(json);
         addon_free(addon);
     }
 
