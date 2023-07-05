@@ -34,6 +34,7 @@
 #define os_stat _stat
 #define os_rmdir _rmdir
 #define os_getcwd _getcwd
+#define os_chdir _chdir
 
 typedef unsigned int OsMode;
 
@@ -48,6 +49,7 @@ typedef unsigned int OsMode;
 #define os_stat stat
 #define os_rmdir rmdir
 #define os_getcwd getcwd
+#define os_chdir chdir
 
 typedef mode_t OsMode;
 

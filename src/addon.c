@@ -4,6 +4,7 @@
 #include <curl/curl.h>
 
 #include "addon.h"
+#include "ini.h"
 #include "osapi.h"
 #include "osstring.h"
 #include "wowpkg.h"
@@ -84,7 +85,6 @@ void addon_free(Addon *a)
         return;
     }
 
-    free(a->handler);
     free(a->name);
     free(a->desc);
     free(a->url);
@@ -186,7 +186,7 @@ static int snfind_catalog_path(char *restrict s, size_t n, const char *restrict 
             continue;
         }
 
-        char *ext_start = strstr(entry->name, ".json");
+        char *ext_start = strstr(entry->name, ".ini");
         if (ext_start == NULL) {
             continue;
         }
@@ -226,7 +226,6 @@ Addon *addon_dup(Addon *a)
         result->name = a->name == NULL ? NULL : strdup(a->name);
         result->desc = a->desc == NULL ? NULL : strdup(a->desc);
         result->version = a->version == NULL ? NULL : strdup(a->version);
-        result->handler = a->handler == NULL ? NULL : strdup(a->handler);
         result->url = a->url == NULL ? NULL : strdup(a->url);
     }
 
@@ -235,7 +234,6 @@ Addon *addon_dup(Addon *a)
 
 int addon_from_json(Addon *a, const cJSON *json)
 {
-    addon_set_str(&a->handler, create_str_from_property(json, ADDON_HANDLER));
     addon_set_str(&a->name, create_str_from_property(json, ADDON_NAME));
     addon_set_str(&a->desc, create_str_from_property(json, ADDON_DESC));
     addon_set_str(&a->url, create_str_from_property(json, ADDON_URL));
@@ -287,11 +285,6 @@ char *addon_to_json(Addon *a)
         goto cleanup;
     }
 
-    if (cJSON_AddStringToObject(json, ADDON_HANDLER, a->handler) == NULL) {
-        err = ADDON_EINTERNAL;
-        goto cleanup;
-    }
-
     cJSON *dirs = cJSON_AddArrayToObject(json, ADDON_DIRS);
     if (dirs == NULL) {
         err = ADDON_EINTERNAL;
@@ -327,70 +320,47 @@ void addon_set_str(char **restrict oldstr, char *restrict newstr)
     *oldstr = newstr;
 }
 
-cJSON *addon_fetch_catalog_meta(const char *name, int *out_err)
+int addon_fetch_catalog_meta(Addon *a, const char *name)
 {
     int err = ADDON_OK;
-    FILE *f = NULL;
-    char *catalog = NULL;
-    cJSON *result = NULL;
 
     char path[OS_MAX_PATH];
     int n = snfind_catalog_path(path, ARRLEN(path), name);
     if (n < 0 || (size_t)n >= ARRLEN(path)) {
         err = ADDON_ENOTFOUND;
-        goto cleanup;
+        return err;
     }
 
-    f = fopen(path, "rb");
-    if (f == NULL) {
+    INI *ini = ini_open(path);
+    if (ini == NULL) {
         err = ADDON_ENOENT;
         goto cleanup;
     }
 
-    struct os_stat s;
-    if (os_stat(path, &s) != 0) {
-        err = ADDON_ENOENT;
-        goto cleanup;
+    INIKey *key = NULL;
+    while ((key = ini_readkey(ini)) != NULL) {
+        if (strcasecmp(key->name, ADDON_NAME) == 0) {
+            addon_set_str(&a->name, strdup(key->value));
+        } else if (strcasecmp(key->name, ADDON_DESC) == 0) {
+            addon_set_str(&a->desc, strdup(key->value));
+        } else if (strcasecmp(key->name, ADDON_URL) == 0) {
+            addon_set_str(&a->url, strdup(key->value));
+        }
     }
 
-    size_t fsz = (size_t)s.st_size;
+    if (ini_last_error(ini) != INI_EEOF
+        || a->name == NULL
+        || a->desc == NULL
+        || a->url == NULL) {
 
-    catalog = malloc(fsz + 1);
-    if (catalog == NULL) {
-        err = ADDON_EINTERNAL;
-        goto cleanup;
-    }
-
-    if (fread(catalog, sizeof(*catalog), fsz, f) != fsz) {
-        err = ADDON_EBADJSON;
-        goto cleanup;
-    }
-
-    catalog[fsz] = '\0';
-
-    result = cJSON_Parse(catalog);
-    if (result == NULL) {
-        err = ADDON_EBADJSON;
+        err = ADDON_ECONFIG;
         goto cleanup;
     }
 
 cleanup:
-    free(catalog);
+    ini_close(ini);
 
-    if (f != NULL) {
-        fclose(f);
-    }
-
-    if (out_err != NULL) {
-        *out_err = err;
-    }
-
-    if (err != ADDON_OK) {
-        cJSON_Delete(result);
-        return NULL;
-    }
-
-    return result;
+    return err;
 }
 
 cJSON *addon_fetch_github_meta(const char *url, int *out_err)
@@ -489,15 +459,9 @@ int addon_fetch_all_meta(Addon *a, const char *name)
 {
     int err = ADDON_OK;
 
-    cJSON *catalog_json = NULL;
     cJSON *gh_json = NULL;
 
-    catalog_json = addon_fetch_catalog_meta(name, &err);
-    if (err != ADDON_OK) {
-        goto cleanup;
-    }
-
-    err = addon_from_json(a, catalog_json);
+    err = addon_fetch_catalog_meta(a, name);
     if (err != ADDON_OK) {
         goto cleanup;
     }
@@ -513,7 +477,6 @@ int addon_fetch_all_meta(Addon *a, const char *name)
     }
 
 cleanup:
-    cJSON_Delete(catalog_json);
     cJSON_Delete(gh_json);
 
     return err;

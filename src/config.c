@@ -4,6 +4,7 @@
 #include <cjson/cJSON.h>
 
 #include "config.h"
+#include "ini.h"
 #include "osapi.h"
 #include "osstring.h"
 
@@ -79,47 +80,27 @@ cleanup:
 
 int config_load(Config *cfg, const char *path)
 {
+    INI *ini = ini_open(path);
+    if (ini == NULL) {
+        return -1;
+    }
+
     int err = 0;
-    FILE *f = NULL;
-    char *buf = NULL;
 
-    f = fopen(path, "rb");
-    if (f == NULL) {
+    INIKey *key = NULL;
+    while ((key = ini_readkey(ini)) != NULL) {
+        if (strcasecmp(key->section, "retail") == 0
+            && strcasecmp(key->name, "addons_path") == 0) {
+
+            cfg->addons_path = strdup(key->value);
+        }
+    }
+
+    if (ini_last_error(ini) != INI_EEOF || cfg->addons_path == NULL) {
         err = -1;
-        goto cleanup;
     }
 
-    struct os_stat s;
-    if (os_stat(path, &s) != 0) {
-        err = -1;
-        goto cleanup;
-    }
-
-    if (s.st_size < 0) {
-        err = -1;
-        goto cleanup;
-    }
-    size_t bufsz = (size_t)s.st_size;
-    buf = malloc(sizeof(*buf) * bufsz + 1);
-
-    if (fread(buf, sizeof(*buf), bufsz, f) != bufsz) {
-        err = -1;
-        goto cleanup;
-    }
-
-    buf[bufsz] = '\0';
-
-    if (config_from_json(cfg, buf) != 0) {
-        err = -1;
-        goto cleanup;
-    }
-
-cleanup:
-    if (f != NULL) {
-        fclose(f);
-    }
-
-    free(buf);
+    ini_close(ini);
 
     return err;
 }

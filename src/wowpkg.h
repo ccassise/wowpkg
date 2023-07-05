@@ -23,7 +23,7 @@
 #endif
 
 #ifndef WOWPKG_CONFIG_FILE_PATH
-#define WOWPKG_CONFIG_FILE_PATH "../config.json"
+#define WOWPKG_CONFIG_FILE_PATH "../config.ini"
 #endif
 
 #ifndef WOWPKG_CATALOG_PATH

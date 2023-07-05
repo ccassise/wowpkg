@@ -5,6 +5,7 @@ set(
 	appstate
 	command
 	config
+	ini
 	list
 	osapi
 	zipper
@@ -21,7 +22,7 @@ foreach(TEST IN LISTS TESTS)
 	target_compile_definitions(${TEST_NAME} PRIVATE
 		${WOWPKG_DEFINES}
 		WOWPKG_TEST_TMPDIR="${PROJECT_SOURCE_DIR}/dev_only/tmp/"
-		WOWPKG_TEST_MOCKSDIR="${PROJECT_SOURCE_DIR}/test/mocks/"
+		WOWPKG_TEST_DIR="${PROJECT_SOURCE_DIR}/test"
 	)
 
 	target_include_directories(${TEST_NAME} PRIVATE ${PROJECT_SOURCE_DIR}/src)

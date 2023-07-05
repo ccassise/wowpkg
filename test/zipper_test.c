@@ -8,11 +8,11 @@
 
 static void test_zipper_unzip(const char *outpath)
 {
-    assert(zipper_unzip(WOWPKG_TEST_MOCKSDIR "mock_zip.zip", outpath) == ZIPPER_ENOENT);
+    assert(zipper_unzip(WOWPKG_TEST_DIR "/mocks/mock_zip.zip", outpath) == ZIPPER_ENOENT);
 
     assert(os_mkdir(outpath, 0755) == 0);
 
-    assert(zipper_unzip(WOWPKG_TEST_MOCKSDIR "mock_zip.zip", outpath) == ZIPPER_OK);
+    assert(zipper_unzip(WOWPKG_TEST_DIR "/mocks/mock_zip.zip", outpath) == ZIPPER_OK);
 
     OsDir *dir = os_opendir(outpath);
     assert(dir != NULL);

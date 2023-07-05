@@ -18,12 +18,8 @@ option(WOWPKG_ENABLE_SANITIZERS "Build with or without sanitizers" OFF)
 option(WOWPKG_ENABLE_TESTS "Build tests" OFF)
 option(WOWPKG_USE_DEVELOPMENT_PATHS "Determines what paths will be used to find some files" OFF)
 
-# Disable tests on release builds because NDEBUG is most likely set.
-# With NDEBUG set tests will have weird results or fail to compile since
-# 'assert' will be turned in to a no op.
-if (CMAKE_BUILD_TYPE STREQUAL "Release" AND WOWPKG_ENABLE_TESTS)
-    message(STATUS "[${PROJECT_NAME}] forcefully disabling tests as they will not work in release mode")
-    set(WOWPKG_ENABLE_TESTS OFF)
+if (WOWPKG_ENABLE_TESTS AND NOT WOWPKG_USE_DEVELOPMENT_PATHS)
+    message(WARNING "[${PROJECT_NAME}] enabling tests without using development paths may cause tests to fail")
 endif()
 
 if (WOWPKG_ENABLE_TESTS)
@@ -118,6 +114,7 @@ set(
     ${PROJECT_SOURCE_DIR}/src/appstate.c
     ${PROJECT_SOURCE_DIR}/src/command.c
     ${PROJECT_SOURCE_DIR}/src/config.c
+    ${PROJECT_SOURCE_DIR}/src/ini.c
     ${PROJECT_SOURCE_DIR}/src/list.c
     ${PROJECT_SOURCE_DIR}/src/osapi.c
     ${PROJECT_SOURCE_DIR}/src/zipper.c
@@ -129,7 +126,7 @@ if(WOWPKG_USE_DEVELOPMENT_PATHS)
     message(STATUS "[${PROJECT_NAME}] building with development paths")
     list(APPEND WOWPKG_DEFINES
         WOWPKG_STATE_FILE_PATH="${PROJECT_SOURCE_DIR}/dev_only/_wowpkg_state"
-        WOWPKG_CONFIG_FILE_PATH="${PROJECT_SOURCE_DIR}/dev_only/config.json"
+        WOWPKG_CONFIG_FILE_PATH="${PROJECT_SOURCE_DIR}/dev_only/config.ini"
         WOWPKG_CATALOG_PATH="${PROJECT_SOURCE_DIR}/catalog"
     )
 endif()
@@ -149,6 +146,13 @@ install(
 
 install(DIRECTORY catalog/ DESTINATION catalog)
 
+if (WIN32)
+    install(FILES ${PROJECT_SOURCE_DIR}/build/src/Release/cjson.dll DESTINATION bin)
+    install(FILES ${PROJECT_SOURCE_DIR}/build/src/Release/libcurl.dll DESTINATION bin)
+    install(FILES ${PROJECT_SOURCE_DIR}/build/src/Release/zlib1.dll DESTINATION bin)
+    install(FILES ${PROJECT_SOURCE_DIR}/build/src/Release/wowpkg.pdb DESTINATION bin)
+endif()
+
 set(CPACK_VERBATIM_VARIABLES true)
 
 set(CPACK_PROJECT_NAME ${PROJECT_NAME})
@@ -156,8 +160,7 @@ set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})
 
 set(CPACK_PACKAGE_VENDOR ${PROJECT_NAME})
 set(CPACK_PACKAGE_DESCRIPTION_SUMMARY ${PROJECT_DESCRIPTION})
-# set(CPACK_PACKAGE_INSTALL_DIRECTORY "~/.${PROJECT_NAME}")
-# set(CPACK_PACKAGE_FILE_NAME ${PROJECT_NAME})
+set(CPACK_PACKAGE_INSTALL_DIRECTORY ${PROJECT_NAME})
 
 set(CPACK_RESOURCE_FILE_LICENSE ${PROJECT_SOURCE_DIR}/LICENSE)
 set(CPACK_RESOURCE_FILE_README ${PROJECT_SOURCE_DIR}/README.md)

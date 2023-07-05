@@ -17,6 +17,7 @@ enum {
     ADDON_EUNZIP, // Failed to extract .zip.
     ADDON_EINTERNAL, // Internal error.
     ADDON_ERATE_LIMIT, // Failed because rate limit to external API exceeded.
+    ADDON_ECONFIG, // Config file bad format.
 };
 
 typedef struct Addon {
@@ -24,7 +25,6 @@ typedef struct Addon {
     char *desc;
     char *url;
     char *version;
-    char *handler;
     List *dirs;
 
     char *_zip_path;
@@ -35,7 +35,6 @@ typedef struct Addon {
 #define ADDON_DESC "desc"
 #define ADDON_URL "url"
 #define ADDON_VERSION "version"
-#define ADDON_HANDLER "handler"
 #define ADDON_DIRS "dirs"
 
 Addon *addon_create(void);
@@ -90,9 +89,9 @@ void addon_set_str(char **restrict oldstr, char *restrict newstr);
 /**
  * Retrieves addon metadata from the catalog.
  *
- * Returns NULL on error and sets out_err.
+ * Returns 0, non-zero on error.
  */
-cJSON *addon_fetch_catalog_meta(const char *name, int *out_err);
+int addon_fetch_catalog_meta(Addon *a, const char *name);
 
 /**
  * Retrieves addon metadata from Github.

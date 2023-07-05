@@ -13,7 +13,6 @@ static void test_addon_dup(void)
     expect->desc = strdup("Test Desc");
     expect->url = strdup("test_url");
     expect->version = strdup("v1.2.3");
-    expect->handler = strdup("github:latest");
     list_insert(expect->dirs, strdup("dont_copy_me"));
 
     Addon *actual = addon_dup(expect);
@@ -23,7 +22,6 @@ static void test_addon_dup(void)
     assert(strcmp(actual->desc, "Test Desc") == 0);
     assert(strcmp(actual->url, "test_url") == 0);
     assert(strcmp(actual->version, "v1.2.3") == 0);
-    assert(strcmp(actual->handler, "github:latest") == 0);
     assert(list_isempty(actual->dirs));
 
     addon_free(expect);
@@ -37,7 +35,6 @@ static void test_addon_from_json(void)
 
     Addon *actual = addon_create();
 
-    assert(cJSON_AddStringToObject(json, ADDON_HANDLER, "test_handler") != NULL);
     assert(cJSON_AddStringToObject(json, ADDON_NAME, "test_name") != NULL);
     assert(cJSON_AddStringToObject(json, ADDON_DESC, "test_desc") != NULL);
     assert(cJSON_AddStringToObject(json, ADDON_URL, "test_url") != NULL);
@@ -50,7 +47,6 @@ static void test_addon_from_json(void)
 
     addon_from_json(actual, json);
 
-    assert(strcmp(actual->handler, "test_handler") == 0);
     assert(strcmp(actual->name, "test_name") == 0);
     assert(strcmp(actual->desc, "test_desc") == 0);
     assert(strcmp(actual->url, "test_url") == 0);
@@ -73,18 +69,17 @@ static void test_addon_from_json_partial(void)
 
     Addon *actual = addon_create();
 
-    actual->handler = strdup("should not be changed");
+    actual->version = strdup("should not be changed");
 
     assert(cJSON_AddStringToObject(json, ADDON_NAME, "test_name") != NULL);
     assert(cJSON_AddStringToObject(json, ADDON_DESC, "test_desc") != NULL);
 
     addon_from_json(actual, json);
 
-    assert(strcmp(actual->handler, "should not be changed") == 0);
+    assert(strcmp(actual->version, "should not be changed") == 0);
     assert(strcmp(actual->name, "test_name") == 0);
     assert(strcmp(actual->desc, "test_desc") == 0);
     assert(actual->url == NULL);
-    assert(actual->version == NULL);
     assert(actual->dirs != NULL);
     assert(list_isempty(actual->dirs));
 
@@ -115,7 +110,6 @@ static void test_addon_to_json(void)
 {
     Addon *addon = addon_create();
 
-    addon->handler = strdup("test handler");
     addon->name = strdup("test name");
     addon->desc = strdup("test desc");
     addon->url = strdup("test url");
@@ -130,9 +124,6 @@ static void test_addon_to_json(void)
     assert(json != NULL);
 
     cJSON *actual = NULL;
-
-    actual = cJSON_GetObjectItemCaseSensitive(json, ADDON_HANDLER);
-    assert(strcmp(actual->valuestring, "test handler") == 0);
 
     actual = cJSON_GetObjectItemCaseSensitive(json, ADDON_NAME);
     assert(strcmp(actual->valuestring, "test name") == 0);
@@ -160,14 +151,10 @@ static void test_addon_to_json(void)
 
 void test_addon_metadata_from_catalog(void)
 {
-    cJSON *json = addon_fetch_catalog_meta("weakauras", NULL);
-    assert(json != NULL);
-
     Addon *addon = addon_create();
 
-    assert(addon_from_json(addon, json) == 0);
+    assert(addon_fetch_catalog_meta(addon, "weakauras") == ADDON_OK);
 
-    assert(strcmp(addon->handler, "github:latest") == 0);
     assert(strcmp(addon->name, "WeakAuras") == 0);
     assert(strcmp(addon->desc, "A powerful, comprehensive utility for displaying graphics and information based on buffs, debuffs, and other triggers.") == 0);
     assert(strcmp(addon->url, "https://api.github.com/repos/WeakAuras/WeakAuras2/releases/latest") == 0);
@@ -176,7 +163,6 @@ void test_addon_metadata_from_catalog(void)
     assert(list_isempty(addon->dirs));
 
     addon_free(addon);
-    cJSON_Delete(json);
 }
 
 int main(void)

@@ -132,7 +132,6 @@ int cmd_info(Context *ctx, int argc, const char *argv[], FILE *out)
     for (int i = 1; i < argc; i++) {
         int err = 0;
         Addon *addon = NULL;
-        cJSON *json = NULL;
 
         addon = addon_create();
         if (addon == NULL) {
@@ -141,20 +140,14 @@ int cmd_info(Context *ctx, int argc, const char *argv[], FILE *out)
             goto cleanup;
         }
 
-        json = addon_fetch_catalog_meta(argv[i], &err);
-        if (json == NULL || err != 0) {
+        err = addon_fetch_catalog_meta(addon, argv[i]);
+        if (err != ADDON_OK) {
             if (err == ADDON_ENOTFOUND) {
                 PRINT_WARNING3(CMD_ENOT_FOUND_STR, argv[0], argv[i]);
             } else {
                 PRINT_ERROR3(CMD_EMETADATA_STR, argv[0], argv[i]);
             }
 
-            err = -1;
-            goto cleanup;
-        }
-
-        if (addon_from_json(addon, json) != 0) {
-            PRINT_ERROR3(CMD_EMETADATA_STR, argv[0], argv[i]);
             err = -1;
             goto cleanup;
         }
@@ -174,7 +167,6 @@ int cmd_info(Context *ctx, int argc, const char *argv[], FILE *out)
         }
 
     cleanup:
-        cJSON_Delete(json);
         addon_free(addon);
     }
 
@@ -460,7 +452,7 @@ int cmd_search(Context *ctx, int argc, const char *argv[], FILE *out)
                 goto cleanup;
             }
 
-            char *ext_start = strstr(basename, ".json");
+            char *ext_start = strstr(basename, ".ini");
             if (ext_start == NULL) {
                 continue;
             }

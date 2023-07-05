@@ -10,6 +10,16 @@
 #include "wowpkg.h"
 
 /**
+ * Determines if '.exe' should be appended to the program's name when trying to
+ * search for the executable.
+ */
+#ifdef _WIN32
+#define USE_EXE_EXT 1
+#else
+#define USE_EXE_EXT 0
+#endif
+
+/**
  * Attempts to save app state if err is 0. Otherwise does not attempt to write to disk.
  *
  * Returns -1 if the save fails, otherwise returns err.
@@ -63,7 +73,7 @@ static int chdir_to_executable_path(const char *str)
         char tmp = *last_sep;
         *last_sep = '\0';
 
-        err = chdir(tofree);
+        err = os_chdir(tofree);
         *last_sep = tmp;
 
         goto cleanup;
@@ -74,7 +84,6 @@ static int chdir_to_executable_path(const char *str)
 
     // At this point the string is not a path, so search PATH environment for
     // the running executable.
-    // err = get_path_env_path(str);
     const char *path_env = getenv("PATH");
     if (path_env == NULL) {
         return -1;
@@ -82,16 +91,13 @@ static int chdir_to_executable_path(const char *str)
 
     char *path = NULL;
     char *paths = strdup(path_env);
-    tofree = path;
+    tofree = paths;
 
     char exec_path[OS_MAX_PATH];
 
-    while ((path = strsep(&paths, OS_PATH_ENV_DELIMITER)) != NULL) {
-        if (*path == '\0') {
-            continue;
-        }
-
-        int n = snprintf(exec_path, ARRLEN(exec_path), "%s%c%s", path, OS_SEPARATOR, str);
+    path = strtok(paths, OS_PATH_ENV_DELIMITER);
+    while (path != NULL) {
+        int n = snprintf(exec_path, ARRLEN(exec_path), "%s%c%s%s", path, OS_SEPARATOR, str, USE_EXE_EXT ? ".exe" : "");
         if (n < 0 || (size_t)n >= ARRLEN(exec_path)) {
             err = -1;
             goto cleanup;
@@ -99,11 +105,13 @@ static int chdir_to_executable_path(const char *str)
 
         struct os_stat s;
         if (os_stat(exec_path, &s) == 0 && S_ISREG(s.st_mode)) {
-            err = chdir(path);
+            err = os_chdir(path);
             if (err == 0) {
                 break;
             }
         }
+
+        path = strtok(NULL, OS_PATH_ENV_DELIMITER);
     }
 
 cleanup:

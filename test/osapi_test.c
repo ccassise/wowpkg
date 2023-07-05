@@ -83,7 +83,7 @@ static void test_os_mkdir_all_win32(void)
 
 static void test_os_readdir(void)
 {
-    OsDir *dir = os_opendir(WOWPKG_TEST_MOCKSDIR "mock_dir");
+    OsDir *dir = os_opendir(WOWPKG_TEST_DIR "/mocks/mock_dir");
     OsDirEnt *entry = NULL;
 
     const char *expect[] = {
@@ -169,7 +169,7 @@ static void test_os_mkstemps(void)
     const char *prefix = WOWPKG_TEST_TMPDIR "test_os_mkstemps_";
     const char *suffix = "suffix";
 
-    FILE *ftemp = os_mkstemps(template, strlen(suffix));
+    FILE *ftemp = os_mkstemps(template, (int)strlen(suffix));
     assert(ftemp != NULL);
     assert(strncmp(template, prefix, strlen(prefix)) == 0);
     assert(strncmp(&template[strlen(prefix) + 6], suffix, strlen(suffix)) == 0);

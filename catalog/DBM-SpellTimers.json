@@ -1,6 +1,0 @@
-{
-	"handler": "github:latest",
-	"name": "DBM-SpellTimers",
-	"desc": "Addon that uses DBM timers to show spell cooldowns from raid members. It is fully configurable through a simple GUI so you can easily add new spells.",
-	"url": "https://api.github.com/repos/DeadlyBossMods/DBM-SpellTimers/releases/latest"
-}
