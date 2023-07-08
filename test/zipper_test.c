@@ -25,10 +25,10 @@ static void test_zipper_unzip(const char *outpath)
         "mock_dir_c",
     };
 
-    bool expect_found[ARRLEN(expect)] = { false };
+    bool expect_found[ARRAY_SIZE(expect)] = { false };
 
     while ((entry = os_readdir(dir)) != NULL) {
-        for (size_t i = 0; i < ARRLEN(expect); i++) {
+        for (size_t i = 0; i < ARRAY_SIZE(expect); i++) {
             const char *actual = entry->name;
             if (strcmp(expect[i], actual) == 0) {
                 assert(!expect_found[i]);
@@ -37,7 +37,7 @@ static void test_zipper_unzip(const char *outpath)
         }
     }
 
-    for (size_t i = 0; i < ARRLEN(expect); i++) {
+    for (size_t i = 0; i < ARRAY_SIZE(expect); i++) {
         assert(expect_found[i]);
     }
 
@@ -45,7 +45,7 @@ static void test_zipper_unzip(const char *outpath)
 
     char mock_dir[OS_MAX_PATH];
 
-    snprintf(mock_dir, ARRLEN(mock_dir), "%s%c%s", outpath, OS_SEPARATOR, "mock_dir_a");
+    snprintf(mock_dir, ARRAY_SIZE(mock_dir), "%s%c%s", outpath, OS_SEPARATOR, "mock_dir_a");
     dir = os_opendir(mock_dir);
     assert(dir != NULL);
 
@@ -62,7 +62,7 @@ static void test_zipper_unzip(const char *outpath)
 
     os_closedir(dir);
 
-    snprintf(mock_dir, ARRLEN(mock_dir), "%s%c%s", outpath, OS_SEPARATOR, "mock_dir_b");
+    snprintf(mock_dir, ARRAY_SIZE(mock_dir), "%s%c%s", outpath, OS_SEPARATOR, "mock_dir_b");
     dir = os_opendir(mock_dir);
     assert(dir != NULL);
 

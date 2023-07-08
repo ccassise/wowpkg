@@ -95,7 +95,7 @@ static void test_os_readdir(void)
         "test_c",
     };
 
-    bool expect_was_found[ARRLEN(expect)] = { false };
+    bool expect_was_found[ARRAY_SIZE(expect)] = { false };
 
     assert(dir != NULL);
 
@@ -104,7 +104,7 @@ static void test_os_readdir(void)
     while ((entry = os_readdir(dir)) != NULL) {
         char *actual = entry->name;
         bool found = false;
-        for (size_t i = 0; i < ARRLEN(expect); i++) {
+        for (size_t i = 0; i < ARRAY_SIZE(expect); i++) {
             if (strcmp(actual, expect[i]) == 0) {
                 assert(!expect_was_found[i]);
                 expect_was_found[i] = true;
@@ -115,7 +115,7 @@ static void test_os_readdir(void)
         assert(found);
     }
 
-    for (size_t i = 0; i < ARRLEN(expect); i++) {
+    for (size_t i = 0; i < ARRAY_SIZE(expect); i++) {
         assert(expect_was_found[i]);
     }
 
@@ -223,76 +223,112 @@ static void test_os_mkdtemp(void)
 
 static void test_os_rename_dir(void)
 {
-    char src[] = WOWPKG_TEST_TMPDIR "test_os_rename_XXXXXX";
-    char dest[] = WOWPKG_TEST_TMPDIR "test_os_rename_XXXXXX";
+    char oldpath[] = WOWPKG_TEST_TMPDIR "test_os_rename_dir_XXXXXX";
+    char newpath[] = WOWPKG_TEST_TMPDIR "test_os_rename_dir_XXXXXX";
+    char txt_data[] = "test text data";
 
-    assert(os_mkdtemp(src) != NULL);
-    assert(os_mkdtemp(dest) != NULL);
+    assert(os_mkdtemp(oldpath) != NULL);
+    assert(os_mkdtemp(newpath) != NULL);
 
-    assert(strcmp(src, dest) != 0);
+    assert(strcmp(oldpath, newpath) != 0);
 
-    char actual[OS_MAX_PATH];
-    int n = snprintf(actual, ARRLEN(actual), "%s%c%s", src, OS_SEPARATOR, &dest[strlen(WOWPKG_TEST_TMPDIR)]);
-    assert(n > 0 && (size_t)n < ARRLEN(actual));
+    // Create a path to a text file in the old directory.
+    char old_txt_path[OS_MAX_PATH];
+    int n = snprintf(old_txt_path, ARRAY_SIZE(old_txt_path), "%s%c%s", oldpath, OS_SEPARATOR, "test.txt");
+    assert(n > 0 && (size_t)n < ARRAY_SIZE(old_txt_path));
 
-    assert(os_rename(dest, actual) == 0);
+    // Where we expect the text file to end up.
+    char new_txt_path[OS_MAX_PATH];
+    n = snprintf(new_txt_path, ARRAY_SIZE(new_txt_path), "%s%c%s", newpath, OS_SEPARATOR, "test.txt");
+    assert(n > 0 && (size_t)n < ARRAY_SIZE(new_txt_path));
 
+    // Create a text file in the old directory with some data.
+    FILE *ftxt = fopen(old_txt_path, "wb");
+    assert(ftxt != NULL);
+    assert(fwrite(txt_data, sizeof(*txt_data), ARRAY_SIZE(txt_data), ftxt) == ARRAY_SIZE(txt_data));
+    fclose(ftxt);
+
+    assert(os_rename(oldpath, newpath) == 0);
+
+    // Check that everything from the old path got moved to the new path.
     struct os_stat s;
-    assert(os_stat(actual, &s) == 0);
+    assert(os_stat(newpath, &s) == 0);
     assert(S_ISDIR(s.st_mode));
+    assert(os_stat(new_txt_path, &s) == 0);
+    assert(S_ISREG(s.st_mode));
 
-    os_remove_all(src);
+    ftxt = fopen(new_txt_path, "rb");
+    assert(ftxt != NULL);
+
+    char buf[BUFSIZ];
+    assert(fread(buf, sizeof(*buf), ARRAY_SIZE(buf), ftxt) == ARRAY_SIZE(txt_data));
+    assert(strcmp(buf, txt_data) == 0); // Terminating NULL is included in ARRAY_SIZE(txt_data).
+
+    // Make sure old path no longer exists.
+    assert(os_stat(oldpath, &s) != 0);
+
+    fclose(ftxt);
+    os_remove_all(newpath);
 }
 
 static void test_os_rename_file(void)
 {
-    char src[] = WOWPKG_TEST_TMPDIR "test_os_rename_XXXXXX";
-    char dest[] = WOWPKG_TEST_TMPDIR "test_os_rename_XXXXXX";
+    char oldpath[] = WOWPKG_TEST_TMPDIR "test_os_rename_file_XXXXXX";
+    char newpath[] = WOWPKG_TEST_TMPDIR "test_os_rename_file_XXXXXX";
 
-    FILE *srcf = os_mkstemp(src);
+    FILE *fold = os_mkstemp(oldpath);
 
-    assert(srcf != NULL);
+    assert(fold != NULL);
 
-    fclose(srcf);
+    fclose(fold);
 
-    assert(strcmp(src, dest) != 0);
+    assert(strcmp(oldpath, newpath) != 0);
 
-    assert(os_rename(src, dest) == 0);
+    assert(os_rename(oldpath, newpath) == 0);
 
     struct os_stat s;
-    assert(os_stat(src, &s) != 0);
+    assert(os_stat(oldpath, &s) != 0);
 
-    assert(os_stat(dest, &s) == 0);
+    assert(os_stat(newpath, &s) == 0);
     assert(S_ISREG(s.st_mode));
 
-    remove(dest);
+    remove(newpath);
 }
 
 static void test_os_rename_file_replace(void)
 {
-    char src[] = WOWPKG_TEST_TMPDIR "test_os_rename_XXXXXX";
-    char dest[] = WOWPKG_TEST_TMPDIR "test_os_rename_XXXXXX";
+    char oldpath[] = WOWPKG_TEST_TMPDIR "test_os_rename_file_replace_XXXXXX";
+    char newpath[] = WOWPKG_TEST_TMPDIR "test_os_rename_file_replace_XXXXXX";
+    char test_data[] = "some test data\n";
 
-    FILE *srcf = os_mkstemp(src);
-    FILE *destf = os_mkstemp(dest);
+    FILE *fold = os_mkstemp(oldpath);
+    FILE *fnew = os_mkstemp(newpath);
 
-    assert(srcf != NULL);
-    assert(destf != NULL);
+    assert(fold != NULL);
+    assert(fnew != NULL);
 
-    fclose(srcf);
-    fclose(destf);
+    assert(fwrite(test_data, sizeof(*test_data), ARRAY_SIZE(test_data), fold) == ARRAY_SIZE(test_data));
 
-    assert(strcmp(src, dest) != 0);
+    fclose(fold);
+    fclose(fnew);
 
-    assert(os_rename(src, dest) == 0);
+    assert(strcmp(oldpath, newpath) != 0);
+
+    assert(os_rename(oldpath, newpath) == 0);
 
     struct os_stat s;
-    assert(os_stat(src, &s) != 0);
+    assert(os_stat(oldpath, &s) != 0);
 
-    assert(os_stat(dest, &s) == 0);
+    assert(os_stat(newpath, &s) == 0);
     assert(S_ISREG(s.st_mode));
 
-    remove(dest);
+    char buf[BUFSIZ];
+    fnew = fopen(newpath, "rb");
+    assert(fread(buf, sizeof(*buf), ARRAY_SIZE(buf), fnew) == ARRAY_SIZE(test_data));
+    assert(strcmp(buf, test_data) == 0); // Terminating NULL is included in ARRAY_SIZE(test_data).
+
+    fclose(fnew);
+    remove(newpath);
 }
 
 int main(void)

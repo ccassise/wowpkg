@@ -12,6 +12,130 @@
 #include "osapi.h"
 #include "wowpkg.h"
 
+static int copy_file(const char *oldpath, const char *newpath)
+{
+    FILE *fold = fopen(oldpath, "rb");
+    FILE *fnew = fopen(newpath, "wb");
+    if (fold == NULL || fnew == NULL) {
+        return -1;
+    }
+
+#ifndef _WIN32
+    // Change permission of new file to match that of old file.
+    struct os_stat s_old;
+    if (fstat(fileno(fnew), &s_old) != 0) {
+        return -1;
+    }
+
+    if (fchmod(fileno(fnew), s_old.st_mode & (S_IRWXU | S_IRWXG | S_IRWXG)) != 0) {
+        return -1;
+    }
+#endif
+
+    unsigned char buf[BUFSIZ];
+    size_t n = 0;
+    while ((n = fread(buf, sizeof(*buf), ARRAY_SIZE(buf), fold)) > 0) {
+        if (fwrite(buf, sizeof(*buf), n, fnew) != n) {
+            fclose(fold);
+            fclose(fnew);
+            return -1;
+        }
+    }
+
+    fclose(fold);
+    fclose(fnew);
+
+    return 0;
+}
+
+/**
+ * Copies all contents of directory at old path to new path.
+ *
+ * Old and new path shall be paths to directories that already exist. If new
+ * path contains a file with the same path from old path, then the file will be
+ * overwritten.
+ *
+ * Returns 0, -1 and sets errno on errors.
+ */
+static int copy_dir(const char *oldpath, const char *newpath)
+{
+    int err = 0;
+
+    struct os_stat s_old;
+    struct os_stat s_new;
+
+    err = os_stat(oldpath, &s_old);
+    if (err != 0 || !S_ISDIR(s_old.st_mode)) {
+        return -1;
+    }
+
+    err = os_stat(newpath, &s_new);
+    if (err != 0 || !S_ISDIR(s_new.st_mode)) {
+        return -1;
+    }
+
+    OsDir *dir = os_opendir(oldpath);
+    if (dir == NULL) {
+        return -1;
+    }
+
+    OsDirEnt *entry = NULL;
+    while ((entry = os_readdir(dir)) != NULL) {
+        if (strcmp(entry->name, ".") == 0 || strcmp(entry->name, "..") == 0) {
+            continue;
+        }
+
+        char oldname[OS_MAX_PATH];
+        char newname[OS_MAX_PATH];
+
+        int n = 0;
+
+        n = snprintf(oldname, ARRAY_SIZE(oldname), "%s%c%s", oldpath, OS_SEPARATOR, entry->name);
+        if (n < 0 || (size_t)n > ARRAY_SIZE(oldname)) {
+            errno = ENAMETOOLONG;
+            err = -1;
+            break;
+        }
+
+        n = snprintf(newname, ARRAY_SIZE(newname), "%s%c%s", newpath, OS_SEPARATOR, entry->name);
+        if (n < 0 || (size_t)n > ARRAY_SIZE(newname)) {
+            errno = ENAMETOOLONG;
+            err = -1;
+            break;
+        }
+
+        struct os_stat s_oldname;
+        if (os_stat(oldname, &s_oldname) != 0) {
+            err = -1;
+            break;
+        }
+
+        if (S_ISDIR(s_oldname.st_mode)) {
+#ifdef _WIN32
+            mode_t permissions = 0755;
+#else
+            mode_t permissions = s_oldname.st_mode & (S_IRWXU | S_IRWXG | S_IRWXO);
+#endif
+            err = os_mkdir(newname, permissions);
+            if (err != 0 && errno != EEXIST) {
+                return -1;
+            }
+
+            err = copy_dir(oldname, newname);
+        } else {
+            err = copy_file(oldname, newname);
+        }
+
+        if (err != 0) {
+            break;
+        }
+    }
+
+    os_closedir(dir);
+
+    return err;
+}
+
 OsDir *os_opendir(const char *path)
 {
     OsDir *result = malloc(sizeof(*result));
@@ -25,8 +149,8 @@ OsDir *os_opendir(const char *path)
     // a directory, and this function should never be called like that -- so add
     // it now.
     char path_win[OS_MAX_PATH];
-    int n = snprintf(path_win, ARRLEN(path_win), "%s%c*", path, OS_SEPARATOR);
-    if (n < 0 || (size_t)n >= ARRLEN(path_win)) {
+    int n = snprintf(path_win, ARRAY_SIZE(path_win), "%s%c*", path, OS_SEPARATOR);
+    if (n < 0 || (size_t)n >= ARRAY_SIZE(path_win)) {
         errno = ENAMETOOLONG;
         goto error;
     }
@@ -96,7 +220,7 @@ void os_closedir(OsDir *dir)
 #endif
 }
 
-int os_mkdir(const char *path, OsMode perms)
+int os_mkdir(const char *path, mode_t perms)
 {
     if (path[0] == '\0') {
         return 0;
@@ -110,7 +234,7 @@ int os_mkdir(const char *path, OsMode perms)
 #endif
 }
 
-int os_mkdir_all(char *path, OsMode perms)
+int os_mkdir_all(char *path, mode_t perms)
 {
 #ifdef _WIN32
     UNUSED(perms);
@@ -205,7 +329,7 @@ const char *os_tempdir(void)
     };
 #endif
 
-    for (size_t i = 0; i < ARRLEN(tmp_paths); i++) {
+    for (size_t i = 0; i < ARRAY_SIZE(tmp_paths); i++) {
         if (tmp_paths[i] != NULL) {
             struct os_stat s;
             if (os_stat(tmp_paths[i], &s) == 0 && S_ISDIR(s.st_mode)) {
@@ -232,8 +356,8 @@ int os_remove_all(const char *path)
         }
 
         char p[OS_MAX_PATH];
-        int n = snprintf(p, ARRLEN(p), "%s%c%s", path, OS_SEPARATOR, entry->name);
-        if (n < 0 || (size_t)n >= ARRLEN(p)) {
+        int n = snprintf(p, ARRAY_SIZE(p), "%s%c%s", path, OS_SEPARATOR, entry->name);
+        if (n < 0 || (size_t)n >= ARRAY_SIZE(p)) {
             errno = ENAMETOOLONG;
             err = -1;
             break;
@@ -258,14 +382,79 @@ int os_remove_all(const char *path)
     return err;
 }
 
-int os_rename(const char *src, const char *dest)
+int os_rename(const char *oldpath, const char *newpath)
 {
 #ifdef _WIN32
-    if (!MoveFileExA(src, dest, MOVEFILE_REPLACE_EXISTING | MOVEFILE_COPY_ALLOWED)) {
+    if (!MoveFileExA(oldpath, newpath, MOVEFILE_REPLACE_EXISTING | MOVEFILE_COPY_ALLOWED)) {
         return -1;
     }
     return 0;
 #else
-    return rename(src, dest);
+    // Try using rename(2) but if errno is EXDEV then we will fall back to copy
+    // and delete.
+    int err = rename(oldpath, newpath);
+    if (err == 0) {
+        return 0;
+    } else if (err != 0 && errno != EXDEV) {
+        return -1;
+    }
+
+    struct os_stat s_old;
+    if (os_stat(oldpath, &s_old) != 0) {
+        return -1;
+    }
+
+    if (S_ISREG(s_old.st_mode)) {
+        if (copy_file(oldpath, newpath) != 0) {
+            return -1;
+        }
+        remove(oldpath);
+    } else if (S_ISDIR(s_old.st_mode)) {
+        struct os_stat s_new;
+
+        err = os_stat(newpath, &s_new);
+        if (err != 0) {
+            // Old path is a directory and new path does not exist -- create a
+            // directory at the new path.
+            err = os_mkdir(newpath, 0755);
+            if (err != 0) {
+                return -1;
+            }
+        } else {
+            // Old path is a directory and new path exists -- ensure that new
+            // path is an empty directory.
+            if (!S_ISDIR(s_new.st_mode)) {
+                return -1;
+            }
+
+            OsDir *dir = os_opendir(newpath);
+            if (dir == NULL) {
+                return -1;
+            }
+
+            OsDirEnt *entry = NULL;
+            while ((entry = os_readdir(dir)) != NULL) {
+                // These should be the only entries in an empty directory.
+                if (strcmp(entry->name, ".") != 0 && strcmp(entry->name, "..") != 0) {
+                    err = -1;
+                    break;
+                }
+            }
+
+            os_closedir(dir);
+
+            if (err != 0) {
+                return -1;
+            }
+        }
+
+        if (copy_dir(oldpath, newpath) != 0) {
+            return -1;
+        }
+
+        os_remove_all(oldpath);
+    }
+
+    return 0;
 #endif
 }

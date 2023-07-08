@@ -36,7 +36,7 @@
 #define os_getcwd _getcwd
 #define os_chdir _chdir
 
-typedef unsigned int OsMode;
+typedef unsigned short mode_t;
 
 #else
 
@@ -50,8 +50,6 @@ typedef unsigned int OsMode;
 #define os_rmdir rmdir
 #define os_getcwd getcwd
 #define os_chdir chdir
-
-typedef mode_t OsMode;
 
 #endif
 
@@ -97,8 +95,8 @@ void os_closedir(OsDir *dir);
  *
  * On success returns 0, otherwise returns -1 and sets errno on errors.
  */
-int os_mkdir(const char *path, OsMode perms);
-int os_mkdir_all(char *path, OsMode perms);
+int os_mkdir(const char *path, mode_t perms);
+int os_mkdir_all(char *path, mode_t perms);
 
 /**
  * Generates a unique temporary filename from template. Creates and opens the
@@ -156,6 +154,9 @@ int os_remove_all(const char *path);
  * See rename(2) for *nix and MoveFileEx with MOVEFILE_REPLACE_EXISTING and
  * MOVEFILE_COPY_ALLOWED for Windows.
  *
- * Returns non-zero on errors.
+ * If new path is on a different file system and rename fails, then a copy and
+ * delete will instead be performed.
+ *
+ * On success returns 0, otherwise returns -1 and sets errno on errors.
  */
-int os_rename(const char *src, const char *dest);
+int os_rename(const char *oldpath, const char *newpath);

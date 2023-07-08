@@ -27,20 +27,11 @@ if (WOWPKG_ENABLE_TESTS)
     enable_testing()
 endif()
 
-if (WIN32)
-    find_package(unofficial-minizip CONFIG REQUIRED)
-else()
-    find_package(minizip CONFIG REQUIRED)
-endif()
-
 find_package(CURL CONFIG REQUIRED)
 find_package(cJSON CONFIG REQUIRED)
+find_package(unofficial-minizip CONFIG REQUIRED)
 
-if (WIN32)
-    set(WOWPKG_LIBS unofficial::minizip::minizip CURL::libcurl cjson)
-else()
-    set(WOWPKG_LIBS minizip::minizip CURL::libcurl cjson)
-endif()
+set(WOWPKG_LIBS CURL::libcurl cjson unofficial::minizip::minizip)
 
 if (MSVC)
     set(WFLAGS_RELEASE /O2 /GL /DNDEBUG /Zi /Gy)
@@ -125,7 +116,7 @@ list(APPEND WOWPKG_DEFINES WOWPKG_VERSION="${PROJECT_VERSION}")
 if(WOWPKG_USE_DEVELOPMENT_PATHS)
     message(STATUS "[${PROJECT_NAME}] building with development paths")
     list(APPEND WOWPKG_DEFINES
-        WOWPKG_STATE_FILE_PATH="${PROJECT_SOURCE_DIR}/dev_only/_wowpkg_state"
+        WOWPKG_SAVED_FILE_PATH="${PROJECT_SOURCE_DIR}/dev_only/saved.wowpkg"
         WOWPKG_CONFIG_FILE_PATH="${PROJECT_SOURCE_DIR}/dev_only/config.ini"
         WOWPKG_CATALOG_PATH="${PROJECT_SOURCE_DIR}/catalog"
     )

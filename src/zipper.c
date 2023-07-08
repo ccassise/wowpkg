@@ -79,13 +79,13 @@ static int zipper_unzip_file(unzFile uf, const char *dest)
     char raw_filename[OS_MAX_FILENAME];
     char filename[OS_MAX_FILENAME];
 
-    err = unzGetCurrentFileInfo64(uf, &finfo, raw_filename, ARRLEN(raw_filename), NULL, 0, NULL, 0);
+    err = unzGetCurrentFileInfo64(uf, &finfo, raw_filename, ARRAY_SIZE(raw_filename), NULL, 0, NULL, 0);
     if (err != UNZ_OK) {
         return ZIPPER_ENOENT;
     }
 
-    int filename_len = snclean_path(filename, ARRLEN(filename), raw_filename);
-    if (filename_len >= (int)ARRLEN(filename)) {
+    int filename_len = snclean_path(filename, ARRAY_SIZE(filename), raw_filename);
+    if (filename_len >= (int)ARRAY_SIZE(filename)) {
         err = ZIPPER_ENAMETOOLONG;
         goto cleanup;
     }
@@ -119,7 +119,7 @@ static int zipper_unzip_file(unzFile uf, const char *dest)
         unsigned char buf[BUFSIZ];
 
         int nread = 0;
-        while ((nread = unzReadCurrentFile(uf, buf, ARRLEN(buf))) > 0) {
+        while ((nread = unzReadCurrentFile(uf, buf, ARRAY_SIZE(buf))) > 0) {
             if (fwrite(buf, sizeof(*buf), (size_t)nread, out_file) != (size_t)nread) {
                 err = ZIPPER_EWRITE;
                 goto cleanup;

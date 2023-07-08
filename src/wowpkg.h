@@ -18,8 +18,8 @@
  * not set by CMake then it is assumed this is being compiled for release and
  * these paths are the location of the files relative to the executable.
  */
-#ifndef WOWPKG_STATE_FILE_PATH
-#define WOWPKG_STATE_FILE_PATH "../_wowpkg_state"
+#ifndef WOWPKG_SAVED_FILE_PATH
+#define WOWPKG_SAVED_FILE_PATH "../saved.wowpkg"
 #endif
 
 #ifndef WOWPKG_CONFIG_FILE_PATH
@@ -32,5 +32,5 @@
 
 /*****************************************************************************/
 
-#define ARRLEN(a) (sizeof(a) / sizeof(*(a)))
+#define ARRAY_SIZE(a) (sizeof(a) / sizeof((a)[0]))
 #define UNUSED(v) ((void)(v))

@@ -49,7 +49,7 @@ static int parse_text(INI *ini, char *buf, size_t n, char terminating_ch)
             continue;
         }
 
-        if (n > 0 && result < n - 1) {
+        if (n > 0 && (size_t)result < n - 1) {
             buf[result] = (char)ini->_pos;
             buf[result + 1] = '\0';
         }
@@ -58,7 +58,7 @@ static int parse_text(INI *ini, char *buf, size_t n, char terminating_ch)
         ini->_err_col++;
     }
 
-    if (n > 0 && result < n - 1) {
+    if (n > 0 && (size_t)result < n - 1) {
         // Trim whitespace from end of buffer.
         while (result > 0 && isspace(buf[result - 1])) {
             buf[result - 1] = '\0';

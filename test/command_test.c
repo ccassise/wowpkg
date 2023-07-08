@@ -48,7 +48,7 @@ static void test_cmd_list(void)
     assert(out != NULL);
 
     const char *argv[] = { "list" };
-    assert(cmd_list(&ctx, ARRLEN(argv), argv, out) == 0);
+    assert(cmd_list(&ctx, ARRAY_SIZE(argv), argv, out) == 0);
 
     long out_len = ftell(out);
     assert(out_len > 0);
@@ -74,7 +74,7 @@ static void test_cmd_search(void)
     assert(out != NULL);
 
     const char *argv[] = { "search", "wigs" };
-    assert(cmd_search(NULL, ARRLEN(argv), argv, out) == 0);
+    assert(cmd_search(NULL, ARRAY_SIZE(argv), argv, out) == 0);
 
     long out_len = ftell(out);
     assert(out_len > 0);
@@ -155,7 +155,7 @@ static void test_cmd_remove(void)
     list_insert(ctx.state->latest, latest);
 
     const char *argv[] = { "remove", "mockaddon" };
-    assert(cmd_remove(&ctx, ARRLEN(argv), argv, stdout) == 0);
+    assert(cmd_remove(&ctx, ARRAY_SIZE(argv), argv, stdout) == 0);
 
     assert(list_isempty(ctx.state->installed));
     assert(list_isempty(ctx.state->latest));
@@ -205,7 +205,7 @@ static void test_cmd_outdated(void)
     FILE *out = tmpfile();
 
     const char *argv[] = { "outdated" };
-    assert(cmd_outdated(&ctx, ARRLEN(argv), argv, out) == 0);
+    assert(cmd_outdated(&ctx, ARRAY_SIZE(argv), argv, out) == 0);
 
     long out_len = ftell(out);
     assert(out_len > 0);
@@ -241,7 +241,7 @@ static void test_cmd_info(void)
     assert(out != NULL);
 
     const char *argv[] = { "info", "plater", "___not_found___", "SIMULATIONCRAFT" };
-    assert(cmd_info(&ctx, ARRLEN(argv), argv, out) == 0);
+    assert(cmd_info(&ctx, ARRAY_SIZE(argv), argv, out) == 0);
 
     long out_len = ftell(out);
     assert(out_len > 0);

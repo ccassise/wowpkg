@@ -250,7 +250,7 @@ int cmd_install(Context *ctx, int argc, const char *argv[], FILE *out)
             args[0] = argv[0];
             args[1] = addon->name;
 
-            if (cmd_remove(ctx, ARRLEN(args), args, out) != 0) {
+            if (cmd_remove(ctx, ARRAY_SIZE(args), args, out) != 0) {
                 PRINT_WARNING("failed to remove existing addon %s\n", addon->name);
                 PRINT_WARNING("attempting to reinstall anyway...\n");
             }
@@ -383,8 +383,8 @@ int cmd_remove(Context *ctx, int argc, const char *argv[], FILE *out)
             const char *dirname = dirnode->value;
 
             char remove_path[OS_MAX_PATH];
-            int n = snprintf(remove_path, ARRLEN(remove_path), "%s%c%s", ctx->config->addons_path, OS_SEPARATOR, dirname);
-            if (n < 0 || (size_t)n >= ARRLEN(remove_path)) {
+            int n = snprintf(remove_path, ARRAY_SIZE(remove_path), "%s%c%s", ctx->config->addons_path, OS_SEPARATOR, dirname);
+            if (n < 0 || (size_t)n >= ARRAY_SIZE(remove_path)) {
                 PRINT_ERROR3_FMT(CMD_ENAMETOOLONG_STR, argv[0], "%s%c%s", ctx->config->addons_path, OS_SEPARATOR, dirname);
                 return -1;
             }
@@ -657,7 +657,7 @@ int cmd_upgrade(Context *ctx, int argc, const char *argv[], FILE *out)
             args[0] = argv[0];
             args[1] = addon->name;
 
-            if (cmd_remove(ctx, ARRLEN(args), args, out) != 0) {
+            if (cmd_remove(ctx, ARRAY_SIZE(args), args, out) != 0) {
                 PRINT_WARNING("failed to remove old addon %s\n", addon->name);
                 PRINT_WARNING("attempting to upgrade anyway...\n");
             }

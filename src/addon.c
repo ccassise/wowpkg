@@ -100,8 +100,8 @@ static int move_filename(const char *restrict srcdir, const char *restrict destd
     int n;
 
     char dest[OS_MAX_PATH];
-    n = snprintf(dest, ARRLEN(dest), "%s%c%s", destdir, OS_SEPARATOR, filename);
-    if (n < 0 || (size_t)n >= ARRLEN(dest)) {
+    n = snprintf(dest, ARRAY_SIZE(dest), "%s%c%s", destdir, OS_SEPARATOR, filename);
+    if (n < 0 || (size_t)n >= ARRAY_SIZE(dest)) {
         return ADDON_ENAMETOOLONG;
     }
 
@@ -113,8 +113,8 @@ static int move_filename(const char *restrict srcdir, const char *restrict destd
     }
 
     char src[OS_MAX_PATH];
-    n = snprintf(src, ARRLEN(src), "%s%c%s", srcdir, OS_SEPARATOR, filename);
-    if (n < 0 || (size_t)n >= ARRLEN(src)) {
+    n = snprintf(src, ARRAY_SIZE(src), "%s%c%s", srcdir, OS_SEPARATOR, filename);
+    if (n < 0 || (size_t)n >= ARRAY_SIZE(src)) {
         return ADDON_ENAMETOOLONG;
     }
 
@@ -325,8 +325,8 @@ int addon_fetch_catalog_meta(Addon *a, const char *name)
     int err = ADDON_OK;
 
     char path[OS_MAX_PATH];
-    int n = snfind_catalog_path(path, ARRLEN(path), name);
-    if (n < 0 || (size_t)n >= ARRLEN(path)) {
+    int n = snfind_catalog_path(path, ARRAY_SIZE(path), name);
+    if (n < 0 || (size_t)n >= ARRAY_SIZE(path)) {
         err = ADDON_ENOTFOUND;
         return err;
     }
@@ -528,8 +528,8 @@ int addon_fetch_zip(Addon *a)
     char zippath[OS_MAX_PATH];
 
     // Creates a string with a value 'path/to/temp/wowpkg_<addon_name>_<addon_version>_XXXXXX.zip'.
-    int nwrote = snprintf(zippath, ARRLEN(zippath), "%s%c%s_%s_%s_XXXXXX%s", os_tempdir(), OS_SEPARATOR, WOWPKG_NAME, a->name, a->version, zip_ext);
-    if (nwrote < 0 || (size_t)nwrote >= ARRLEN(zippath)) {
+    int nwrote = snprintf(zippath, ARRAY_SIZE(zippath), "%s%c%s_%s_%s_XXXXXX%s", os_tempdir(), OS_SEPARATOR, WOWPKG_NAME, a->name, a->version, zip_ext);
+    if (nwrote < 0 || (size_t)nwrote >= ARRAY_SIZE(zippath)) {
         err = ADDON_ENAMETOOLONG;
         goto cleanup;
     }
@@ -564,8 +564,8 @@ int addon_package(Addon *a)
     char tmpdir[OS_MAX_PATH];
 
     // Creates a string with a value 'path/to/temp/wowpkg_<addon_name>_<addon_version>_XXXXXX'.
-    int n = snprintf(tmpdir, ARRLEN(tmpdir), "%s%c%s_%s_%s_XXXXXX", os_tempdir(), OS_SEPARATOR, WOWPKG_NAME, a->name, a->version);
-    if (n < 0 || (size_t)n >= ARRLEN(tmpdir)) {
+    int n = snprintf(tmpdir, ARRAY_SIZE(tmpdir), "%s%c%s_%s_%s_XXXXXX", os_tempdir(), OS_SEPARATOR, WOWPKG_NAME, a->name, a->version);
+    if (n < 0 || (size_t)n >= ARRAY_SIZE(tmpdir)) {
         return ADDON_ENAMETOOLONG;
     }
 
