@@ -42,7 +42,7 @@ static int snclean_path(char *restrict buf, size_t n, const char *restrict path)
         } else if (filename_len > 0) {
             if (strncmp(filename, ".", filename_len - 1) != 0 || strncmp(filename, "..", filename_len - 1) != 0) {
                 for (size_t i = 0; i < filename_len; i++) {
-                    if (result < n - 1) {
+                    if (n > 0 && result < n - 1) {
                         writer[result] = filename[i];
                         writer[result + 1] = '\0';
                     }
@@ -51,7 +51,7 @@ static int snclean_path(char *restrict buf, size_t n, const char *restrict path)
                 }
 
                 if (filename[filename_len] != '\0') {
-                    if (result < n - 1) {
+                    if (n > 0 && result < n - 1) {
                         writer[result] = OS_SEPARATOR;
                         writer[result + 1] = '\0';
                     }
