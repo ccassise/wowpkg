@@ -27,10 +27,12 @@
 static int try_save_state(Context *ctx, int err)
 {
     if (err == 0) {
-        if (appstate_save(ctx->state, WOWPKG_STATE_FILE_PATH) != 0) {
-            fprintf(stderr, "Error: failed to save managed addon data\n");
+        if (appstate_save(ctx->state, WOWPKG_SAVED_FILE_PATH) != 0) {
+            fprintf(stderr, "Error: failed to save addon data\n");
             fprintf(stderr, "Error: this should never happen\n");
-            fprintf(stderr, "Error: it is possible the managed addon data is no longer in sync with the WoW addon directory\n");
+            fprintf(stderr, "Error: it is possible the saved addon data is no\n");
+            fprintf(stderr, "Error: longer in sync with the WoW addon directory\n");
+            fprintf(stderr, "Error: \n");
             fprintf(stderr, "Error: re-running the last command may fix this\n");
             return -1;
         }
@@ -57,6 +59,7 @@ static int chdir_to_executable_path(const char *str)
     int err = 0;
     char *tofree = strdup(str);
 
+    // Find the last separator in path.
     size_t valid_sep_len = strlen(OS_VALID_SEPARATORS);
     char *last_sep = NULL;
     for (char *s = tofree; *s; s++) {
@@ -97,8 +100,8 @@ static int chdir_to_executable_path(const char *str)
 
     path = strtok(paths, OS_PATH_ENV_DELIMITER);
     while (path != NULL) {
-        int n = snprintf(exec_path, ARRLEN(exec_path), "%s%c%s%s", path, OS_SEPARATOR, str, USE_EXE_EXT ? ".exe" : "");
-        if (n < 0 || (size_t)n >= ARRLEN(exec_path)) {
+        int n = snprintf(exec_path, ARRAY_SIZE(exec_path), "%s%c%s%s", path, OS_SEPARATOR, str, USE_EXE_EXT ? ".exe" : "");
+        if (n < 0 || (size_t)n >= ARRAY_SIZE(exec_path)) {
             err = -1;
             goto cleanup;
         }
@@ -145,32 +148,9 @@ int main(int argc, const char *argv[])
 
     int err = 0;
 
-    if (appstate_load(ctx.state, WOWPKG_STATE_FILE_PATH) != 0) {
-        char *cwd = os_getcwd(NULL, 0);
-
-        fprintf(stderr, "Error: failed to load managed addon data from %s%c%s\n",
-            cwd == NULL ? "." : cwd,
-            OS_SEPARATOR,
-            WOWPKG_STATE_FILE_PATH);
-        fprintf(stderr, "Error: ensure file exists, is valid JSON, and satisfies the minimal expected JSON object\n");
-        fprintf(stderr, "Error: the minimal expected JSON object is: {\"installed\":[],\"latest\":[]}\n");
-
-        free(cwd);
-
-        err = -1;
-        goto cleanup;
-    }
-
     if (config_load(ctx.config, WOWPKG_CONFIG_FILE_PATH) != 0) {
-        char *cwd = os_getcwd(NULL, 0);
-
-        fprintf(stderr, "Error: failed to load user config file %s%c%s\n",
-            cwd == NULL ? "." : cwd,
-            OS_SEPARATOR,
-            WOWPKG_CONFIG_FILE_PATH);
-        fprintf(stderr, "Error: ensure file exists and is valid JSON\n");
-
-        free(cwd);
+        fprintf(stderr, "Error: failed to load user config file\n");
+        fprintf(stderr, "Error: ensure file exists and has valid entries\n");
 
         err = -1;
         goto cleanup;
@@ -179,10 +159,25 @@ int main(int argc, const char *argv[])
     // Test that addon path actually exists and is a directory.
     struct os_stat s;
     if (os_stat(ctx.config->addons_path, &s) != 0 || !S_ISDIR(s.st_mode)) {
-        fprintf(stderr, "Error: addons path from config file does not exist or is not a directory\n");
+        fprintf(stderr, "Error: addons path from config file does not exist or\n");
+        fprintf(stderr, "Error: is not a directory\n");
 
         err = -1;
         goto cleanup;
+    }
+
+    // Assuming that since the config file was found with valid data that it
+    // should be safe to create a new saved file in the expected location.
+    if (appstate_load(ctx.state, WOWPKG_SAVED_FILE_PATH) != 0) {
+        fprintf(stderr, "Warning: could not find any saved addon data\n");
+        fprintf(stderr, "Warning: \n");
+        fprintf(stderr, "Warning: if this is the first time running the program\n");
+        fprintf(stderr, "Warning: then this message can safely be ignored\n\n");
+
+        if (try_save_state(&ctx, 0) != 0) {
+            err = -1;
+            goto cleanup;
+        }
     }
 
     if (strcasecmp(argv[1], "info") == 0) {

@@ -228,7 +228,6 @@ static void test_os_rename_dir(void)
     char txt_data[] = "test text data";
 
     assert(os_mkdtemp(oldpath) != NULL);
-    assert(os_mkdtemp(newpath) != NULL);
 
     assert(strcmp(oldpath, newpath) != 0);
 
