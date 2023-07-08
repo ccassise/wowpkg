@@ -32,5 +32,8 @@
 
 /*****************************************************************************/
 
+#define PRINT_ERROR(...) fprintf(stderr, TERM_WRAP(TERM_BOLD_RED, "Error: ") __VA_ARGS__)
+#define PRINT_WARNING(...) fprintf(stderr, TERM_WRAP(TERM_BOLD_YELLOW, "Warning: ") __VA_ARGS__)
+
 #define ARRAY_SIZE(a) (sizeof(a) / sizeof((a)[0]))
 #define UNUSED(v) ((void)(v))

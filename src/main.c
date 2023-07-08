@@ -7,6 +7,7 @@
 #include "context.h"
 #include "osapi.h"
 #include "osstring.h"
+#include "term.h"
 #include "wowpkg.h"
 
 /**
@@ -28,12 +29,12 @@ static int try_save_state(Context *ctx, int err)
 {
     if (err == 0) {
         if (appstate_save(ctx->state, WOWPKG_SAVED_FILE_PATH) != 0) {
-            fprintf(stderr, "Error: failed to save addon data\n");
-            fprintf(stderr, "Error: this should never happen\n");
-            fprintf(stderr, "Error: it is possible the saved addon data is no\n");
-            fprintf(stderr, "Error: longer in sync with the WoW addon directory\n");
-            fprintf(stderr, "Error: \n");
-            fprintf(stderr, "Error: re-running the last command may fix this\n");
+            PRINT_ERROR("failed to save addon data\n");
+            PRINT_ERROR("this should never happen\n");
+            PRINT_ERROR("it is possible the saved addon data is no\n");
+            PRINT_ERROR("longer in sync with the WoW addon directory\n");
+            PRINT_ERROR("\n");
+            PRINT_ERROR("re-running the last command may fix this\n");
             return -1;
         }
     }
@@ -132,7 +133,7 @@ int main(int argc, const char *argv[])
     }
 
     if (chdir_to_executable_path(argv[0]) != 0) {
-        fprintf(stderr, "Error: could not find program executable path\n");
+        PRINT_ERROR("could not find program executable path\n");
         exit(1);
     }
 
@@ -142,15 +143,15 @@ int main(int argc, const char *argv[])
     ctx.config = config_create();
     ctx.state = appstate_create();
     if (ctx.config == NULL || ctx.state == NULL) {
-        fprintf(stderr, "Error: failed to allocate memory\n");
+        PRINT_ERROR("failed to allocate memory\n");
         exit(1);
     }
 
     int err = 0;
 
     if (config_load(ctx.config, WOWPKG_CONFIG_FILE_PATH) != 0) {
-        fprintf(stderr, "Error: failed to load user config file\n");
-        fprintf(stderr, "Error: ensure file exists and has valid entries\n");
+        PRINT_ERROR("failed to load user config file\n");
+        PRINT_ERROR("ensure file exists and has valid entries\n");
 
         err = -1;
         goto cleanup;
@@ -159,8 +160,8 @@ int main(int argc, const char *argv[])
     // Test that addon path actually exists and is a directory.
     struct os_stat s;
     if (os_stat(ctx.config->addons_path, &s) != 0 || !S_ISDIR(s.st_mode)) {
-        fprintf(stderr, "Error: addons path from config file does not exist or\n");
-        fprintf(stderr, "Error: is not a directory\n");
+        PRINT_ERROR("addons path from config file does not exist or\n");
+        PRINT_ERROR("is not a directory\n");
 
         err = -1;
         goto cleanup;
@@ -169,10 +170,10 @@ int main(int argc, const char *argv[])
     // Assuming that since the config file was found with valid data that it
     // should be safe to create a new saved file in the expected location.
     if (appstate_load(ctx.state, WOWPKG_SAVED_FILE_PATH) != 0) {
-        fprintf(stderr, "Warning: could not find any saved addon data\n");
-        fprintf(stderr, "Warning: \n");
-        fprintf(stderr, "Warning: if this is the first time running the program\n");
-        fprintf(stderr, "Warning: then this message can safely be ignored\n\n");
+        PRINT_WARNING("could not find any saved addon data\n");
+        PRINT_WARNING("\n");
+        PRINT_WARNING("if this is the first time running the program\n");
+        PRINT_WARNING("then this message can safely be ignored\n\n");
 
         if (try_save_state(&ctx, 0) != 0) {
             err = -1;
@@ -203,7 +204,7 @@ int main(int argc, const char *argv[])
     } else if (strcasecmp(argv[1], "help") == 0) {
         err = cmd_help(&ctx, argc - 1, &argv[1], stdout);
     } else {
-        fprintf(stderr, "Error: unknown command '%s'\n", argv[1]);
+        PRINT_ERROR("unknown command '%s'\n", argv[1]);
         err = -1;
     }
 

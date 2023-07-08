@@ -8,6 +8,7 @@
 #include "context.h"
 #include "osapi.h"
 #include "osstring.h"
+#include "term.h"
 #include "wowpkg.h"
 
 static void test_cmd_list(void)
@@ -44,53 +45,53 @@ static void test_cmd_list(void)
     ctx.state = appstate_create();
     assert(appstate_from_json(ctx.state, state_json) == 0);
 
-    FILE *out = tmpfile();
-    assert(out != NULL);
+    FILE *stream = tmpfile();
+    assert(stream != NULL);
 
     const char *argv[] = { "list" };
-    assert(cmd_list(&ctx, ARRAY_SIZE(argv), argv, out) == 0);
+    assert(cmd_list(&ctx, ARRAY_SIZE(argv), argv, stream) == 0);
 
-    long out_len = ftell(out);
-    assert(out_len > 0);
-    fseek(out, 0, SEEK_SET);
+    long actual_len = ftell(stream);
+    assert(actual_len > 0);
+    fseek(stream, 0, SEEK_SET);
 
-    char *out_str = malloc(sizeof(*out_str) * (size_t)out_len + 1);
-    assert(out_str != NULL);
+    char *actual = malloc(sizeof(*actual) * (size_t)actual_len + 1);
+    assert(actual != NULL);
 
-    assert(fread(out_str, sizeof(*out_str), (size_t)out_len, out) == (size_t)out_len);
-    out_str[out_len] = '\0';
+    assert(fread(actual, sizeof(*actual), (size_t)actual_len, stream) == (size_t)actual_len);
+    actual[actual_len] = '\0';
 
     // Should be sorted.
-    assert(strcmp(out_str, "a_test_name (v1.2.3)\nb_test_name (v4.5.6)\nc_test_name (v7.8.9)\n") == 0);
+    assert(strcmp(actual, "a_test_name (v1.2.3)\nb_test_name (v4.5.6)\nc_test_name (v7.8.9)\n") == 0);
 
-    fclose(out);
+    fclose(stream);
     appstate_free(ctx.state);
-    free(out_str);
+    free(actual);
 }
 
 static void test_cmd_search(void)
 {
-    FILE *out = tmpfile();
-    assert(out != NULL);
+    FILE *stream = tmpfile();
+    assert(stream != NULL);
 
     const char *argv[] = { "search", "wigs" };
-    assert(cmd_search(NULL, ARRAY_SIZE(argv), argv, out) == 0);
+    assert(cmd_search(NULL, ARRAY_SIZE(argv), argv, stream) == 0);
 
-    long out_len = ftell(out);
-    assert(out_len > 0);
-    fseek(out, 0, SEEK_SET);
+    long actual_len = ftell(stream);
+    assert(actual_len > 0);
+    fseek(stream, 0, SEEK_SET);
 
-    char *out_str = malloc(sizeof(*out_str) * (size_t)out_len + 1);
-    assert(out_str != NULL);
+    char *actual = malloc(sizeof(*actual) * (size_t)actual_len + 1);
+    assert(actual != NULL);
 
-    assert(fread(out_str, sizeof(*out_str), (size_t)out_len, out) == (size_t)out_len);
-    out_str[out_len] = '\0';
+    assert(fread(actual, sizeof(*actual), (size_t)actual_len, stream) == (size_t)actual_len);
+    actual[actual_len] = '\0';
 
     // Should be sorted.
-    assert(strcmp(out_str, "BigWigs\nBigWigs_Voice\nLittleWigs\n") == 0);
+    assert(strcmp(actual, "BigWigs\nBigWigs_Voice\nLittleWigs\n") == 0);
 
-    fclose(out);
-    free(out_str);
+    fclose(stream);
+    free(actual);
 }
 
 static void test_cmd_remove(void)
@@ -202,26 +203,26 @@ static void test_cmd_outdated(void)
     list_insert(ctx.state->latest, addon2_latest);
     list_insert(ctx.state->latest, addon3_latest);
 
-    FILE *out = tmpfile();
-
+    FILE *stream = tmpfile();
     const char *argv[] = { "outdated" };
-    assert(cmd_outdated(&ctx, ARRAY_SIZE(argv), argv, out) == 0);
 
-    long out_len = ftell(out);
-    assert(out_len > 0);
-    fseek(out, 0, SEEK_SET);
+    assert(cmd_outdated(&ctx, ARRAY_SIZE(argv), argv, stream) == 0);
 
-    char *out_str = malloc(sizeof(*out_str) * (size_t)out_len + 1);
-    assert(out_str != NULL);
+    long actual_len = ftell(stream);
+    assert(actual_len > 0);
+    fseek(stream, 0, SEEK_SET);
 
-    assert(fread(out_str, sizeof(*out_str), (size_t)out_len, out) == (size_t)out_len);
-    out_str[out_len] = '\0';
+    char *actual = malloc(sizeof(*actual) * (size_t)actual_len + 1);
+    assert(actual != NULL);
+
+    assert(fread(actual, sizeof(*actual), (size_t)actual_len, stream) == (size_t)actual_len);
+    actual[actual_len] = '\0';
 
     // Should be sorted.
-    assert(strcmp(out_str, "AddonOne (v1.2.3) < (v1.2.5)\nAddonThree (19700101.1) < (20200809.5)\nAddonTwo (v4.5.6) < (v5.6.7)\n") == 0);
+    assert(strcmp(actual, "AddonOne (v1.2.3) < (v1.2.5)\nAddonThree (19700101.1) < (20200809.5)\nAddonTwo (v4.5.6) < (v5.6.7)\n") == 0);
 
-    fclose(out);
-    free(out_str);
+    fclose(stream);
+    free(actual);
     appstate_free(ctx.state);
 }
 
@@ -237,37 +238,63 @@ static void test_cmd_info(void)
 
     list_insert(ctx.state->installed, addon); // Transfer ownership of addon to ctx.state.
 
-    FILE *out = tmpfile();
-    assert(out != NULL);
+    FILE *stream = tmpfile();
+    assert(stream != NULL);
 
     const char *argv[] = { "info", "plater", "___not_found___", "SIMULATIONCRAFT" };
-    assert(cmd_info(&ctx, ARRAY_SIZE(argv), argv, out) == 0);
+    assert(cmd_info(&ctx, ARRAY_SIZE(argv), argv, stream) == 0);
 
-    long out_len = ftell(out);
-    assert(out_len > 0);
-    fseek(out, 0, SEEK_SET);
+    long actual_len = ftell(stream);
+    assert(actual_len > 0);
+    fseek(stream, 0, SEEK_SET);
 
-    char *actual = malloc(sizeof(*actual) * (size_t)out_len + 1);
+    char *actual = malloc(sizeof(*actual) * (size_t)actual_len + 1);
     assert(actual != NULL);
 
-    assert(fread(actual, sizeof(*actual), (size_t)out_len, out) == (size_t)out_len);
-    actual[out_len] = '\0';
+    assert(fgets(actual, (int)actual_len + 1, stream) != NULL);
+    assert(strstr(actual, "==>") != NULL);
+    assert(strstr(actual, "Plater") != NULL);
 
-    const char *expect = ("==> Plater\n"
-                          "Description:     Nameplate addon designed for advanced users.\n"
-                          "From:            https://api.github.com/repos/Tercioo/Plater-Nameplates/releases/latest\n"
-                          "Installed:       No\n"
-                          "==> Simulationcraft\n"
-                          "Description:     Constructs SimC export strings\n"
-                          "From:            https://api.github.com/repos/simulationcraft/simc-addon/releases/latest\n"
-                          "Installed:       Yes\n"
-                          "Version:         v1.2.3\n"
-                          "ZIP:             zip_url\n");
+    assert(fgets(actual, (int)actual_len + 1, stream) != NULL);
+    assert(strstr(actual, "Description:") != NULL);
+    assert(strstr(actual, "Nameplate addon designed for advanced users.") != NULL);
 
-    assert(strcmp(expect, actual) == 0);
+    assert(fgets(actual, (int)actual_len + 1, stream) != NULL);
+    assert(strstr(actual, "From:") != NULL);
+    assert(strstr(actual, "https://api.github.com/repos/Tercioo/Plater-Nameplates/releases/latest") != NULL);
+
+    assert(fgets(actual, (int)actual_len + 1, stream) != NULL);
+    assert(strstr(actual, "Installed:") != NULL);
+    assert(strstr(actual, "No") != NULL);
+
+    assert(fgets(actual, (int)actual_len + 1, stream) != NULL);
+    assert(strstr(actual, "==>") != NULL);
+    assert(strstr(actual, "Simulationcraft") != NULL);
+
+    assert(fgets(actual, (int)actual_len + 1, stream) != NULL);
+    assert(strstr(actual, "Description:") != NULL);
+    assert(strstr(actual, "Constructs SimC export strings") != NULL);
+
+    assert(fgets(actual, (int)actual_len + 1, stream) != NULL);
+    assert(strstr(actual, "From:") != NULL);
+    assert(strstr(actual, "https://api.github.com/repos/simulationcraft/simc-addon/releases/latest") != NULL);
+
+    assert(fgets(actual, (int)actual_len + 1, stream) != NULL);
+    assert(strstr(actual, "Installed:") != NULL);
+    assert(strstr(actual, "Yes") != NULL);
+
+    assert(fgets(actual, (int)actual_len + 1, stream) != NULL);
+    assert(strstr(actual, "Version:") != NULL);
+    assert(strstr(actual, "v1.2.3") != NULL);
+
+    assert(fgets(actual, (int)actual_len + 1, stream) != NULL);
+    assert(strstr(actual, "ZIP:") != NULL);
+    assert(strstr(actual, "zip_url") != NULL);
+
+    assert(fgets(actual, (int)actual_len + 1, stream) == NULL);
 
     appstate_free(ctx.state);
-    fclose(out);
+    fclose(stream);
     free(actual);
 }
 

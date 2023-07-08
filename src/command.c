@@ -10,6 +10,7 @@
 #include "list.h"
 #include "osapi.h"
 #include "osstring.h"
+#include "term.h"
 #include "wowpkg.h"
 
 // #define CMD_ECREATE_TMP_DIR_STR "failed to create temp directory"
@@ -26,14 +27,10 @@
 #define CMD_ERATE_LIMIT_STR "rate limit exceeded"
 #define CMD_EREMOVE_DIR_STR "failed to remove existing directory"
 
-#define PRINT_ERROR(...) fprintf(stderr, "Error: " __VA_ARGS__)
-
 #define PRINT_ERROR1(error_str) PRINT_ERROR("%s\n", error_str)
 #define PRINT_ERROR2(error_str, proc_name) PRINT_ERROR("%s: %s\n", proc_name, error_str)
 #define PRINT_ERROR3(error_str, proc_name, name) PRINT_ERROR("%s: %s '%s'\n", proc_name, error_str, name)
 #define PRINT_ERROR3_FMT(error_str, proc_name, fmt, ...) PRINT_ERROR("%s: %s '" fmt "'\n", proc_name, error_str, __VA_ARGS__)
-
-#define PRINT_WARNING(...) fprintf(stderr, "Warning: " __VA_ARGS__)
 
 #define PRINT_WARNING3(error_str, proc_name, name) PRINT_WARNING("%s: %s '%s'\n", proc_name, error_str, name)
 
@@ -44,6 +41,9 @@
         PRINT_WARNING("this should not happen\n");                   \
         PRINT_WARNING("try running 'update' to fix this problem\n"); \
     } while (0)
+
+#define PRINT_STATUS(stream, ...) fprintf(stream, "==> " __VA_ARGS__)
+#define PRINT_STATUS_ADDON(stream, msg, addon) fprintf(stream, "==> " TERM_WRAP(TERM_BOLD, msg) " " TERM_WRAP(TERM_BOLD_BLUE, "%s") "\n", addon)
 
 /**
  * Searches haystack to see if needle appears in the string, ignoring case.
@@ -103,26 +103,26 @@ static int cmp_str_to_addon(const void *str, const void *addon)
     return strcasecmp(s, a->name);
 }
 
-int cmd_help(Context *ctx, int argc, const char *argv[], FILE *out)
+int cmd_help(Context *ctx, int argc, const char *argv[], FILE *stream)
 {
     UNUSED(ctx);
     UNUSED(argc);
     UNUSED(argv);
 
-    fprintf(out, "Example usage:\n");
-    fprintf(out, "\twowpkg info ADDON...\n");
-    fprintf(out, "\twowpkg install ADDON...\n");
-    fprintf(out, "\twowpkg list\n");
-    fprintf(out, "\twowpkg outdated\n");
-    fprintf(out, "\twowpkg remove ADDON...\n");
-    fprintf(out, "\twowpkg search TEXT\n");
-    fprintf(out, "\twowpkg update [ADDON...]\n");
-    fprintf(out, "\twowpkg upgrade [ADDON...]\n");
+    fprintf(stream, "Example usage:\n");
+    fprintf(stream, "\twowpkg info ADDON...\n");
+    fprintf(stream, "\twowpkg install ADDON...\n");
+    fprintf(stream, "\twowpkg list\n");
+    fprintf(stream, "\twowpkg outdated\n");
+    fprintf(stream, "\twowpkg remove ADDON...\n");
+    fprintf(stream, "\twowpkg search TEXT\n");
+    fprintf(stream, "\twowpkg update [ADDON...]\n");
+    fprintf(stream, "\twowpkg upgrade [ADDON...]\n");
 
     return 0;
 }
 
-int cmd_info(Context *ctx, int argc, const char *argv[], FILE *out)
+int cmd_info(Context *ctx, int argc, const char *argv[], FILE *stream)
 {
     if (argc < 2) {
         PRINT_ERROR1(CMD_EINVALID_ARGS_STR);
@@ -155,15 +155,16 @@ int cmd_info(Context *ctx, int argc, const char *argv[], FILE *out)
         ListNode *installed_node = list_search(ctx->state->installed, addon, cmp_addon);
 
         int width = 16;
-        fprintf(out, "==> %s\n", addon->name);
-        fprintf(out, "%-*s %s\n", width, "Description:", addon->desc);
-        fprintf(out, "%-*s %s\n", width, "From:", addon->url);
-        fprintf(out, "%-*s %s\n", width, "Installed:", installed_node ? "Yes" : "No");
+        // \b removes an extra space.
+        PRINT_STATUS_ADDON(stream, "\b", addon->name);
+        fprintf(stream, TERM_WRAP(TERM_BOLD, "%-*s") " %s\n", width, "Description:", addon->desc);
+        fprintf(stream, TERM_WRAP(TERM_BOLD, "%-*s") " %s\n", width, "From:", addon->url);
+        fprintf(stream, TERM_WRAP(TERM_BOLD, "%-*s") " %s\n", width, "Installed:", installed_node ? "Yes" : "No");
 
         if (installed_node) {
             Addon *installed = installed_node->value;
-            fprintf(out, "%-*s %s\n", width, "Version:", installed->version);
-            fprintf(out, "%-*s %s\n", width, "ZIP:", installed->url);
+            fprintf(stream, TERM_WRAP(TERM_BOLD, "%-*s") " %s\n", width, "Version:", installed->version);
+            fprintf(stream, TERM_WRAP(TERM_BOLD, "%-*s") " %s\n", width, "ZIP:", installed->url);
         }
 
     cleanup:
@@ -173,7 +174,7 @@ int cmd_info(Context *ctx, int argc, const char *argv[], FILE *out)
     return 0;
 }
 
-int cmd_install(Context *ctx, int argc, const char *argv[], FILE *out)
+int cmd_install(Context *ctx, int argc, const char *argv[], FILE *stream)
 {
     // TODO: If an addon successfully installs/upgrades but another addon
     // errors, the app state will not be saved for next session even though
@@ -196,7 +197,7 @@ int cmd_install(Context *ctx, int argc, const char *argv[], FILE *out)
     }
 
     for (int i = 1; i < argc; i++) {
-        fprintf(out, "==> Fetching %s\n", argv[i]);
+        PRINT_STATUS_ADDON(stream, "Fetching", argv[i]);
 
         Addon *addon = addon_create();
         if (addon == NULL) {
@@ -220,7 +221,7 @@ int cmd_install(Context *ctx, int argc, const char *argv[], FILE *out)
             goto loop_error;
         }
 
-        fprintf(out, "==> Downloading %s\n", addon->url);
+        PRINT_STATUS(stream, TERM_WRAP(TERM_BOLD, "Downloading") " %s\n", addon->url);
         if (addon_fetch_zip(addon) != ADDON_OK) {
             PRINT_ERROR3(CMD_EDOWNLOAD_STR, argv[0], addon->name);
             err = -1;
@@ -244,26 +245,26 @@ int cmd_install(Context *ctx, int argc, const char *argv[], FILE *out)
 
         ListNode *found = list_search(ctx->state->installed, addon, cmp_addon);
         if (found) {
-            fprintf(out, "==> Found existing addon %s\n", addon->name);
+            PRINT_STATUS_ADDON(stream, "Found existing addon", addon->name);
 
             const char *args[2];
             args[0] = argv[0];
             args[1] = addon->name;
 
-            if (cmd_remove(ctx, ARRAY_SIZE(args), args, out) != 0) {
-                PRINT_WARNING("failed to remove existing addon %s\n", addon->name);
+            if (cmd_remove(ctx, ARRAY_SIZE(args), args, stream) != 0) {
+                PRINT_WARNING("failed to remove existing addon " TERM_WRAP(TERM_BOLD_BLUE, "%s") "\n", addon->name);
                 PRINT_WARNING("attempting to reinstall anyway...\n");
             }
         }
 
-        fprintf(out, "==> Packaging %s\n", addon->name);
+        PRINT_STATUS_ADDON(stream, "Packaging", addon->name);
         if (addon_package(addon) != ADDON_OK) {
             PRINT_ERROR3(CMD_EPACKAGE_STR, argv[0], addon->name);
             err = -1;
             goto cleanup;
         }
 
-        fprintf(out, "==> Extracting %s\n", addon->name);
+        PRINT_STATUS_ADDON(stream, "Extracting", addon->name);
         if (addon_extract(addon, ctx->config->addons_path) != ADDON_OK) {
             PRINT_ERROR3(CMD_EEXTRACT_STR, argv[0], addon->name);
             err = -1;
@@ -278,7 +279,7 @@ int cmd_install(Context *ctx, int argc, const char *argv[], FILE *out)
     {
         Addon *addon = node->value;
 
-        fprintf(out, "==> Installed addon %s\n", addon->name);
+        PRINT_STATUS_ADDON(stream, "Installed addon", addon->name);
 
         ListNode *n = NULL;
 
@@ -308,7 +309,7 @@ cleanup:
     return err;
 }
 
-int cmd_list(Context *ctx, int argc, const char *argv[], FILE *out)
+int cmd_list(Context *ctx, int argc, const char *argv[], FILE *stream)
 {
     UNUSED(argv);
 
@@ -323,13 +324,13 @@ int cmd_list(Context *ctx, int argc, const char *argv[], FILE *out)
     list_foreach(node, ctx->state->installed)
     {
         Addon *addon = node->value;
-        fprintf(out, "%s (%s)\n", addon->name, addon->version);
+        fprintf(stream, "%s (%s)\n", addon->name, addon->version);
     }
 
     return 0;
 }
 
-int cmd_outdated(Context *ctx, int argc, const char *argv[], FILE *out)
+int cmd_outdated(Context *ctx, int argc, const char *argv[], FILE *stream)
 {
     if (argc != 1) {
         PRINT_ERROR1(CMD_EINVALID_ARGS_STR);
@@ -352,14 +353,14 @@ int cmd_outdated(Context *ctx, int argc, const char *argv[], FILE *out)
         Addon *latest = found->value;
 
         if (strcmp(installed->version, latest->version) != 0) {
-            fprintf(out, "%s (%s) < (%s)\n", installed->name, installed->version, latest->version);
+            fprintf(stream, "%s (%s) < (%s)\n", installed->name, installed->version, latest->version);
         }
     }
 
     return 0;
 }
 
-int cmd_remove(Context *ctx, int argc, const char *argv[], FILE *out)
+int cmd_remove(Context *ctx, int argc, const char *argv[], FILE *stream)
 {
     if (argc <= 1) {
         PRINT_ERROR1(CMD_EINVALID_ARGS_STR);
@@ -375,7 +376,7 @@ int cmd_remove(Context *ctx, int argc, const char *argv[], FILE *out)
 
         Addon *addon = node->value;
 
-        fprintf(out, "==> Removing %s\n", addon->name);
+        PRINT_STATUS_ADDON(stream, "Removing", addon->name);
 
         ListNode *dirnode = NULL;
         list_foreach(dirnode, addon->dirs)
@@ -389,7 +390,7 @@ int cmd_remove(Context *ctx, int argc, const char *argv[], FILE *out)
                 return -1;
             }
 
-            fprintf(out, "Remove: %s\n", remove_path);
+            fprintf(stream, "Remove: %s\n", remove_path);
             if (os_remove_all(remove_path) != 0) {
                 if (errno == ENOENT) {
                     PRINT_WARNING("directory does not exist %s\n", remove_path);
@@ -421,7 +422,7 @@ int cmd_remove(Context *ctx, int argc, const char *argv[], FILE *out)
     return 0;
 }
 
-int cmd_search(Context *ctx, int argc, const char *argv[], FILE *out)
+int cmd_search(Context *ctx, int argc, const char *argv[], FILE *stream)
 {
     UNUSED(ctx);
 
@@ -468,7 +469,7 @@ int cmd_search(Context *ctx, int argc, const char *argv[], FILE *out)
     ListNode *node = NULL;
     list_foreach(node, found)
     {
-        fprintf(out, "%s\n", (char *)node->value);
+        fprintf(stream, "%s\n", (char *)node->value);
     }
 
 cleanup:
@@ -479,7 +480,7 @@ cleanup:
     return err;
 }
 
-int cmd_update(Context *ctx, int argc, const char *argv[], FILE *out)
+int cmd_update(Context *ctx, int argc, const char *argv[], FILE *stream)
 {
     if (argc < 1) {
         PRINT_ERROR1(CMD_EINVALID_ARGS_STR);
@@ -522,7 +523,7 @@ int cmd_update(Context *ctx, int argc, const char *argv[], FILE *out)
     {
         Addon *addon = node->value;
 
-        fprintf(out, "==> Fetching %s\n", addon->name);
+        PRINT_STATUS_ADDON(stream, "Fetching", addon->name);
 
         err = addon_fetch_all_meta(addon, addon->name);
         if (err == ADDON_ENOTFOUND) {
@@ -562,7 +563,7 @@ cleanup:
     return err;
 }
 
-int cmd_upgrade(Context *ctx, int argc, const char *argv[], FILE *out)
+int cmd_upgrade(Context *ctx, int argc, const char *argv[], FILE *stream)
 {
     // TODO: If an addon successfully installs/upgrades but another addon
     // errors, the app state will not be saved for next session even though
@@ -598,7 +599,7 @@ int cmd_upgrade(Context *ctx, int argc, const char *argv[], FILE *out)
             Addon *latest = found->value;
 
             if (strcmp(latest->version, installed->version) != 0) {
-                fprintf(out, "==> Upgrading %s (%s) -> (%s)\n", installed->name, installed->version, latest->version);
+                PRINT_STATUS(stream, TERM_WRAP(TERM_BOLD, "Upgrading ") TERM_WRAP(TERM_BOLD_BLUE, "%s") TERM_WRAP(TERM_BOLD, " (%s) -> (%s)") "\n", installed->name, installed->version, latest->version);
                 list_insert(addons, addon_dup(latest));
             }
         }
@@ -622,10 +623,10 @@ int cmd_upgrade(Context *ctx, int argc, const char *argv[], FILE *out)
             Addon *latest = found_latest->value;
 
             if (strcmp(latest->version, installed->version) != 0) {
-                fprintf(out, "==> Upgrading %s (%s) -> (%s)\n", installed->name, installed->version, latest->version);
+                PRINT_STATUS(stream, TERM_WRAP(TERM_BOLD, "Upgrading ") TERM_WRAP(TERM_BOLD_BLUE, "%s") TERM_WRAP(TERM_BOLD, " (%s) -> (%s)") "\n", installed->name, installed->version, latest->version);
                 list_insert(addons, addon_dup(latest));
             } else {
-                fprintf(out, "==> Addon is up-to-date %s\n", installed->name);
+                PRINT_STATUS_ADDON(stream, "Addon is up-to-date", installed->name);
             }
         }
     }
@@ -635,7 +636,7 @@ int cmd_upgrade(Context *ctx, int argc, const char *argv[], FILE *out)
     {
         Addon *addon = node->value;
 
-        fprintf(out, "==> Downloading %s\n", addon->url);
+        PRINT_STATUS(stream, TERM_WRAP(TERM_BOLD, "Downloading") " %s\n", addon->url);
 
         if (addon_fetch_zip(addon) != ADDON_OK) {
             PRINT_ERROR3(CMD_EDOWNLOAD_STR, argv[0], addon->name);
@@ -651,26 +652,26 @@ int cmd_upgrade(Context *ctx, int argc, const char *argv[], FILE *out)
 
         ListNode *found = list_search(ctx->state->installed, addon, cmp_addon);
         if (found) {
-            fprintf(out, "==> Cleaning up old addon %s\n", addon->name);
+            PRINT_STATUS_ADDON(stream, "Cleaning up old addon", addon->name);
 
             const char *args[2];
             args[0] = argv[0];
             args[1] = addon->name;
 
-            if (cmd_remove(ctx, ARRAY_SIZE(args), args, out) != 0) {
-                PRINT_WARNING("failed to remove old addon %s\n", addon->name);
+            if (cmd_remove(ctx, ARRAY_SIZE(args), args, stream) != 0) {
+                PRINT_WARNING("failed to remove old addon " TERM_WRAP(TERM_BOLD_BLUE, "%s") "\n", addon->name);
                 PRINT_WARNING("attempting to upgrade anyway...\n");
             }
         }
 
-        fprintf(out, "==> Packaging %s\n", addon->name);
+        PRINT_STATUS_ADDON(stream, "Packaging", addon->name);
         if (addon_package(addon) != ADDON_OK) {
             PRINT_ERROR3(CMD_EPACKAGE_STR, argv[0], addon->name);
             err = -1;
             goto cleanup;
         }
 
-        fprintf(out, "==> Extracting %s\n", addon->name);
+        PRINT_STATUS_ADDON(stream, "Extracting", addon->name);
         if (addon_extract(addon, ctx->config->addons_path) != ADDON_OK) {
             PRINT_ERROR3(CMD_EEXTRACT_STR, argv[0], addon->name);
             err = -1;
@@ -684,7 +685,7 @@ int cmd_upgrade(Context *ctx, int argc, const char *argv[], FILE *out)
     {
         Addon *addon = node->value;
 
-        fprintf(out, "==> Upgraded addon %s\n", addon->name);
+        PRINT_STATUS_ADDON(stream, "Upgraded addon", addon->name);
 
         ListNode *n = NULL;
 
