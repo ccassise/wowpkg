@@ -5,10 +5,9 @@
 typedef int (*ListCompareFn)(const void *, const void *);
 typedef void (*ListFreeFn)(void *);
 
-typedef struct ListNode ListNode;
 typedef struct ListNode {
-    ListNode *next;
-    ListNode *prev;
+    struct ListNode *next;
+    struct ListNode *prev;
     void *value;
 } ListNode;
 
