@@ -34,12 +34,15 @@ find_package(unofficial-minizip CONFIG REQUIRED)
 set(WOWPKG_LIBS CURL::libcurl cjson unofficial::minizip::minizip)
 
 if (MSVC)
+    # CMake does not set proper release flags for MSVC.
     set(WFLAGS_RELEASE /O2 /GL /DNDEBUG /Zi /Gy)
     set(WFLAGS /W4 "$<$<CONFIG:Release>:${WFLAGS_RELEASE}>")
 
     set(LDFLAGS_RELEASE /DEBUG /INCREMENTAL:NO /OPT:REF /OPT:ICF)
     set(LDFLAGS "$<$<CONFIG:Release>:${LDFLAGS_RELEASE}>")
 
+    # Alot of the functions suggested by this are not available on other
+    # systems -- so just ignore the warnings.
     set(WOWPKG_DEFINES _CRT_SECURE_NO_WARNINGS)
 else()
     set(
@@ -90,7 +93,7 @@ if (WOWPKG_ENABLE_SANITIZERS)
 
         set (WFLAGS ${WFLAGS} ${SANFLAGS})
 
-        if (CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+        if (APPLE)
             set(LDFLAGS ${SANFLAGS} -static-libsan)
         else()
             set(LDFLAGS ${SANFLAGS} -static-libasan)
@@ -132,10 +135,10 @@ endif()
 install(
     TARGETS wowpkg
     CONFIGURATIONS Release
-    RUNTIME DESTINATION bin
+    RUNTIME DESTINATION ${PROJECT_NAME}/bin
 )
 
-install(DIRECTORY catalog/ DESTINATION catalog)
+install(DIRECTORY catalog/ DESTINATION ${PROJECT_NAME}/catalog)
 
 if (WIN32)
     install(FILES ${PROJECT_SOURCE_DIR}/build/src/Release/cjson.dll DESTINATION bin)
