@@ -7,6 +7,7 @@ Available for Windows and macOS.
 ```
 wowpkg COMMAND [ARGS... | OPTIONS]
 
+wowpkg info ADDON...
 wowpkg install ADDON...
 wowpkg list
 wowpkg outdated
@@ -18,6 +19,10 @@ wowpkg upgrade [ADDON...]
 
 ADDON for the following commands is the name of an addon. The name will include no spaces and is case-insenstivie. It otherwise should match exactly the addon name found in catalog.
 
+Gets info for one or more addons. Things like name, description, installed status, and url used.
+```
+wowpkg info ADDON...
+```
 
 Installs one or more addons.
 ```
@@ -68,15 +73,14 @@ wowpkg help
 ```
 
 ## Catalog / Adding addon
-Currently only addons from Github that have releases are supported.
+Currently only addons from GitHub that have releases are supported.
 
-The addon catalog can be found in the `catalog` folder and is currently quite small. If there is an addon you want that is not in the catalog please create an issue or follow the steps below to add it to your wowpkg installation.
+The addon catalog can be found in the [catalog](catalog) directory and is currently quite small. If there is an addon you want that is not in the catalog please create an issue or follow the steps below to add it to your wowpkg installation.
 
-Assuming the installer and default location was used then the wowpkg installation is in:
-- `%APPDATA%\wowpkg` for Windows.
+Addons can be added to the installed wowpkg/catalog directory.
 
 Add the new addon to catalog by:
-1. Creating a <addon_name>.json file in `wowpkg/catalog/`.
+1. Creating a <addon_name>.ini file in `wowpkg/catalog/`.
 	- This name must be unique.
 2. Fill the contents of the file with the following json object.
 	- `"handler"` can be ignored for now.
@@ -95,24 +99,8 @@ Add the new addon to catalog by:
 3. Check that the addon is available by running `wowpkg search <addon_name>`
 
 ## Installing
-The included installers make it easier to set up the below directory structure. The structure is important as the executable expects the files to be in these locations relative to itself. The location of this folder in the filesystem does not matter.
+The included installers make it easier to set up the below directory structure. The structure is important as the executable expects the files to be in these locations relative to itself. The location of this directory in the filesystem does not matter.
 
-### Windows
-Double click the included `installer.bat`. This will create `%APPDATA%\wowpkg` and set it up with the below structure, copying any necessary files. The included installer will then add `wowpkg/bin` to user PATH.
-
-### macOS
-From a terminal run the included `installer.sh`. This will create `$HOME/.wowpkg` and set it up with the below structure, copying any necessary files. `$HOME/.wowpkg/bin` will then need to be added to PATH. This can be done by appending `export PATH="$PATH:$HOME/.wowpkg/bin` to `$HOME/.zshrc`.
-
-### Manually install
-1. Create a directory with the below structure/files.
-2. Create `config.json` with the following contents.
-	```
-	{
-		"addons_path": "path/to/World of Warcraft"
-	}
-	```
-3. Create `saved.wowpkg` with the contents being an empty json object: `{}`.
-4. Add the path to `wowpkg/bin` to PATH. This makes it easy to run in a terminal from any location.
 ### File structure
 ```
 wowpkg/
@@ -123,27 +111,61 @@ wowpkg/
 |
 +-- catalog/
 |   |
-|   +-- *.json
+|   +-- *.ini
 |
 +-- saved.wowpkg
-+-- config.json
++-- config.ini
 ```
-## Uninstalling
+
 ### Windows
-Assuming wowpkg was installed with the included installer:
-1. Delete the `wowpkg` directory at `%APPDATA%\wowpkg`.
-2. Remove the wowpkg entry from user PATH.
+
+
 ### macOS
-Assuming wowpkg was installed with the included installer:
-1. `rm -r $HOME/.wowpkg`
-2. Remove the wowpkg entry from PATH if it was added.
+
+
+### Manually install
+1. Create a directory with the below structure/files.
+2. Create `config.ini` and paste the contents from [the example config.ini](dev_only/config.ini).
+3. Add the path to `wowpkg/bin` to PATH. This makes it easy to run in a terminal from any location.
+
+## Uninstalling
+1. Delete the wowpkg directory from where it was installed. Using the default this would be `C:\Program Files\wowpkg` on Windows and `/Applications/wowpkg` on macOS.
+2. Remove `path/to/wowpkg/bin` from PATH variable.
 
 ## Running from source
-1. Install Go and clone the repo.
-2. cd into the newly cloned repo.
-3. `$ mkdir dev_test/addons`
-4. `$ go run ./cmd/wowpkg/`
+The source should compile on Windows using MSVC, macOS using clang, and Linux using gcc. This repo uses [vcpkg](https://github.com/microsoft/vcpkg) for dependency management.
 
-The repo is setup so that the above should work without issues. However, if you are wanting to run the executable in a different way there are a few things to be aware of. There are three paths that need to be set. The two configuration files' path (saved.wowpkg and config.json) and the catalog path.
+There are a couple of project specific cmake options to pass in that can change how the program is built.
+| Option | Default | Description |
+| --- | --- | --- |
+| WOWPKG_ENABLE_SANITIZERS | OFF | Builds the program with or without sanitizers |
+| WOWPKG_ENABLE_TESTS | OFF | Determines wether or not tests will be built |
+| WOWPKG_USE_DEVELOPMENT_PATHS | OFF | When enabled the path to config.ini and location for saved.wowpkg will be set to [dev_only](dev_only) project directory. When disabled, the paths to config.ini and saved.wowpkg will be relative from the executable location. Generally, use development paths unless the project is being built for packaging/release. |
 
-These are found in `addon.go`'s `CatalogPath()` and `config.go`'s `CfgPath()` and `StatePath()`.
+1. Clone the repo.
+2. Change to project directoy and get submodules.
+	```
+ 	$ cd wowpkg
+	$ git submodule update --init
+	```
+ 3. Run vcpkg bootstrap with `./vcpkg/bootstrap-vcpkg.sh` or `./vcpkg/bootstrap-vcpkg.bat` depending on your system.
+ 4. Install dependencies with vcpkg.
+
+	Windows
+	```
+ 	$ ./vcpkg/vcpkg.exe install cjson:x64-windows curl:x64-windows minizip:x64-windows
+ 	```
+ 	macOS/Linux
+	```
+ 	$ ./vcpkg/vcpkg install cjson curl minizip
+ 	```
+6. Create a build directory and compile.
+	```
+	$ mkdir build
+ 	$ cd build
+ 	$ cmake .. -DWOWPKG_USE_DEVELOPMENT_PATHS:option=on
+ 	$ cmake --build .
+	```
+ 7. Change the path in [config.ini](dev_only/config.ini) to where you want the addons to be extracted to. Something like `/path/to/wowpkg/dev_only/addons`.
+ 8. Run the compiled program.
+ 
