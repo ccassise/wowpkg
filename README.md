@@ -2,6 +2,7 @@
 A CLI World of Warcraft addon manager. For those wanting a Linux package manager feel for managing addons.
 
 Available for Windows and macOS.
+![render1688854884163-min](https://github.com/ccassise/wowpkg/assets/58533624/8f9a8a1a-3bcf-49d2-ad8f-af6307c4e77a)
 
 ## Usage
 ```
@@ -81,22 +82,9 @@ Addons can be added to the installed wowpkg/catalog directory.
 
 Add the new addon to catalog by:
 1. Creating a <addon_name>.ini file in `wowpkg/catalog/`.
-	- This name must be unique.
-2. Fill the contents of the file with the following json object.
-	- `"handler"` can be ignored for now.
-	- `"name"` should be the same name as the file.
-	- `"desc"` can be anything.
-	- `"url"` should be the Github latest release api. Use the following with {owner} and {repo} replaced with the respective owner/repo of the addon you are trying to add.
-		- `https://api.github.com/repos/{owner}/{repo}/releases/latest`
-	```
-	{
-		"handler": "",
-		"name": "<name of file>",
-		"desc": "<anything>",
-		"url": "https://api.github.com/repos/{owner}/{repo}/releases/latest"
-	}
-	```
-3. Check that the addon is available by running `wowpkg search <addon_name>`
+	- This name must be unique and contain no spaces.
+2. See the [example addon](catalog/_EXAMPLE_ADDON) for what should be in the new addon file.
+4. Check that the addon is available by running `wowpkg info <addon_name>`
 
 ## Installing
 The included installers make it easier to set up the below directory structure. The structure is important as the executable expects the files to be in these locations relative to itself. The location of this directory in the filesystem does not matter.
