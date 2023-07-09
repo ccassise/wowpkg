@@ -12,7 +12,7 @@ enum {
     ADDON_ENOTFOUND, // Addon could not be found.
     ADDON_ENOENT, // File/directory doesn't exist.
     ADDON_EBADJSON, // Failed to parse JSON.
-    ADDON_ENO_ZIP_ASSET, // Could not find .zip asset in Github release.
+    ADDON_ENO_ZIP_ASSET, // Could not find .zip asset in GitHub release.
     ADDON_ENAMETOOLONG, // Path or filename is too long.
     ADDON_EUNZIP, // Failed to extract .zip.
     ADDON_EINTERNAL, // Internal error.
@@ -94,7 +94,7 @@ void addon_set_str(char **restrict oldstr, char *restrict newstr);
 int addon_fetch_catalog_meta(Addon *a, const char *name);
 
 /**
- * Retrieves addon metadata from Github.
+ * Retrieves addon metadata from GitHub.
  *
  * Returns NULL on error and sets out_err.
  */

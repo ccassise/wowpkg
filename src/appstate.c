@@ -175,25 +175,25 @@ cleanup:
 
 int appstate_save(AppState *state, const char *path)
 {
-    int err = 0;
+    int err = APPSTATE_OK;
     FILE *f = NULL;
     char *json_str = NULL;
 
     f = fopen(path, "wb");
     if (f == NULL) {
-        err = -1;
+        err = APPSTATE_ENOENT;
         goto cleanup;
     }
 
     json_str = appstate_to_json(state);
     if (json_str == NULL) {
-        err = -1;
+        err = APPSTATE_EPARSE;
         goto cleanup;
     }
 
     size_t json_strlen = strlen(json_str);
     if (fwrite(json_str, sizeof(*json_str), json_strlen, f) != json_strlen) {
-        err = -1;
+        err = APPSTATE_EINTERNAL;
         goto cleanup;
     }
 
@@ -209,38 +209,38 @@ cleanup:
 
 int appstate_load(AppState *state, const char *path)
 {
-    int err = 0;
+    int err = APPSTATE_OK;
     FILE *f = NULL;
     char *buf = NULL;
 
     f = fopen(path, "rb");
-    if (f == NULL) {
-        err = -1;
+    if (f == NULL && errno == ENOENT) {
+        err = APPSTATE_ENOENT;
         goto cleanup;
     }
 
     struct os_stat s;
     if (os_stat(path, &s) != 0) {
-        err = -1;
+        err = APPSTATE_ENOENT;
         goto cleanup;
     }
 
     if (s.st_size < 0) {
-        err = -1;
+        err = APPSTATE_EINTERNAL;
         goto cleanup;
     }
     size_t bufsz = (size_t)s.st_size;
     buf = malloc(sizeof(*buf) * bufsz + 1);
 
     if (fread(buf, sizeof(*buf), bufsz, f) != bufsz) {
-        err = -1;
+        err = APPSTATE_EINTERNAL;
         goto cleanup;
     }
 
     buf[bufsz] = '\0';
 
     if (appstate_from_json(state, buf) != 0) {
-        err = -1;
+        err = APPSTATE_EPARSE;
         goto cleanup;
     }
 

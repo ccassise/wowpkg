@@ -28,11 +28,11 @@
 static int try_save_state(Context *ctx, int err)
 {
     if (err == 0) {
-        if (appstate_save(ctx->state, WOWPKG_SAVED_FILE_PATH) != 0) {
+        if (appstate_save(ctx->state, WOWPKG_SAVED_FILE_PATH) != APPSTATE_OK) {
             PRINT_ERROR("failed to save addon data\n");
             PRINT_ERROR("this should never happen\n");
             PRINT_ERROR("it is possible the saved addon data is no\n");
-            PRINT_ERROR("longer in sync with the WoW addon directory\n");
+            PRINT_ERROR("longer in sync with the addons directory\n");
             PRINT_ERROR("\n");
             PRINT_ERROR("re-running the last command may fix this\n");
             return -1;
@@ -167,9 +167,12 @@ int main(int argc, const char *argv[])
         goto cleanup;
     }
 
-    // Assuming that since the config file was found with valid data that it
-    // should be safe to create a new saved file in the expected location.
-    if (appstate_load(ctx.state, WOWPKG_SAVED_FILE_PATH) != 0) {
+    err = appstate_load(ctx.state, WOWPKG_SAVED_FILE_PATH);
+    if (err == APPSTATE_ENOENT) {
+        // Assuming that since the config file was found with valid data that it
+        // should be safe to create a new saved file in the expected location.
+        err = 0;
+
         PRINT_WARNING("could not find any saved addon data\n");
         PRINT_WARNING("\n");
         PRINT_WARNING("if this is the first time running the program\n");
@@ -179,6 +182,12 @@ int main(int argc, const char *argv[])
             err = -1;
             goto cleanup;
         }
+    } else if (err != APPSTATE_OK) {
+        PRINT_ERROR("failed to load saved program data\n");
+        PRINT_ERROR("this should never happen\n");
+        PRINT_ERROR("saved data is stored in saved.wowpkg\n");
+        PRINT_ERROR("the saved program data may be corrupted and needs to be manually fixed\n");
+        PRINT_ERROR("or the file can be deleted but will reset all saved data\n");
     }
 
     if (strcasecmp(argv[1], "info") == 0) {
