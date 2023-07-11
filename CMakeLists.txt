@@ -119,8 +119,7 @@ list(APPEND WOWPKG_DEFINES WOWPKG_VERSION="${PROJECT_VERSION}")
 if(WOWPKG_USE_DEVELOPMENT_PATHS)
     message(STATUS "[${PROJECT_NAME}] building with development paths")
     list(APPEND WOWPKG_DEFINES
-        WOWPKG_SAVED_FILE_PATH="${PROJECT_SOURCE_DIR}/dev_only/saved.wowpkg"
-        WOWPKG_CONFIG_FILE_PATH="${PROJECT_SOURCE_DIR}/dev_only/config.ini"
+        WOWPKG_USER_FILE_DIR="${PROJECT_SOURCE_DIR}/dev_only"
         WOWPKG_CATALOG_PATH="${PROJECT_SOURCE_DIR}/catalog"
     )
 endif()
@@ -132,13 +131,26 @@ if (WOWPKG_ENABLE_TESTS)
     add_subdirectory(test)
 endif()
 
-install(
-    TARGETS wowpkg
-    CONFIGURATIONS Release
-    RUNTIME DESTINATION ${PROJECT_NAME}/bin
-)
+if (APPLE)
+    # Assume if Apple that DragNDrop generator is being used. This generator will
+    # be setup so that there is a single directory that can be dragged to the
+    # Applications directory.
+    install(
+        TARGETS wowpkg
+        CONFIGURATIONS Release
+        RUNTIME DESTINATION ${PROJECT_NAME}/bin
+    )
 
-install(DIRECTORY catalog/ DESTINATION ${PROJECT_NAME}/catalog)
+    install(DIRECTORY catalog DESTINATION ${PROJECT_NAME})
+else()
+    install(
+        TARGETS wowpkg
+        CONFIGURATIONS Release
+        RUNTIME DESTINATION bin
+    )
+
+    install(DIRECTORY catalog DESTINATION catalog)
+endif()
 
 if (WIN32)
     install(FILES ${PROJECT_SOURCE_DIR}/build/src/Release/cjson.dll DESTINATION bin)

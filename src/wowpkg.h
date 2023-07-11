@@ -1,5 +1,7 @@
 #pragma once
 
+#include "term.h"
+
 #define WOWPKG_NAME "wowpkg"
 
 /**
@@ -14,18 +16,9 @@
 #endif
 
 /**
- * The path to files/directories the project needs in order to run. If this is
- * not set by CMake then it is assumed this is being compiled for release and
- * these paths are the location of the files relative to the executable.
+ * Path to catalog. If this is not set then it is assumed that it is building
+ * for release and the path will be relative to the executable.
  */
-#ifndef WOWPKG_SAVED_FILE_PATH
-#define WOWPKG_SAVED_FILE_PATH "../saved.wowpkg"
-#endif
-
-#ifndef WOWPKG_CONFIG_FILE_PATH
-#define WOWPKG_CONFIG_FILE_PATH "../config.ini"
-#endif
-
 #ifndef WOWPKG_CATALOG_PATH
 #define WOWPKG_CATALOG_PATH "../catalog"
 #endif

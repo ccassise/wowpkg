@@ -1,13 +1,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-// #include <time.h>
-
 #include "command.h"
 #include "context.h"
 #include "osapi.h"
 #include "osstring.h"
-#include "term.h"
 #include "wowpkg.h"
 
 /**
@@ -25,10 +22,10 @@
  *
  * Returns -1 if the save fails, otherwise returns err.
  */
-static int try_save_state(Context *ctx, int err)
+static int try_save_state(Context *ctx, const char *path, int err)
 {
     if (err == 0) {
-        if (appstate_save(ctx->state, WOWPKG_SAVED_FILE_PATH) != APPSTATE_OK) {
+        if (appstate_save(ctx->state, path) != APPSTATE_OK) {
             PRINT_ERROR("failed to save addon data\n");
             PRINT_ERROR("this should never happen\n");
             PRINT_ERROR("it is possible the saved addon data is no\n");
@@ -50,8 +47,6 @@ static int try_save_state(Context *ctx, int err)
  * successful tries to change to its directory. If that fails it will search
  * PATH env variable for the path that has a base name that matches the passed
  * in string.
- *
- * The passed in string may be modified.
  *
  * Return -1 on error, 0 otherwise.
  */
@@ -123,10 +118,43 @@ cleanup:
     return err;
 }
 
+/**
+ * Gets a path to files that are per user. Config files, app state files, and
+ * any other future per user file.
+ *
+ * Function has similar semantics as snprintf(3). The buffer is always null
+ * terminated.
+ *
+ * Returns the amount of characters that was wrote or would have been wrote if
+ * the buffer were to have enough space.
+ */
+static int snuser_file_path(char *s, size_t n, const char *filename)
+{
+#if defined(WOWPKG_USER_FILE_DIR)
+    return snprintf(s, n, "%s%c%s", WOWPKG_USER_FILE_DIR, OS_SEPARATOR, filename);
+#elif !defined(WOWPKG_USER_FILE_DIR) && defined(_WIN32)
+    // Windows stores the user files in %APPDATA%\wowpkg
+    const char *user_dir = getenv("APPDATA");
+    if (user_dir == NULL) {
+        PRINT_ERROR("expected to find APPDATA environment variable but it was empty\n");
+        return -1;
+    }
+
+    return snprintf(s, n, "%s\\%s\\%s", user_dir, WOWPKG_NAME, filename);
+#else
+    // macOS and Linux store the user files in $HOME/.config/wowpkg
+    const char *user_dir = getenv("HOME");
+    if (user_dir == NULL) {
+        PRINT_ERROR("expected to find HOME environment variable but it was empty\n");
+        return -1;
+    }
+
+    return snprintf(s, n, "%s/%s/%s/%s", user_dir, ".config", WOWPKG_NAME, filename);
+#endif
+}
+
 int main(int argc, const char *argv[])
 {
-    // clock_t start = clock();
-
     if (argc <= 1) {
         fprintf(stderr, "Usage: wowpkg COMMAND [ARGS...]\n");
         exit(1);
@@ -148,8 +176,20 @@ int main(int argc, const char *argv[])
     }
 
     int err = 0;
+    int n;
 
-    if (config_load(ctx.config, WOWPKG_CONFIG_FILE_PATH) != 0) {
+    char config_path[OS_MAX_PATH];
+    n = snuser_file_path(config_path, ARRAY_SIZE(config_path), "config.ini");
+    if (n < 0) {
+        err = -1;
+        goto cleanup;
+    } else if ((size_t)n >= ARRAY_SIZE(config_path)) {
+        PRINT_ERROR("path to config file is too long\n");
+        err = -1;
+        goto cleanup;
+    }
+
+    if (config_load(ctx.config, config_path) != 0) {
         PRINT_ERROR("failed to load user config file\n");
         PRINT_ERROR("ensure file exists and has valid entries\n");
 
@@ -167,7 +207,18 @@ int main(int argc, const char *argv[])
         goto cleanup;
     }
 
-    err = appstate_load(ctx.state, WOWPKG_SAVED_FILE_PATH);
+    char saved_file_path[OS_MAX_PATH];
+    n = snuser_file_path(saved_file_path, ARRAY_SIZE(saved_file_path), "saved.wowpkg");
+    if (n < 0) {
+        err = -1;
+        goto cleanup;
+    } else if ((size_t)n >= ARRAY_SIZE(saved_file_path)) {
+        PRINT_ERROR("path to saved addon data file is too long\n");
+        err = -1;
+        goto cleanup;
+    }
+
+    err = appstate_load(ctx.state, saved_file_path);
     if (err == APPSTATE_ENOENT) {
         // Assuming that since the config file was found with valid data that it
         // should be safe to create a new saved file in the expected location.
@@ -178,7 +229,7 @@ int main(int argc, const char *argv[])
         PRINT_WARNING("if this is the first time running the program\n");
         PRINT_WARNING("then this message can safely be ignored\n\n");
 
-        if (try_save_state(&ctx, 0) != 0) {
+        if (try_save_state(&ctx, saved_file_path, 0) != 0) {
             err = -1;
             goto cleanup;
         }
@@ -194,7 +245,7 @@ int main(int argc, const char *argv[])
         err = cmd_info(&ctx, argc - 1, &argv[1], stdout);
     } else if (strcasecmp(argv[1], "install") == 0) {
         err = cmd_install(&ctx, argc - 1, &argv[1], stdout);
-        err = try_save_state(&ctx, err);
+        err = try_save_state(&ctx, saved_file_path, err);
     } else if (strcasecmp(argv[1], "list") == 0) {
         err = cmd_list(&ctx, argc - 1, &argv[1], stdout);
     } else if (strcasecmp(argv[1], "outdated") == 0) {
@@ -203,13 +254,13 @@ int main(int argc, const char *argv[])
         err = cmd_search(&ctx, argc - 1, &argv[1], stdout);
     } else if (strcasecmp(argv[1], "remove") == 0) {
         err = cmd_remove(&ctx, argc - 1, &argv[1], stdout);
-        err = try_save_state(&ctx, err);
+        err = try_save_state(&ctx, saved_file_path, err);
     } else if (strcasecmp(argv[1], "update") == 0) {
         err = cmd_update(&ctx, argc - 1, &argv[1], stdout);
-        err = try_save_state(&ctx, err);
+        err = try_save_state(&ctx, saved_file_path, err);
     } else if (strcasecmp(argv[1], "upgrade") == 0) {
         err = cmd_upgrade(&ctx, argc - 1, &argv[1], stdout);
-        err = try_save_state(&ctx, err);
+        err = try_save_state(&ctx, saved_file_path, err);
     } else if (strcasecmp(argv[1], "help") == 0) {
         err = cmd_help(&ctx, argc - 1, &argv[1], stdout);
     } else {
@@ -220,9 +271,6 @@ int main(int argc, const char *argv[])
 cleanup:
     config_free(ctx.config);
     appstate_free(ctx.state);
-
-    // clock_t end = clock();
-    // printf("Complete in: %.2f seconds\n", (double)(end - start) / CLOCKS_PER_SEC);
 
     return err < 0 ? 1 : err;
 }
