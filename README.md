@@ -83,42 +83,38 @@ Addons can be added to the installed wowpkg/catalog directory.
 Add the new addon to catalog by:
 1. Creating a <addon_name>.ini file in `wowpkg/catalog/`.
 	- This name must be unique and contain no spaces.
-2. See the [example addon](catalog/_EXAMPLE_ADDON) for what should be in the new addon file.
+2. See the [example addon](dev_only/example_addon.ini) for what should be in the new addon file.
 4. Check that the addon is available by running `wowpkg info <addon_name>`
 
 ## Installing
-The included installers make it easier to set up the below directory structure. The structure is important as the executable expects the files to be in these locations relative to itself. The location of this directory in the filesystem does not matter.
-
-### File structure
-```
-wowpkg/
-|
-+-- bin/
-|   |
-|   +-- wowpkg.exe
-|
-+-- catalog/
-|   |
-|   +-- *.ini
-|
-+-- saved.wowpkg
-+-- config.ini
-```
 
 ### Windows
-
+1. Run "wowpkg-<VERSION>-win64.exe" from latest release.
+2. Create a wowpkg directory in %APPDATA% directory.
+3. Copy [config.ini](dev_only/config.ini) and update the addons path to the path of your World of Warcraft AddOns directory.
+4. Assuming wowpkg was installed to the default location. Add C:\Program Files\wowpkg\bin to user PATH environment variable. This makes is easy to run wowpkg from anywhere in the terminal.
 
 ### macOS
-
-
-### Manually install
-1. Create a directory with the below structure/files.
-2. Create `config.ini` and paste the contents from [the example config.ini](dev_only/config.ini).
-3. Add the path to `wowpkg/bin` to PATH. This makes it easy to run in a terminal from any location.
+1. Open "wowpkg-<VERSION>-Darwin.dmg" from latest release.
+2. Drag the wowpkg directory to the Applications directory.
+3. In the terminal:
+	```
+ 	$ mkdir ~/.config/wowpkg
+ 	```
+ 4. Copy [config.ini](dev_only/config.ini) and update the addons path to the path of your World of Warcraft AddOns directory.
+ 5. Add wowpkg to your PATH by appending `export PATH="$PATH:/Applications/wowpkg/bin"` to `~/.zshrc` or equivalent config file for your terminal.
 
 ## Uninstalling
-1. Delete the wowpkg directory from where it was installed. Using the default this would be `C:\Program Files\wowpkg` on Windows and `/Applications/wowpkg` on macOS.
-2. Remove `path/to/wowpkg/bin` from PATH variable.
+
+### Windows
+1. Run the `Uninstall.exe` from the installed wowpkg directory.
+2. Remove wowpkg\bin from your user PATH.
+3. If you want to remove user config data, remove %APPDATA%\wowpkg directory.
+
+### macOS
+1. Remove /Applications/wowpkg directory.
+2. Remove the export path from ~/.zshrc or terminal equivalent.
+3. If you want to remove user config data, remove ~/.config/wowpkg directory.
 
 ## Running from source
 The source should compile on Windows using MSVC, macOS using clang, and Linux using gcc. This repo uses [vcpkg](https://github.com/microsoft/vcpkg) for dependency management.
@@ -128,7 +124,7 @@ There are a couple of project specific cmake options to pass in that can change 
 | --- | --- | --- |
 | WOWPKG_ENABLE_SANITIZERS | OFF | Builds the program with or without sanitizers |
 | WOWPKG_ENABLE_TESTS | OFF | Determines wether or not tests will be built |
-| WOWPKG_USE_DEVELOPMENT_PATHS | OFF | When enabled the path to config.ini and location for saved.wowpkg will be set to [dev_only](dev_only) project directory. When disabled, the paths to config.ini and saved.wowpkg will be relative from the executable location. Generally, use development paths unless the project is being built for packaging/release. |
+| WOWPKG_USE_DEVELOPMENT_PATHS | OFF | When enabled the path to config.ini and location for saved.wowpkg will be set to [dev_only](dev_only) project directory. When disabled, the paths to config.ini and saved.wowpkg will be dependent on current OS. %APPDATA%/wowpkg for Windows and ~/.config/wowpkg for macOS/Linux. Generally, use development paths unless the project is being built for packaging/release. |
 
 1. Clone the repo.
 2. Change to project directoy and get submodules.
