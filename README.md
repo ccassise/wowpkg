@@ -91,17 +91,19 @@ Add the new addon to catalog by:
 ### Windows
 1. Run "wowpkg-VERSION-win64.exe" from latest release.
 2. Create a wowpkg directory in %APPDATA% directory.
-3. Copy [config.ini](dev_only/config.ini) and update the addons path to the path of your World of Warcraft AddOns directory.
+3. Copy [config.ini](dev_only/config.ini) to %APPDATA%\wowpkg and update the addons path to the path of your World of Warcraft AddOns directory.
 4. Assuming wowpkg was installed to the default location. Add C:\Program Files\wowpkg\bin to user PATH environment variable. This makes is easy to run wowpkg from anywhere in the terminal.
 
 ### macOS
+The below should work on Apple silicon. I have not been able to test on an Intel Mac.
+
 1. Open "wowpkg-VERSION-Darwin.dmg" from latest release.
 2. Drag the wowpkg directory to the Applications directory.
 3. In the terminal:
 	```
  	$ mkdir ~/.config/wowpkg
  	```
- 4. Copy [config.ini](dev_only/config.ini) and update the addons path to the path of your World of Warcraft AddOns directory.
+ 4. Copy [config.ini](dev_only/config.ini) to ~/.config/wowpkg and update the addons path to the path of your World of Warcraft AddOns directory.
  5. Add wowpkg to your PATH by appending `export PATH="$PATH:/Applications/wowpkg/bin"` to `~/.zshrc` or equivalent config file for your terminal.
 
 ## Uninstalling
