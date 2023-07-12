@@ -1,6 +1,0 @@
-{
-	"handler": "github:latest",
-	"name": "ThreatPlates",
-	"desc": "Threat-reactive nameplates.",
-	"url": "https://api.github.com/repos/Backupiseasy/ThreatPlates/releases/latest"
-}

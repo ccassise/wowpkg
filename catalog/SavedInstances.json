@@ -1,6 +1,0 @@
-{
-	"handler": "github:latest",
-	"name": "SavedInstances",
-	"desc": "Tracks Raid, Instance, World Boss lockouts for all your characters, daily/weekly quests, currencies, trade cooldowns, and more!",
-	"url": "https://api.github.com/repos/SavedInstances/SavedInstances/releases/latest"
-}

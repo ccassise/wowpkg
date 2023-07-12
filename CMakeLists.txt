@@ -1,0 +1,176 @@
+cmake_minimum_required(VERSION 3.16)
+
+set(
+    CMAKE_TOOLCHAIN_FILE "${CMAKE_CURRENT_SOURCE_DIR}/vcpkg/scripts/buildsystems/vcpkg.cmake"
+    CACHE STRING "Vcpkg toolchain file"
+)
+
+project(
+    wowpkg
+    VERSION 0.3.0
+    DESCRIPTION "A CLI World of Warcraft addon manager"
+    LANGUAGES C
+)
+
+set(CMAKE_C_STANDARD 11)
+
+option(WOWPKG_ENABLE_SANITIZERS "Build with or without sanitizers" OFF)
+option(WOWPKG_ENABLE_TESTS "Build tests" OFF)
+option(WOWPKG_USE_DEVELOPMENT_PATHS "Determines what paths will be used to find some files" OFF)
+
+if (WOWPKG_ENABLE_TESTS AND NOT WOWPKG_USE_DEVELOPMENT_PATHS)
+    message(WARNING "[${PROJECT_NAME}] enabling tests without using development paths may cause tests to fail")
+endif()
+
+if (WOWPKG_ENABLE_TESTS)
+    include(CTest)
+    enable_testing()
+endif()
+
+find_package(CURL CONFIG REQUIRED)
+find_package(cJSON CONFIG REQUIRED)
+find_package(unofficial-minizip CONFIG REQUIRED)
+
+set(WOWPKG_LIBS CURL::libcurl cjson unofficial::minizip::minizip)
+
+if (MSVC)
+    # CMake does not set proper release flags for MSVC.
+    set(WFLAGS_RELEASE /O2 /GL /DNDEBUG /Zi /Gy)
+    set(WFLAGS /W4 "$<$<CONFIG:Release>:${WFLAGS_RELEASE}>")
+
+    set(LDFLAGS_RELEASE /DEBUG /INCREMENTAL:NO /OPT:REF /OPT:ICF)
+    set(LDFLAGS "$<$<CONFIG:Release>:${LDFLAGS_RELEASE}>")
+
+    # Alot of the functions suggested by this are not available on other
+    # systems -- so just ignore the warnings.
+    set(WOWPKG_DEFINES _CRT_SECURE_NO_WARNINGS)
+else()
+    set(
+        WFLAGS
+
+        -Wall
+        -Wextra
+        -Wshadow
+        -Wdouble-promotion
+        -Wconversion
+        -Wpedantic
+        -Wcast-align
+        -Wstrict-prototypes
+
+        -Wwrite-strings
+        -Winit-self
+        -Wformat=2
+        -Wstrict-overflow=2
+        -Wcast-qual
+        -Wundef
+        -Wswitch-default
+        -fstack-protector-strong
+        -Wparentheses
+        -Wunused-macros
+        -Wswitch-enum
+        -Wstrict-aliasing
+    )
+endif()
+
+if (WOWPKG_ENABLE_SANITIZERS)
+    message(STATUS "[${PROJECT_NAME}] enabling sanitizers")
+    if (MSVC)
+        set(SANFLAGS /fsanitize=address)
+
+        set(WFLAGS ${WFLAGS} ${SANFLAGS})
+    else()
+        set(
+            SANFLAGS
+
+            -fsanitize=address
+            -fsanitize=undefined
+            -fno-sanitize-recover=all
+            -fsanitize=float-divide-by-zero
+            -fsanitize=float-cast-overflow
+            -fno-sanitize=null
+            -fno-sanitize=alignment
+        )
+
+        set (WFLAGS ${WFLAGS} ${SANFLAGS})
+
+        if (APPLE)
+            set(LDFLAGS ${SANFLAGS} -static-libsan)
+        else()
+            set(LDFLAGS ${SANFLAGS} -static-libasan)
+        endif()
+    endif()
+endif()
+
+set(
+    SRC_FILES
+
+    ${PROJECT_SOURCE_DIR}/src/addon.c
+    ${PROJECT_SOURCE_DIR}/src/appstate.c
+    ${PROJECT_SOURCE_DIR}/src/command.c
+    ${PROJECT_SOURCE_DIR}/src/config.c
+    ${PROJECT_SOURCE_DIR}/src/ini.c
+    ${PROJECT_SOURCE_DIR}/src/list.c
+    ${PROJECT_SOURCE_DIR}/src/osapi.c
+    ${PROJECT_SOURCE_DIR}/src/zipper.c
+)
+
+list(APPEND WOWPKG_DEFINES WOWPKG_VERSION="${PROJECT_VERSION}")
+
+if(WOWPKG_USE_DEVELOPMENT_PATHS)
+    message(STATUS "[${PROJECT_NAME}] building with development paths")
+    list(APPEND WOWPKG_DEFINES
+        WOWPKG_USER_FILE_DIR="${PROJECT_SOURCE_DIR}/dev_only"
+        WOWPKG_CATALOG_PATH="${PROJECT_SOURCE_DIR}/catalog"
+    )
+endif()
+
+add_subdirectory(src)
+
+if (WOWPKG_ENABLE_TESTS)
+    message(STATUS "[${PROJECT_NAME}] enabling tests")
+    add_subdirectory(test)
+endif()
+
+if (APPLE)
+    # Assume if Apple that DragNDrop generator is being used. This generator will
+    # be setup so that there is a single directory that can be dragged to the
+    # Applications directory.
+    install(
+        TARGETS wowpkg
+        CONFIGURATIONS Release
+        RUNTIME DESTINATION ${PROJECT_NAME}/bin
+    )
+
+    install(DIRECTORY catalog DESTINATION ${PROJECT_NAME})
+else()
+    install(
+        TARGETS wowpkg
+        CONFIGURATIONS Release
+        RUNTIME DESTINATION bin
+    )
+
+    install(DIRECTORY catalog DESTINATION .)
+endif()
+
+if (WIN32)
+    install(FILES ${PROJECT_SOURCE_DIR}/build/src/Release/cjson.dll DESTINATION bin)
+    install(FILES ${PROJECT_SOURCE_DIR}/build/src/Release/libcurl.dll DESTINATION bin)
+    install(FILES ${PROJECT_SOURCE_DIR}/build/src/Release/zlib1.dll DESTINATION bin)
+    install(FILES ${PROJECT_SOURCE_DIR}/build/src/Release/wowpkg.pdb DESTINATION bin)
+endif()
+
+set(CPACK_VERBATIM_VARIABLES true)
+
+set(CPACK_PROJECT_NAME ${PROJECT_NAME})
+set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})
+
+set(CPACK_PACKAGE_VENDOR ${PROJECT_NAME})
+set(CPACK_PACKAGE_DESCRIPTION_SUMMARY ${PROJECT_DESCRIPTION})
+set(CPACK_PACKAGE_INSTALL_DIRECTORY ${PROJECT_NAME})
+
+set(CPACK_RESOURCE_FILE_LICENSE ${PROJECT_SOURCE_DIR}/LICENSE)
+set(CPACK_RESOURCE_FILE_README ${PROJECT_SOURCE_DIR}/README.md)
+
+set(CPACK_MONOLITHIC_INSTALL true)
+
+include(CPack)

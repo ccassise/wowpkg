@@ -1,6 +1,0 @@
-{
-	"handler": "github:latest",
-	"name": "Simulationcraft",
-	"desc": "Constructs SimC export strings",
-	"url": "https://api.github.com/repos/simulationcraft/simc-addon/releases/latest"
-}

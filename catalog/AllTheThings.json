@@ -1,6 +1,0 @@
-{
-	"handler": "github:latest",
-	"name": "AllTheThings",
-	"desc": "Addon for Tracking Collections & Account Completion",
-	"url": "https://api.github.com/repos/DFortun81/AllTheThings/releases/latest"
-}
