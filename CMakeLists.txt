@@ -149,7 +149,7 @@ else()
         RUNTIME DESTINATION bin
     )
 
-    install(DIRECTORY catalog DESTINATION catalog)
+    install(DIRECTORY catalog DESTINATION .)
 endif()
 
 if (WIN32)
