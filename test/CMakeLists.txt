@@ -19,6 +19,7 @@ foreach(TEST IN LISTS TESTS)
 
 	target_compile_options(${TEST_NAME} PRIVATE ${WFLAGS})
 	target_link_options(${TEST_NAME} PRIVATE ${LDFLAGS})
+	set_target_properties(${TEST_NAME} PROPERTIES C_STANDARD ${WOWPKG_C_STANDARD})
 	target_compile_definitions(${TEST_NAME} PRIVATE
 		${WOWPKG_DEFINES}
 		WOWPKG_TEST_TMPDIR="${PROJECT_SOURCE_DIR}/dev_only/tmp/"

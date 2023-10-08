@@ -110,14 +110,14 @@ int cmd_help(Context *ctx, int argc, const char *argv[], FILE *stream)
     UNUSED(argv);
 
     fprintf(stream, "Example usage:\n");
-    fprintf(stream, "\twowpkg info ADDON...\n");
-    fprintf(stream, "\twowpkg install ADDON...\n");
-    fprintf(stream, "\twowpkg list\n");
-    fprintf(stream, "\twowpkg outdated\n");
-    fprintf(stream, "\twowpkg remove ADDON...\n");
-    fprintf(stream, "\twowpkg search TEXT\n");
-    fprintf(stream, "\twowpkg update [ADDON...]\n");
-    fprintf(stream, "\twowpkg upgrade [ADDON...]\n");
+    fprintf(stream, "\t" WOWPKG_NAME " info ADDON...\n");
+    fprintf(stream, "\t" WOWPKG_NAME " install ADDON...\n");
+    fprintf(stream, "\t" WOWPKG_NAME " list\n");
+    fprintf(stream, "\t" WOWPKG_NAME " outdated\n");
+    fprintf(stream, "\t" WOWPKG_NAME " remove ADDON...\n");
+    fprintf(stream, "\t" WOWPKG_NAME " search TEXT\n");
+    fprintf(stream, "\t" WOWPKG_NAME " update [ADDON...]\n");
+    fprintf(stream, "\t" WOWPKG_NAME " upgrade [ADDON...]\n");
 
     return 0;
 }

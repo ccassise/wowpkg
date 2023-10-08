@@ -14,7 +14,4 @@ Config *config_create(void);
  */
 void config_free(Config *cfg);
 
-int config_from_json(Config *cfg, const char *json);
-char *config_to_json(Config *cfg);
-
 int config_load(Config *cfg, const char *path);

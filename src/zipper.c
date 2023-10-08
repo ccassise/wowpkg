@@ -1,6 +1,6 @@
-#include <stdbool.h>
 #include <stdio.h>
-#include <sys/stat.h>
+
+#include <minizip/unzip.h>
 
 #include "osapi.h"
 #include "osstring.h"
