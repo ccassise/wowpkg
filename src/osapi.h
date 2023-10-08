@@ -128,8 +128,7 @@ char *os_mkdtemp(char *template);
 
 /**
  * Attempts to get the temp directory for the current OS. If no value was found
- * then it returns the current working directory ".". This functions promises
- * that, at least at the time of the call, the directory exists.
+ * then it returns the current working directory ".".
  *
  * WARNING: The returned string may be statically allocated and as such shall
  * not be modified. Future calls of this function may change the contents of

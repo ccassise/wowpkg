@@ -7,16 +7,46 @@ set(
 
 project(
     wowpkg
-    VERSION 0.3.0
+    VERSION 0.3.1
     DESCRIPTION "A CLI World of Warcraft addon manager"
     LANGUAGES C
 )
 
-set(CMAKE_C_STANDARD 11)
+set(WOWPKG_C_STANDARD 11)
 
 option(WOWPKG_ENABLE_SANITIZERS "Build with or without sanitizers" OFF)
 option(WOWPKG_ENABLE_TESTS "Build tests" OFF)
 option(WOWPKG_USE_DEVELOPMENT_PATHS "Determines what paths will be used to find some files" OFF)
+
+# Compiler flags that enable warnings.
+set(WFLAGS) 
+
+# Mainly used for Windows. Adds extra optimization flags when building for
+# release builds. These flags get added to WFLAGS.
+set(WFLAGS_RELEASE)
+
+# Linker flags.
+set(LDFLAGS)
+
+# Mainly used for Windows. Adds extra optimization linker flags for release
+# builds. These flags get added to LDFLAGS.
+set(LDFLAGS_RELEASE)
+
+# Sanitizer flags.
+set(SANSFLAGS)
+
+# Path to catalog directory in project.
+set(WOWPKG_CATALOG_PATH)
+
+# Includes all compile time defines.
+set(WOWPKG_DEFINES)
+
+# List of libraries that will be linked to targets.
+set(WOWPKG_LIBS)
+
+# Path to user files for project. This location is where the program will search
+# for user config files and is where it will save user specific data.
+set(WOWPKG_USER_FILE_DIR)
 
 if (WOWPKG_ENABLE_TESTS AND NOT WOWPKG_USE_DEVELOPMENT_PATHS)
     message(WARNING "[${PROJECT_NAME}] enabling tests without using development paths may cause tests to fail")
@@ -41,7 +71,7 @@ if (MSVC)
     set(LDFLAGS_RELEASE /DEBUG /INCREMENTAL:NO /OPT:REF /OPT:ICF)
     set(LDFLAGS "$<$<CONFIG:Release>:${LDFLAGS_RELEASE}>")
 
-    # Alot of the functions suggested by this are not available on other
+    # A lot of the functions suggested by this are not available on other
     # systems -- so just ignore the warnings.
     set(WOWPKG_DEFINES _CRT_SECURE_NO_WARNINGS)
 else()
@@ -84,9 +114,9 @@ if (WOWPKG_ENABLE_SANITIZERS)
 
             -fsanitize=address
             -fsanitize=undefined
-            -fno-sanitize-recover=all
             -fsanitize=float-divide-by-zero
             -fsanitize=float-cast-overflow
+            -fno-sanitize-recover=all
             -fno-sanitize=null
             -fno-sanitize=alignment
         )
@@ -156,7 +186,6 @@ if (WIN32)
     install(FILES ${PROJECT_SOURCE_DIR}/build/src/Release/cjson.dll DESTINATION bin)
     install(FILES ${PROJECT_SOURCE_DIR}/build/src/Release/libcurl.dll DESTINATION bin)
     install(FILES ${PROJECT_SOURCE_DIR}/build/src/Release/zlib1.dll DESTINATION bin)
-    install(FILES ${PROJECT_SOURCE_DIR}/build/src/Release/wowpkg.pdb DESTINATION bin)
 endif()
 
 set(CPACK_VERBATIM_VARIABLES true)

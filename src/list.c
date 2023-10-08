@@ -95,6 +95,8 @@ void list_remove(List *l, ListNode *node)
 
 void list_sort(List *l, ListCompareFn cmp)
 {
+    // Based on Simon Tatham's Mergesort For Linked List.
+    // https://www.chiark.greenend.org.uk/~sgtatham/algorithms/listsort.html
     size_t insize = 1;
 
     while (1) {
