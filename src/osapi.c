@@ -21,7 +21,7 @@ static int copy_file(const char *oldpath, const char *newpath)
     }
 
 #ifndef _WIN32
-    // Change permission of new file to match that of old file.
+    /* Change permission of new file to match that of old file. */
     struct os_stat s_old;
     if (fstat(fileno(fnew), &s_old) != 0) {
         return -1;
@@ -145,9 +145,9 @@ OsDir *os_opendir(const char *path)
     }
 
 #ifdef _WIN32
-    // Windows requires a '*' at the end of a path in order to grab all files in
-    // a directory, and this function should never be called like that -- so add
-    // it now.
+    /* Windows requires a '*' at the end of a path in order to grab all files in
+     * a directory, and this function should never be called like that -- so add
+     * it now. */
     char path_win[OS_MAX_PATH];
     int n = snprintf(path_win, ARRAY_SIZE(path_win), "%s%c*", path, OS_SEPARATOR);
     if (n < 0 || (size_t)n >= ARRAY_SIZE(path_win)) {
@@ -246,7 +246,7 @@ int os_mkdir_all(char *path, mode_t perms)
         *sep = '\0';
 
         int err = os_mkdir(path, perms);
-        *sep = sep_ch; // Restore separator.
+        *sep = sep_ch; /* Restore separator. */
 
         if (err != 0 && errno != EEXIST) {
             return -1;
@@ -390,8 +390,8 @@ int os_rename(const char *oldpath, const char *newpath)
     }
     return 0;
 #else
-    // Try using rename(2) but if errno is EXDEV then we will fall back to copy
-    // and delete.
+    /* Try using rename(2) but if errno is EXDEV then we will fall back to copy
+     * and delete. */
     int err = rename(oldpath, newpath);
     if (err == 0) {
         return 0;
@@ -414,15 +414,15 @@ int os_rename(const char *oldpath, const char *newpath)
 
         err = os_stat(newpath, &s_new);
         if (err != 0) {
-            // Old path is a directory and new path does not exist -- create a
-            // directory at the new path.
+            /* Old path is a directory and new path does not exist -- create a
+             * directory at the new path. */
             err = os_mkdir(newpath, 0755);
             if (err != 0) {
                 return -1;
             }
         } else {
-            // Old path is a directory and new path exists -- ensure that new
-            // path is an empty directory.
+            /* Old path is a directory and new path exists -- ensure that new
+             * path is an empty directory. */
             if (!S_ISDIR(s_new.st_mode)) {
                 return -1;
             }
@@ -434,7 +434,7 @@ int os_rename(const char *oldpath, const char *newpath)
 
             OsDirEnt *entry = NULL;
             while ((entry = os_readdir(dir)) != NULL) {
-                // These should be the only entries in an empty directory.
+                /* These should be the only entries in an empty directory. */
                 if (strcmp(entry->name, ".") != 0 && strcmp(entry->name, "..") != 0) {
                     err = -1;
                     break;

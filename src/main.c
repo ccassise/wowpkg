@@ -55,20 +55,17 @@ static int chdir_to_executable_path(const char *str)
     int err = 0;
     char *tofree = strdup(str);
 
-    // Find the last separator in path.
-    size_t valid_sep_len = strlen(OS_VALID_SEPARATORS);
+    /* Find the last separator in path. */
     char *last_sep = NULL;
     for (char *s = tofree; *s; s++) {
-        for (size_t i = 0; i < valid_sep_len; i++) {
-            if (*s == OS_VALID_SEPARATORS[i]) {
-                last_sep = s;
-            }
+        if (OS_IS_SEP(*s)) {
+            last_sep = s;
         }
     }
 
     if (last_sep != NULL) {
-        // The string contains a separator so it is either a relative or
-        // absolute path. Try to change into its directory name.
+        /* The string contains a separator so it is either a relative or absolute
+         * path. Try to change into its directory name. */
         char tmp = *last_sep;
         *last_sep = '\0';
 
@@ -81,8 +78,8 @@ static int chdir_to_executable_path(const char *str)
     free(tofree);
     tofree = NULL;
 
-    // At this point the string is not a path, so search PATH environment for
-    // the running executable.
+    /* At this point the string is not a path, so search PATH environment for the
+     * running executable. */
     const char *path_env = getenv("PATH");
     if (path_env == NULL) {
         return -1;
@@ -133,7 +130,7 @@ static int snuser_file_path(char *s, size_t n, const char *filename)
 #if defined(WOWPKG_USER_FILE_DIR)
     return snprintf(s, n, "%s%c%s", WOWPKG_USER_FILE_DIR, OS_SEPARATOR, filename);
 #elif !defined(WOWPKG_USER_FILE_DIR) && defined(_WIN32)
-    // Windows stores the user files in %APPDATA%\wowpkg
+    /* Windows stores the user files in %APPDATA%\wowpkg */
     const char *user_dir = getenv("APPDATA");
     if (user_dir == NULL) {
         PRINT_ERROR("expected to find APPDATA environment variable but it was empty\n");
@@ -142,7 +139,7 @@ static int snuser_file_path(char *s, size_t n, const char *filename)
 
     return snprintf(s, n, "%s\\%s\\%s", user_dir, WOWPKG_NAME, filename);
 #else
-    // macOS and Linux store the user files in $HOME/.config/wowpkg
+    /* macOS and Linux store the user files in $HOME/.config/wowpkg */
     const char *user_dir = getenv("HOME");
     if (user_dir == NULL) {
         PRINT_ERROR("expected to find HOME environment variable but it was empty\n");
@@ -157,12 +154,12 @@ int main(int argc, const char *argv[])
 {
     if (argc <= 1) {
         fprintf(stderr, "Usage: wowpkg COMMAND [ARGS...]\n");
-        exit(1);
+        exit(EXIT_FAILURE);
     }
 
     if (chdir_to_executable_path(argv[0]) != 0) {
         PRINT_ERROR("could not find program executable path\n");
-        exit(1);
+        exit(EXIT_FAILURE);
     }
 
     Context ctx;
@@ -172,7 +169,7 @@ int main(int argc, const char *argv[])
     ctx.state = appstate_create();
     if (ctx.config == NULL || ctx.state == NULL) {
         PRINT_ERROR("failed to allocate memory\n");
-        exit(1);
+        exit(EXIT_FAILURE);
     }
 
     int err = 0;
@@ -197,7 +194,7 @@ int main(int argc, const char *argv[])
         goto cleanup;
     }
 
-    // Test that addon path actually exists and is a directory.
+    /* Test that addon path actually exists and is a directory. */
     struct os_stat s;
     if (os_stat(ctx.config->addons_path, &s) != 0 || !S_ISDIR(s.st_mode)) {
         PRINT_ERROR("addons path from config file does not exist or\n");
@@ -220,8 +217,8 @@ int main(int argc, const char *argv[])
 
     err = appstate_load(ctx.state, saved_file_path);
     if (err == APPSTATE_ENOENT) {
-        // Assuming that since the config file was found with valid data that it
-        // should be safe to create a new saved file in the expected location.
+        /* Assuming that since the config file was found with valid data that it
+         * should be safe to create a new saved file in the expected location. */
         err = 0;
 
         PRINT_WARNING("could not find any saved addon data\n");
@@ -272,5 +269,5 @@ cleanup:
     config_free(ctx.config);
     appstate_free(ctx.state);
 
-    return err < 0 ? 1 : err;
+    return err == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
 }

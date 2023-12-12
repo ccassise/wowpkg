@@ -12,7 +12,7 @@ set(
 )
 
 foreach(TEST IN LISTS TESTS)
-	set(TEST_NAME ${TEST}_test)
+	set(TEST_NAME test_${TEST})
 	add_executable(${TEST_NAME} ${TEST_NAME}.c ${SRC_FILES})
 
 	target_link_libraries(${TEST_NAME} PRIVATE ${WOWPKG_LIBS})
@@ -23,7 +23,7 @@ foreach(TEST IN LISTS TESTS)
 	target_compile_definitions(${TEST_NAME} PRIVATE
 		${WOWPKG_DEFINES}
 		WOWPKG_TEST_TMPDIR="${PROJECT_SOURCE_DIR}/dev_only/tmp/"
-		WOWPKG_TEST_DIR="${PROJECT_SOURCE_DIR}/test"
+		WOWPKG_TEST_DIR="${PROJECT_SOURCE_DIR}/tests"
 	)
 
 	target_include_directories(${TEST_NAME} PRIVATE ${PROJECT_SOURCE_DIR}/src)

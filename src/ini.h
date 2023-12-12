@@ -90,14 +90,14 @@ typedef struct INIKey {
 
 typedef struct INI {
     FILE *_f;
-    int _ch; // last read character from stream.
+    int _ch; /* last read character from stream. */
 
-    size_t _row; // Current row in file.
-    size_t _col; // Position in line of last read character.
+    size_t _row; /* Current row in file. */
+    size_t _col; /* Position in line of last read character. */
 
-    int _err; // Last error encountered, if any.
-    size_t _err_row; // The row that the last error was found.
-    size_t _err_col; // The col that the last error was found.
+    int _err; /* Last error encountered, if any. */
+    size_t _err_row; /* The row that the last error was found. */
+    size_t _err_col; /* The col that the last error was found. */
 
     INIKey _key;
 } INI;
@@ -105,13 +105,9 @@ typedef struct INI {
 enum {
     INI_OK = 0,
 
-    // EEOF signifies that there were no errors in parsing the file and there
-    // is no more file to parse. Subsequent readkey's will do nothing.
-    INI_EEOF,
-
-    // If ini_last_error() contains any of these then the position in file that
-    // the error occurred can be obtained from ini_last_error_row() and
-    // ini_last_error_col().
+    /* If ini_last_error() contains any of these then the position in file that the
+     * error occurred can be obtained from ini_last_error_row() and
+     * ini_last_error_col(). */
     INI_EPARSE,
     INI_ENAMETOOLONG,
 };

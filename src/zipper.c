@@ -33,7 +33,7 @@ static int snclean_path(char *restrict buf, size_t n, const char *restrict path)
     while (1) {
         size_t filename_len = strcspn(filename, OS_VALID_SEPARATORS);
         if (filename == path && filename_len == 0) {
-            // Handle root.
+            /* Handle root. */
             if (result < n - 1) {
                 writer[result] = OS_SEPARATOR;
                 writer[result + 1] = '\0';
@@ -109,7 +109,7 @@ static int zipper_unzip_file(unzFile uf, const char *dest)
     }
 
     if (finfo.compressed_size != 0) {
-        // File is not a directory.
+        /* File is not a directory. */
         out_file = fopen(new_path, "wb");
         if (out_file == NULL) {
             err = ZIPPER_ENOENT;

@@ -9,6 +9,7 @@ List *list_create(void)
     if (result != NULL) {
         result->head = NULL;
         result->free = NULL;
+        result->len = 0;
     }
 
     return result;
@@ -39,6 +40,7 @@ ListNode *list_insert(List *l, void *value)
         }
         l->head = node;
         node->prev = NULL;
+        l->len++;
     }
 
     return node;
@@ -90,13 +92,15 @@ void list_remove(List *l, ListNode *node)
         l->free(node->value);
     }
 
+    l->len--;
+
     free(node);
 }
 
 void list_sort(List *l, ListCompareFn cmp)
 {
-    // Based on Simon Tatham's Mergesort For Linked List.
-    // https://www.chiark.greenend.org.uk/~sgtatham/algorithms/listsort.html
+    /* Based on Simon Tatham's Mergesort For Linked List.
+     * https://www.chiark.greenend.org.uk/~sgtatham/algorithms/listsort.html */
     size_t insize = 1;
 
     while (1) {

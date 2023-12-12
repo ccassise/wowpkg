@@ -1,9 +1,11 @@
 cmake_minimum_required(VERSION 3.16)
 
-set(
-    CMAKE_TOOLCHAIN_FILE "${CMAKE_CURRENT_SOURCE_DIR}/vcpkg/scripts/buildsystems/vcpkg.cmake"
-    CACHE STRING "Vcpkg toolchain file"
-)
+if (NOT DEFINED ${CMAKE_TOOLCHAIN_FILE})
+    set(
+        CMAKE_TOOLCHAIN_FILE "${CMAKE_CURRENT_SOURCE_DIR}/vcpkg/scripts/buildsystems/vcpkg.cmake"
+        CACHE STRING "Vcpkg toolchain file"
+    )
+endif()
 
 project(
     wowpkg
@@ -16,6 +18,7 @@ set(WOWPKG_C_STANDARD 11)
 
 option(WOWPKG_ENABLE_SANITIZERS "Build with or without sanitizers" OFF)
 option(WOWPKG_ENABLE_TESTS "Build tests" OFF)
+option(WOWPKG_ENABLE_INTEGRATION_TESTS "Build integration tests" OFF)
 option(WOWPKG_USE_DEVELOPMENT_PATHS "Determines what paths will be used to find some files" OFF)
 
 # Compiler flags that enable warnings.
@@ -57,7 +60,7 @@ if (WOWPKG_ENABLE_TESTS)
     enable_testing()
 endif()
 
-find_package(CURL CONFIG REQUIRED)
+find_package(CURL REQUIRED)
 find_package(cJSON CONFIG REQUIRED)
 find_package(unofficial-minizip CONFIG REQUIRED)
 
@@ -158,7 +161,11 @@ add_subdirectory(src)
 
 if (WOWPKG_ENABLE_TESTS)
     message(STATUS "[${PROJECT_NAME}] enabling tests")
-    add_subdirectory(test)
+    add_subdirectory(tests)
+
+    if (WOWPKG_ENABLE_INTEGRATION_TESTS)
+        add_subdirectory(tests/integration)
+    endif()
 endif()
 
 if (APPLE)

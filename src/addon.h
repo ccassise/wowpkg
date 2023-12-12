@@ -9,15 +9,15 @@
 enum {
     ADDON_OK = 0,
 
-    ADDON_ENOTFOUND, // Addon could not be found.
-    ADDON_ENOENT, // File/directory doesn't exist.
-    ADDON_EBADJSON, // Failed to parse JSON.
-    ADDON_ENO_ZIP_ASSET, // Could not find .zip asset in GitHub release.
-    ADDON_ENAMETOOLONG, // Path or filename is too long.
-    ADDON_EUNZIP, // Failed to extract .zip.
-    ADDON_EINTERNAL, // Internal error.
-    ADDON_ERATE_LIMIT, // Failed because rate limit to external API exceeded.
-    ADDON_ECONFIG, // Config file bad format.
+    ADDON_ENOTFOUND, /* Addon could not be found. */
+    ADDON_ENOENT, /* File/directory doesn't exist. */
+    ADDON_EBADJSON, /* Failed to parse JSON. */
+    ADDON_ENO_ZIP_ASSET, /* Could not find .zip asset in GitHub release. */
+    ADDON_ENAMETOOLONG, /* Path or filename is too long. */
+    ADDON_EUNZIP, /* Failed to extract .zip. */
+    ADDON_EINTERNAL, /* Internal error. */
+    ADDON_ERATE_LIMIT, /* Failed because rate limit to external API exceeded. */
+    ADDON_ECONFIG, /* Config file bad format. */
 };
 
 typedef struct Addon {

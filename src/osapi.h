@@ -23,12 +23,14 @@
 #define OS_MAX_PATH MAX_PATH
 #define OS_MAX_FILENAME _MAX_FNAME
 
+#define OS_IS_SEP(c) ((c) == OS_VALID_SEPARATORS[0] || (c) == OS_VALID_SEPARATORS[1])
+
 #if !defined(S_ISDIR)
-#define S_ISDIR(mode) (((mode)&S_IFMT) == S_IFDIR)
+#define S_ISDIR(mode) (((mode) & S_IFMT) == S_IFDIR)
 #endif
 
 #if !defined(S_ISREG)
-#define S_ISREG(mode) (((mode)&S_IFMT) == S_IFREG)
+#define S_ISREG(mode) (((mode) & S_IFMT) == S_IFREG)
 #endif
 
 #define os_stat _stat
@@ -45,6 +47,8 @@ typedef unsigned short mode_t;
 #define OS_PATH_ENV_DELIMITER ":"
 #define OS_MAX_PATH PATH_MAX
 #define OS_MAX_FILENAME FILENAME_MAX
+
+#define OS_IS_SEP(c) ((c) == OS_VALID_SEPARATORS[0])
 
 #define os_stat stat
 #define os_rmdir rmdir

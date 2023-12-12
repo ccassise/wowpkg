@@ -39,10 +39,14 @@ int config_load(Config *cfg, const char *path)
             && strcasecmp(key->name, "addons_path") == 0) {
 
             cfg->addons_path = strdup(key->value);
+        } else if (strcasecmp(key->section, "github") == 0
+            && strcasecmp(key->name, "token") == 0) {
+
+            cfg->github_token = strdup(key->value);
         }
     }
 
-    if (ini_last_error(ini) != INI_EEOF || cfg->addons_path == NULL) {
+    if (ini_last_error(ini) != INI_OK || cfg->addons_path == NULL) {
         err = -1;
     }
 

@@ -136,7 +136,7 @@ static void test_appstate_to_json(void)
     latest2->url = strdup("test_url_latest_two");
     latest2->version = strdup("test_version_latest_two");
 
-    // Transfer ownership of Addons to state.
+    /* Transfer ownership of Addons to state. */
     list_insert(state->installed, installed2);
     list_insert(state->installed, installed1);
     list_insert(state->latest, latest2);

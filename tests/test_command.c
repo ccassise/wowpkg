@@ -61,7 +61,7 @@ static void test_cmd_list(void)
     assert(fread(actual, sizeof(*actual), (size_t)actual_len, stream) == (size_t)actual_len);
     actual[actual_len] = '\0';
 
-    // Should be sorted.
+    /* Should be sorted. */
     assert(strcmp(actual, "a_test_name (v1.2.3)\nb_test_name (v4.5.6)\nc_test_name (v7.8.9)\n") == 0);
 
     fclose(stream);
@@ -87,7 +87,7 @@ static void test_cmd_search(void)
     assert(fread(actual, sizeof(*actual), (size_t)actual_len, stream) == (size_t)actual_len);
     actual[actual_len] = '\0';
 
-    // Should be sorted.
+    /* Should be sorted. */
     assert(strcmp(actual, "BigWigs\nBigWigs_Voice\nLittleWigs\n") == 0);
 
     fclose(stream);
@@ -218,7 +218,7 @@ static void test_cmd_outdated(void)
     assert(fread(actual, sizeof(*actual), (size_t)actual_len, stream) == (size_t)actual_len);
     actual[actual_len] = '\0';
 
-    // Should be sorted.
+    /* Should be sorted. */
     assert(strcmp(actual, "AddonOne (v1.2.3) < (v1.2.5)\nAddonThree (19700101.1) < (20200809.5)\nAddonTwo (v4.5.6) < (v5.6.7)\n") == 0);
 
     fclose(stream);
@@ -236,7 +236,7 @@ static void test_cmd_info(void)
     addon->url = strdup("zip_url");
     addon->version = strdup("v1.2.3");
 
-    list_insert(ctx.state->installed, addon); // Transfer ownership of addon to ctx.state.
+    list_insert(ctx.state->installed, addon); /* Transfer ownership of addon to ctx.state. */
 
     FILE *stream = tmpfile();
     assert(stream != NULL);

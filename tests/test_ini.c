@@ -17,7 +17,7 @@ void test_ini_ok_basic(void)
     assert(strcmp(key->value, "value") == 0);
 
     assert(ini_readkey(ini) == NULL);
-    assert(ini_last_error(ini) == INI_EEOF);
+    assert(ini_last_error(ini) == INI_OK);
 
     ini_close(ini);
 }
@@ -58,7 +58,7 @@ void test_ini_ok_basic_multiple(void)
     assert(strcmp(key->value, "TEST5") == 0);
 
     assert(ini_readkey(ini) == NULL);
-    assert(ini_last_error(ini) == INI_EEOF);
+    assert(ini_last_error(ini) == INI_OK);
 
     ini_close(ini);
 }
@@ -70,7 +70,7 @@ void test_ini_ok_empty(void)
 
     INIKey *key = ini_readkey(ini);
     assert(key == NULL);
-    assert(ini_last_error(ini) == INI_EEOF);
+    assert(ini_last_error(ini) == INI_OK);
 
     ini_close(ini);
 }
@@ -88,7 +88,7 @@ void test_ini_ok_max(void)
     assert(strcmp(key->value, "ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc") == 0);
 
     assert(ini_readkey(ini) == NULL);
-    assert(ini_last_error(ini) == INI_EEOF);
+    assert(ini_last_error(ini) == INI_OK);
 
     ini_close(ini);
 }
@@ -106,7 +106,7 @@ void test_ini_ok_no_inline_comment(void)
     assert(strcmp(key->value, "value ; parsed as part of value") == 0);
 
     assert(ini_readkey(ini) == NULL);
-    assert(ini_last_error(ini) == INI_EEOF);
+    assert(ini_last_error(ini) == INI_OK);
 
     ini_close(ini);
 }
@@ -124,7 +124,7 @@ void test_ini_ok_no_name(void)
     assert(strcmp(key->value, "value") == 0);
 
     assert(ini_readkey(ini) == NULL);
-    assert(ini_last_error(ini) == INI_EEOF);
+    assert(ini_last_error(ini) == INI_OK);
 
     ini_close(ini);
 }
@@ -156,7 +156,7 @@ void test_ini_ok_no_newline_eof_key(void)
     assert(strcmp(key->value, "value") == 0);
 
     assert(ini_readkey(ini) == NULL);
-    assert(ini_last_error(ini) == INI_EEOF);
+    assert(ini_last_error(ini) == INI_OK);
 
     ini_close(ini);
 }
@@ -183,7 +183,7 @@ void test_ini_ok_no_newline_eof_section(void)
     INIKey *key = ini_readkey(ini);
     assert(key == NULL);
 
-    assert(ini_last_error(ini) == INI_EEOF);
+    assert(ini_last_error(ini) == INI_OK);
 
     ini_close(ini);
 }
@@ -201,7 +201,7 @@ void test_ini_ok_no_value(void)
     assert(strcmp(key->value, "") == 0);
 
     assert(ini_readkey(ini) == NULL);
-    assert(ini_last_error(ini) == INI_EEOF);
+    assert(ini_last_error(ini) == INI_OK);
 
     ini_close(ini);
 }
@@ -213,7 +213,7 @@ void test_ini_ok_section_only(void)
 
     INIKey *key = ini_readkey(ini);
     assert(key == NULL);
-    assert(ini_last_error(ini) == INI_EEOF);
+    assert(ini_last_error(ini) == INI_OK);
 
     ini_close(ini);
 }

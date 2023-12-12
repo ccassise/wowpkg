@@ -346,7 +346,7 @@ int addon_fetch_catalog_meta(Addon *a, const char *name)
         }
     }
 
-    if (ini_last_error(ini) != INI_EEOF
+    if (ini_last_error(ini) != INI_OK
         || a->name == NULL
         || a->desc == NULL
         || a->url == NULL) {
@@ -393,7 +393,7 @@ cJSON *addon_fetch_github_meta(const char *url, int *out_err)
     long http_code;
     curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_code);
     if (http_code != 200) {
-        if (http_code == 403) {
+        if (http_code == 403 || http_code == 429) {
             err = ADDON_ERATE_LIMIT;
         } else {
             err = ADDON_EINTERNAL;
@@ -510,7 +510,7 @@ int addon_fetch_zip(Addon *a)
     long http_code;
     curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_code);
     if (http_code != 200) {
-        if (http_code == 403) {
+        if (http_code == 403 || http_code == 429) {
             err = ADDON_ERATE_LIMIT;
         } else {
             err = ADDON_EINTERNAL;
@@ -519,13 +519,14 @@ int addon_fetch_zip(Addon *a)
     }
 
     if (res.size > 0) {
-        res.size--; // Remove terminating null since this should be raw data.
+        res.size--; /* Remove terminating null since this should be raw data. */
     }
 
     const char *zip_ext = ".zip";
     char zippath[OS_MAX_PATH];
 
-    // Creates a string with a value 'path/to/temp/wowpkg_<addon_name>_<addon_version>_XXXXXX.zip'.
+    /* Creates a string with a value
+     * 'path/to/temp/wowpkg_<addon_name>_<addon_version>_XXXXXX.zip'. */
     int nwrote = snprintf(zippath, ARRAY_SIZE(zippath), "%s%c%s_%s_%s_XXXXXX%s", os_tempdir(), OS_SEPARATOR, WOWPKG_NAME, a->name, a->version, zip_ext);
     if (nwrote < 0 || (size_t)nwrote >= ARRAY_SIZE(zippath)) {
         err = ADDON_ENAMETOOLONG;
@@ -561,7 +562,8 @@ int addon_package(Addon *a)
 {
     char tmpdir[OS_MAX_PATH];
 
-    // Creates a string with a value 'path/to/temp/wowpkg_<addon_name>_<addon_version>_XXXXXX'.
+    /* Creates a string with a value
+     * 'path/to/temp/wowpkg_<addon_name>_<addon_version>_XXXXXX'. */
     int n = snprintf(tmpdir, ARRAY_SIZE(tmpdir), "%s%c%s_%s_%s_XXXXXX", os_tempdir(), OS_SEPARATOR, WOWPKG_NAME, a->name, a->version);
     if (n < 0 || (size_t)n >= ARRAY_SIZE(tmpdir)) {
         return ADDON_ENAMETOOLONG;

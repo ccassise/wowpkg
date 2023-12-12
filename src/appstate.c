@@ -108,7 +108,7 @@ char *appstate_to_json(AppState *state)
         goto cleanup;
     }
 
-    // Installed
+    /* Installed */
     cJSON *installed = cJSON_AddArrayToObject(json, "installed");
     if (json == NULL) {
         err = -1;
@@ -136,7 +136,7 @@ char *appstate_to_json(AppState *state)
         free(addon_json_str);
     }
 
-    // Latest
+    /* Latest */
     cJSON *latest = cJSON_AddArrayToObject(json, "latest");
     if (json == NULL) {
         err = -1;

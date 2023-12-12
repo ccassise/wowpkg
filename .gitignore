@@ -52,9 +52,11 @@ Mkfile.old
 dkms.conf
 
 # Repo ignores
+.DS_Store
 .vscode/
 build/
-.DS_Store
+vcpkg/
+vcpkg_installed/
 
 # Setup development directory so that it is easier to run from source.
 dev_only/**

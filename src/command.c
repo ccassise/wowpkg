@@ -155,7 +155,7 @@ int cmd_info(Context *ctx, int argc, const char *argv[], FILE *stream)
         ListNode *installed_node = list_search(ctx->state->installed, addon, cmp_addon);
 
         int width = 16;
-        // \b removes an extra space.
+        /* \b removes an extra space. */
         PRINT_STATUS_ADDON(stream, "\b", addon->name);
         fprintf(stream, TERM_WRAP(TERM_BOLD, "%-*s") " %s\n", width, "Description:", addon->desc);
         fprintf(stream, TERM_WRAP(TERM_BOLD, "%-*s") " %s\n", width, "From:", addon->url);
@@ -176,10 +176,10 @@ int cmd_info(Context *ctx, int argc, const char *argv[], FILE *stream)
 
 int cmd_install(Context *ctx, int argc, const char *argv[], FILE *stream)
 {
-    // TODO: If an addon successfully installs/upgrades but another addon
-    // errors, the app state will not be saved for next session even though
-    // files may have already been deleted/moved from/to user's addon folder.
 
+    /* TODO: If an addon successfully installs/upgrades but another addon errors, the
+     * app state will not be saved for next session even though files may have
+     * already been deleted/moved from/to user's addon folder. */
     if (argc < 2) {
         PRINT_ERROR1(CMD_EINVALID_ARGS_STR);
         return -1;
@@ -283,8 +283,8 @@ int cmd_install(Context *ctx, int argc, const char *argv[], FILE *stream)
 
         ListNode *n = NULL;
 
-        // At this point no more errors can occur so we can transfer ownership
-        // of each addon without worry.
+        /* At this point no more errors can occur so we can transfer ownership of
+         * each addon without worry. */
         n = list_search(ctx->state->installed, addon, cmp_addon);
         list_remove(ctx->state->installed, n);
         list_insert(ctx->state->installed, addon);
@@ -295,9 +295,9 @@ int cmd_install(Context *ctx, int argc, const char *argv[], FILE *stream)
     }
 
 cleanup:
-    // Addons list should only contain addons that have had their ownership
-    // transferred to appstate. However if there was an error then ownership may
-    // not have been transferred and need to be cleaned up.
+    /* Addons list should only contain addons that have had their ownership
+     * transferred to appstate. However if there was an error then ownership may
+     * not have been transferred and need to be cleaned up. */
     if (err != 0) {
         list_set_free_fn(addons, (ListFreeFn)addon_free);
     }
@@ -395,11 +395,11 @@ int cmd_remove(Context *ctx, int argc, const char *argv[], FILE *stream)
                 if (errno == ENOENT) {
                     PRINT_WARNING("directory does not exist %s\n", remove_path);
                 } else {
-                    // TODO: What should the program do if this error occurs? If it
-                    // was successful in removing one or more directories then the
-                    // addon directory would now be corrupted. How can it be
-                    // recovered? How should the user be notified? Should the
-                    // program try to continue?
+                    /* TODO: What should the program do if this error occurs? If
+                     * it was successful in removing one or more directories then
+                     * the addon directory would now be corrupted. How can it be
+                     * recovered? How should the user be notified? Should the
+                     * program try to continue? */
                     PRINT_ERROR3(CMD_EREMOVE_DIR_STR, argv[0], dirname);
                     return -1;
                 }
@@ -408,15 +408,15 @@ int cmd_remove(Context *ctx, int argc, const char *argv[], FILE *stream)
 
         ListNode *n = NULL;
 
-        // Order here is important. Addon should first be removed from latest
-        // because Addon is a reference to an addon in installed. Removing from
-        // installed first would cause a double free.
+        /* Order here is important. Addon should first be removed from latest
+         * because Addon is a reference to an addon in installed. Removing from
+         * installed first would cause a double free. */
         n = list_search(ctx->state->latest, addon, cmp_addon);
         list_remove(ctx->state->latest, n);
 
         n = list_search(ctx->state->installed, addon, cmp_addon);
         list_remove(ctx->state->installed, n);
-        addon = NULL; // Do not use addon from this point. It should be destroyed.
+        addon = NULL; /* Do not use addon from this point. It should be destroyed. */
     }
 
     return 0;
@@ -497,7 +497,7 @@ int cmd_update(Context *ctx, int argc, const char *argv[], FILE *stream)
     }
 
     if (argc == 1) {
-        // Update all installed addons.
+        /* Update all installed addons. */
         ListNode *node = NULL;
         list_foreach(node, ctx->state->installed)
         {
@@ -505,7 +505,7 @@ int cmd_update(Context *ctx, int argc, const char *argv[], FILE *stream)
             list_insert(addons, addon_dup(a));
         }
     } else {
-        // Only update the addons that are in args.
+        /* Only update the addons that are in args. */
         for (int i = 1; i < argc; i++) {
             ListNode *found = list_search(ctx->state->installed, argv[i], cmp_str_to_addon);
             if (!found) {
@@ -565,9 +565,9 @@ cleanup:
 
 int cmd_upgrade(Context *ctx, int argc, const char *argv[], FILE *stream)
 {
-    // TODO: If an addon successfully installs/upgrades but another addon
-    // errors, the app state will not be saved for next session even though
-    // files may have already been deleted/moved from/to user's addon folder.
+    /* TODO: If an addon successfully installs/upgrades but another addon errors,
+     * the app state will not be saved for next session even though files may
+     * have already been deleted/moved from/to user's addon folder. */
 
     if (argc < 1) {
         PRINT_ERROR1(CMD_EINVALID_ARGS_STR);
@@ -584,7 +584,7 @@ int cmd_upgrade(Context *ctx, int argc, const char *argv[], FILE *stream)
     }
 
     if (argc == 1) {
-        // Upgrade all outdated addons.
+        /* Upgrade all outdated addons. */
         ListNode *node = NULL;
         list_foreach(node, ctx->state->installed)
         {
@@ -604,7 +604,7 @@ int cmd_upgrade(Context *ctx, int argc, const char *argv[], FILE *stream)
             }
         }
     } else {
-        // Only upgrade the addons that are in args.
+        /* Only upgrade the addons that are in args. */
         for (int i = 1; i < argc; i++) {
             ListNode *found_installed = list_search(ctx->state->installed, argv[i], cmp_str_to_addon);
             if (!found_installed) {

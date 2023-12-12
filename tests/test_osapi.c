@@ -99,8 +99,8 @@ static void test_os_readdir(void)
 
     assert(dir != NULL);
 
-    // Since order is not gauranteed from os_readdir we just look that every
-    // entry in expect appeared exactly once.
+    /* Since order is not gauranteed from os_readdir we just look that every
+     * entry in expect appeared exactly once. */
     while ((entry = os_readdir(dir)) != NULL) {
         char *actual = entry->name;
         bool found = false;
@@ -152,7 +152,7 @@ static void test_os_mkstemp(void)
     FILE *ftemp = os_mkstemp(template);
     assert(ftemp != NULL);
     assert(strncmp(template, prefix, strlen(prefix)) == 0);
-    assert(strlen(template) == strlen(prefix) + 6); // 6 is number of 'X' in template.
+    assert(strlen(template) == strlen(prefix) + 6); /* 6 is number of 'X' in template. */
 
     struct os_stat s;
     assert(os_stat(template, &s) == 0);
@@ -173,7 +173,7 @@ static void test_os_mkstemps(void)
     assert(ftemp != NULL);
     assert(strncmp(template, prefix, strlen(prefix)) == 0);
     assert(strncmp(&template[strlen(prefix) + 6], suffix, strlen(suffix)) == 0);
-    assert(strlen(template) == strlen(prefix) + 6 + strlen(suffix)); // 6 is number of 'X' in template.
+    assert(strlen(template) == strlen(prefix) + 6 + strlen(suffix)); /* 6 is number of 'X' in template. */
 
     struct os_stat s;
     assert(os_stat(template, &s) == 0);
@@ -194,7 +194,7 @@ static void test_os_mkstemps_suffixlen_too_large(void)
     assert(ftemp == NULL);
     assert(errno == EINVAL);
     assert(strncmp(template, prefix, strlen(prefix)) == 0);
-    assert(strncmp(&template[strlen(prefix)], "XXXXXX", 6) == 0); // 6 is number of 'X' in template.
+    assert(strncmp(&template[strlen(prefix)], "XXXXXX", 6) == 0); /* 6 is number of 'X' in template. */
     assert(strncmp(&template[strlen(prefix) + 6], suffix, strlen(suffix)) == 0);
     assert(strlen(template) == strlen(prefix) + 6 + strlen(suffix));
 
@@ -231,17 +231,17 @@ static void test_os_rename_dir(void)
 
     assert(strcmp(oldpath, newpath) != 0);
 
-    // Create a path to a text file in the old directory.
+    /* Create a path to a text file in the old directory. */
     char old_txt_path[OS_MAX_PATH];
     int n = snprintf(old_txt_path, ARRAY_SIZE(old_txt_path), "%s%c%s", oldpath, OS_SEPARATOR, "test.txt");
     assert(n > 0 && (size_t)n < ARRAY_SIZE(old_txt_path));
 
-    // Where we expect the text file to end up.
+    /* Where we expect the text file to end up. */
     char new_txt_path[OS_MAX_PATH];
     n = snprintf(new_txt_path, ARRAY_SIZE(new_txt_path), "%s%c%s", newpath, OS_SEPARATOR, "test.txt");
     assert(n > 0 && (size_t)n < ARRAY_SIZE(new_txt_path));
 
-    // Create a text file in the old directory with some data.
+    /* Create a text file in the old directory with some data. */
     FILE *ftxt = fopen(old_txt_path, "wb");
     assert(ftxt != NULL);
     assert(fwrite(txt_data, sizeof(*txt_data), ARRAY_SIZE(txt_data), ftxt) == ARRAY_SIZE(txt_data));
@@ -249,7 +249,7 @@ static void test_os_rename_dir(void)
 
     assert(os_rename(oldpath, newpath) == 0);
 
-    // Check that everything from the old path got moved to the new path.
+    /* Check that everything from the old path got moved to the new path. */
     struct os_stat s;
     assert(os_stat(newpath, &s) == 0);
     assert(S_ISDIR(s.st_mode));
@@ -261,9 +261,9 @@ static void test_os_rename_dir(void)
 
     char buf[BUFSIZ];
     assert(fread(buf, sizeof(*buf), ARRAY_SIZE(buf), ftxt) == ARRAY_SIZE(txt_data));
-    assert(strcmp(buf, txt_data) == 0); // Terminating NULL is included in ARRAY_SIZE(txt_data).
+    assert(strcmp(buf, txt_data) == 0); /* Terminating NULL is included in ARRAY_SIZE(txt_data). */
 
-    // Make sure old path no longer exists.
+    /* Make sure old path no longer exists. */
     assert(os_stat(oldpath, &s) != 0);
 
     fclose(ftxt);
@@ -324,7 +324,7 @@ static void test_os_rename_file_replace(void)
     char buf[BUFSIZ];
     fnew = fopen(newpath, "rb");
     assert(fread(buf, sizeof(*buf), ARRAY_SIZE(buf), fnew) == ARRAY_SIZE(test_data));
-    assert(strcmp(buf, test_data) == 0); // Terminating NULL is included in ARRAY_SIZE(test_data).
+    assert(strcmp(buf, test_data) == 0); /* Terminating NULL is included in ARRAY_SIZE(test_data). */
 
     fclose(fnew);
     remove(newpath);

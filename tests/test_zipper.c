@@ -84,7 +84,7 @@ static void test_zipper_unzip(const char *outpath)
 
 int main(void)
 {
-    // Ensure previous runs don't affect this run.
+    /* Ensure previous runs don't affect this run. */
     os_remove_all(WOWPKG_TEST_TMPDIR "test_tmp/");
 
     test_zipper_unzip(WOWPKG_TEST_TMPDIR "test_tmp");

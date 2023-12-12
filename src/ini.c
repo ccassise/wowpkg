@@ -68,10 +68,10 @@ static int parse_text(INI *ini, char *buf, size_t n, char terminating_ch)
     }
 
     size_t nwrote = 0;
-    size_t text_end = 0; // one past the last non-whitespace character.
+    size_t text_end = 0; /* one past the last non-whitespace character. */
     while (ini_getc(ini) != EOF && ini->_ch != terminating_ch) {
-        // Reached end of line before reaching terminating character. Since
-        // multiline anything is not supported this is surely an error.
+        /* Reached end of line before reaching terminating character. Since
+         * multiline anything is not supported this is surely an error. */
         if (ini->_ch == '\n') {
             return -1;
         } else if (ini->_ch == '\r') {
@@ -90,7 +90,7 @@ static int parse_text(INI *ini, char *buf, size_t n, char terminating_ch)
         }
     }
 
-    // Trim ending whitespace and subtract it from result.
+    /* Trim ending whitespace and subtract it from result. */
     if (text_end < n) {
         buf[text_end] = '\0';
         nwrote = text_end;
@@ -137,14 +137,14 @@ void ini_close(INI *ini)
 
 INIKey *ini_readkey(INI *ini)
 {
-    // Finding new key so reset old.
+    /* Finding new key so reset old. */
     ini->_key.name[0] = '\0';
     ini->_key.value[0] = '\0';
 
     while (1) {
-        // Each iteration of this loop should parse an entire line. At the end
-        // of the loop iteration the next read character in stream will either
-        // be the beginning of the line or EOF.
+        /* Each iteration of this loop should parse an entire line. At the end of
+         * the loop iteration the next read character in stream will either be
+         * the beginning of the line or EOF. */
 
         ini->_row++;
         ini->_col = 0;
@@ -172,12 +172,12 @@ INIKey *ini_readkey(INI *ini)
             }
 
             skip_space(ini);
-            ini_getc(ini); // Discard newline.
+            ini_getc(ini); /* Discard newline. */
 
             break;
         default:
-            // parse_text expects the start of the name but the first character
-            // was already read for the switch statement.
+            /* parse_text expects the start of the name but the first character
+             * was already read for the switch statement. */
             ini_ungetc(ini);
 
             n = parse_text(ini, ini->_key.name, INI_MAX_PROP, '=');
@@ -201,14 +201,14 @@ INIKey *ini_readkey(INI *ini)
             }
         }
 
-        // Check this before EOF because the file may not have a newline at end
-        // of file.
+        /* Check this before EOF because the file may not have a newline at end
+         * of file. */
         if (ini->_key.name[0] != '\0' || ini->_key.value[0] != '\0') {
             break;
         }
 
         if (ini->_ch == EOF) {
-            ini->_err = INI_EEOF;
+            ini->_err = INI_OK;
             return NULL;
         }
     }

@@ -2,6 +2,7 @@
 
 typedef struct Config {
     char *addons_path;
+    char *github_token;
 } Config;
 
 Config *config_create(void);
