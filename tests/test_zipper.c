@@ -106,6 +106,8 @@ static void test_zipper_unzip_buf(const char *outpath)
 
     assert(zipper_extract_buf(buf, buf_size, outpath) == ZIPPER_OK);
 
+    free(buf);
+
     OsDir *dir = os_opendir(outpath);
     assert(dir != NULL);
 

@@ -1,6 +1,6 @@
 #pragma once
 
-#include <stdio.h>
+#include <stdint.h>
 
 #include <cjson/cJSON.h>
 
