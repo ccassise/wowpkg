@@ -37,6 +37,7 @@
 #define os_rmdir _rmdir
 #define os_getcwd _getcwd
 #define os_chdir _chdir
+#define os_getcwd _getcwd
 
 typedef unsigned short mode_t;
 
@@ -54,6 +55,7 @@ typedef unsigned short mode_t;
 #define os_rmdir rmdir
 #define os_getcwd getcwd
 #define os_chdir chdir
+#define os_getcwd getcwd
 
 #endif
 

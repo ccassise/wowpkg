@@ -573,7 +573,7 @@ int addon_package(Addon *a)
         return ADDON_EINTERNAL;
     }
 
-    if (zipper_unzip(a->_zip_path, tmpdir) != 0) {
+    if (zipper_unzip(a->_zip_path, tmpdir) != ZIPPER_OK) {
         return ADDON_EUNZIP;
     }
 
