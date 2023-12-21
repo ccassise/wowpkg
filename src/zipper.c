@@ -20,7 +20,6 @@ static int copy_data(struct archive *reader, struct archive *writer)
             return ZIPPER_OK;
         } else if (err != ARCHIVE_OK) {
             return ZIPPER_EREAD;
-            ;
         }
 
         err = archive_write_data_block(writer, buf, size, offset);
@@ -29,7 +28,7 @@ static int copy_data(struct archive *reader, struct archive *writer)
         }
     }
 
-    return err;
+    return (int)err;
 }
 
 int zipper_unzip(const char *src, const char *dest)

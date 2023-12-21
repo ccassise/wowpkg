@@ -18,7 +18,7 @@ set(WOWPKG_C_STANDARD 11)
 
 option(WOWPKG_ENABLE_SANITIZERS "Build with or without sanitizers" OFF)
 option(WOWPKG_ENABLE_TESTS "Build tests" OFF)
-option(WOWPKG_ENABLE_INTEGRATION_TESTS "Build integration tests" OFF)
+option(WOWPKG_ENABLE_TESTS_INTEGRATION "Build integration tests" OFF)
 option(WOWPKG_USE_DEVELOPMENT_PATHS "Determines what paths will be used to find some files" OFF)
 
 # Compiler flags that enable warnings.
@@ -83,25 +83,24 @@ else()
 
         -Wall
         -Wextra
-        -Wshadow
-        -Wdouble-promotion
-        -Wconversion
         -Wpedantic
         -Wcast-align
-        -Wstrict-prototypes
-
-        -Wwrite-strings
-        -Winit-self
-        -Wformat=2
-        -Wstrict-overflow=2
         -Wcast-qual
-        -Wundef
-        -Wswitch-default
-        -fstack-protector-strong
+        -Wconversion
+        -Wdouble-promotion
+        -Wformat=2
+        -Winit-self
         -Wparentheses
-        -Wunused-macros
-        -Wswitch-enum
+        -Wshadow
         -Wstrict-aliasing
+        -Wstrict-overflow=2
+        -Wstrict-prototypes
+        -Wswitch-default
+        -Wswitch-enum
+        -Wundef
+        -Wunused-macros
+        -Wwrite-strings
+        -fstack-protector-strong
     )
 endif()
 
@@ -115,13 +114,13 @@ if (WOWPKG_ENABLE_SANITIZERS)
         set(
             SANFLAGS
 
-            -fsanitize=address
-            -fsanitize=undefined
-            -fsanitize=float-divide-by-zero
-            -fsanitize=float-cast-overflow
             -fno-sanitize-recover=all
-            -fno-sanitize=null
             -fno-sanitize=alignment
+            -fno-sanitize=null
+            -fsanitize=address
+            -fsanitize=float-cast-overflow
+            -fsanitize=float-divide-by-zero
+            -fsanitize=undefined
         )
 
         set (WFLAGS ${WFLAGS} ${SANFLAGS})
@@ -163,7 +162,8 @@ if (WOWPKG_ENABLE_TESTS)
     message(STATUS "[${PROJECT_NAME}] enabling tests")
     add_subdirectory(tests)
 
-    if (WOWPKG_ENABLE_INTEGRATION_TESTS)
+    if (WOWPKG_ENABLE_TESTS_INTEGRATION)
+        message(STATUS "[${PROJECT_NAME}] enabling integration tests")
         add_subdirectory(tests/integration)
     endif()
 endif()

@@ -97,10 +97,7 @@ static int cmp_addon(const void *a, const void *b)
  */
 static int cmp_str_to_addon(const void *str, const void *addon)
 {
-    const char *s = str;
-    const Addon *a = addon;
-
-    return strcasecmp(s, a->name);
+    return strcasecmp((const char *)str, ((const Addon *)addon)->name);
 }
 
 int cmd_help(Context *ctx, int argc, const char *argv[], FILE *stream)
@@ -213,7 +210,7 @@ int cmd_install(Context *ctx, int argc, const char *argv[], FILE *stream)
             goto loop_error;
         } else if (err == ADDON_ERATE_LIMIT) {
             PRINT_ERROR2(CMD_ERATE_LIMIT_STR, argv[i]);
-            err = 0;
+            err = -1;
             goto loop_error;
         } else if (err != ADDON_OK) {
             PRINT_ERROR3(CMD_EMETADATA_STR, argv[0], argv[i]);
@@ -532,7 +529,7 @@ int cmd_update(Context *ctx, int argc, const char *argv[], FILE *stream)
             continue;
         } else if (err == ADDON_ERATE_LIMIT) {
             PRINT_ERROR2(CMD_ERATE_LIMIT_STR, addon->name);
-            err = 0;
+            err = -1;
             continue;
         } else if (err != ADDON_OK) {
             PRINT_ERROR3(CMD_EMETADATA_STR, argv[0], addon->name);

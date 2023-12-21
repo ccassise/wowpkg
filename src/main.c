@@ -196,16 +196,16 @@ static int perform_first_time_setup(const char *user_path, const char *saved_fil
         PRINT_ERROR("%s\n", strerror(errno));
         err = -1;
     }
-    const char config_default[] = ("[Config]\n"
-                                   "\n"
-                                   "[Retail]\n"
-                                   "; Absolute path the the World of Warcraft AddOns directory.\n"
-                                   ";\n"
-                                   "; Windows example:\n"
-                                   "addons_path = C:\\Program Files (x86)\\World of Warcraft\\_retail_\\Interface\\AddOns\n"
-                                   "\n"
-                                   "; macOS example:\n"
-                                   "; addons_path = /Applications/World of Warcraft/_retail_/Interface/AddOns\n");
+    const char config_default[] = "[Config]\n"
+                                  "\n"
+                                  "[Retail]\n"
+                                  "; Absolute path the the World of Warcraft AddOns directory.\n"
+                                  ";\n"
+                                  "; Windows example:\n"
+                                  "addons_path = C:\\Program Files (x86)\\World of Warcraft\\_retail_\\Interface\\AddOns\n"
+                                  "\n"
+                                  "; macOS example:\n"
+                                  "; addons_path = /Applications/World of Warcraft/_retail_/Interface/AddOns\n";
     if (fwrite(config_default, sizeof(config_default) - 1, 1, fconfig) != 1) {
         PRINT_ERROR("failed to perform first time setup\n");
         remove(config_file_path);
