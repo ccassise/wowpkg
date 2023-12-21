@@ -33,11 +33,12 @@
 #define S_ISREG(mode) (((mode) & S_IFMT) == S_IFREG)
 #endif
 
-#define os_stat _stat
-#define os_rmdir _rmdir
-#define os_getcwd _getcwd
 #define os_chdir _chdir
 #define os_getcwd _getcwd
+#define os_rmdir _rmdir
+#define os_stat _stat
+#define pclose _pclose
+#define popen _popen
 
 typedef unsigned short mode_t;
 
@@ -51,11 +52,11 @@ typedef unsigned short mode_t;
 
 #define OS_IS_SEP(c) ((c) == OS_VALID_SEPARATORS[0])
 
-#define os_stat stat
-#define os_rmdir rmdir
-#define os_getcwd getcwd
 #define os_chdir chdir
 #define os_getcwd getcwd
+#define os_getcwd getcwd
+#define os_rmdir rmdir
+#define os_stat stat
 
 #endif
 

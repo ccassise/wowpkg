@@ -7,6 +7,7 @@
 #include "appstate.h"
 #include "list.h"
 #include "osapi.h"
+#include "osstring.h"
 #include "wowpkg.h"
 
 static bool is_addons_dir_empty(void)
@@ -300,6 +301,13 @@ teardown:
 
 int main(void)
 {
+    if (!is_addons_dir_empty()) {
+        fprintf(stderr, "Test pre-requisite failed: addons directory should be ");
+        fprintf(stderr, "empty and `wowpkg list` should output nothing in order ");
+        fprintf(stderr, "for integration tests to pass\n");
+        exit(1);
+    }
+
     test_install_single();
     test_install_multiple();
     // test_stress();
