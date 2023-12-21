@@ -21,9 +21,13 @@ enum {
  *
  * ERRORS:
  *  ENAMETOOLONG    Destination path is greater than OS_MAX_PATH.
- *  ENOENT          Either source archive does not exists or is not valid or
- *                    destination path does not exist.
+ *
+ *  ENOENT          Source archive does not exist or is not a valid archive.
+ *
+ *  ENOENT          Destination path does not exist.
+ *
  *  ZIPPER_EREAD    Error when trying to read the source archive.
+ *
  *  ZIPPER_EWRITE   Error when trying to extract archive to destination path.
  */
 int zipper_extract(const char *src, const char *dest);

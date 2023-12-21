@@ -27,6 +27,7 @@ typedef struct Addon {
     char *version;
     List *dirs;
 
+    /* TODO: This should be given a path when the addon is created. */
     char *_package_path;
 
     uint8_t *_zip;

@@ -95,8 +95,10 @@ static void test_zipper_unzip_buf(const char *outpath)
     size_t buf_size = (size_t)fzip_size;
     uint8_t *buf = malloc(sizeof(*buf) * buf_size);
     assert(buf != NULL);
-    assert(fseek(fzip, 0, SEEK_SET) == 0);
+    rewind(fzip);
     assert(fread(buf, buf_size, 1, fzip) > 0);
+
+    fclose(fzip);
 
     assert(zipper_extract_buf(buf, buf_size, outpath) == ZIPPER_ENOENT);
 
