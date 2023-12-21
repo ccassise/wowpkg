@@ -65,7 +65,7 @@ static void test_cmd_list(void)
     assert(strcmp(actual, "a_test_name (v1.2.3)\nb_test_name (v4.5.6)\nc_test_name (v7.8.9)\n") == 0);
 
     fclose(stream);
-    appstate_free(ctx.state);
+    appstate_destroy(ctx.state);
     free(actual);
 }
 
@@ -165,8 +165,8 @@ static void test_cmd_remove(void)
     assert(os_stat(outdir_test_b, &s) != 0);
     assert(os_stat(outdir_test_c, &s) != 0);
 
-    appstate_free(ctx.state);
-    config_free(ctx.config);
+    appstate_destroy(ctx.state);
+    config_destroy(ctx.config);
     os_remove_all(outdir);
 }
 
@@ -223,7 +223,7 @@ static void test_cmd_outdated(void)
 
     fclose(stream);
     free(actual);
-    appstate_free(ctx.state);
+    appstate_destroy(ctx.state);
 }
 
 static void test_cmd_info(void)
@@ -293,7 +293,7 @@ static void test_cmd_info(void)
 
     assert(fgets(actual, (int)actual_len + 1, stream) == NULL);
 
-    appstate_free(ctx.state);
+    appstate_destroy(ctx.state);
     fclose(stream);
     free(actual);
 }

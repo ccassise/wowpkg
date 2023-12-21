@@ -14,7 +14,7 @@ Config *config_create(void)
     return result;
 }
 
-void config_free(Config *cfg)
+void config_destroy(Config *cfg)
 {
     if (cfg == NULL) {
         return;

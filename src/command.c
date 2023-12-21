@@ -165,7 +165,7 @@ int cmd_info(Context *ctx, int argc, const char *argv[], FILE *stream)
         }
 
     cleanup:
-        addon_free(addon);
+        addon_destroy(addon);
     }
 
     return 0;
@@ -229,7 +229,7 @@ int cmd_install(Context *ctx, int argc, const char *argv[], FILE *stream)
 
         continue;
     loop_error:
-        addon_free(addon);
+        addon_destroy(addon);
         if (err != 0) {
             goto cleanup;
         }
@@ -296,10 +296,10 @@ cleanup:
      * transferred to appstate. However if there was an error then ownership may
      * not have been transferred and need to be cleaned up. */
     if (err != 0) {
-        list_set_free_fn(addons, (ListFreeFn)addon_free);
+        list_set_free_fn(addons, (ListFreeFn)addon_destroy);
     }
 
-    list_free(addons);
+    list_destroy(addons);
 
     curl_global_cleanup();
 
@@ -472,7 +472,7 @@ int cmd_search(Context *ctx, int argc, const char *argv[], FILE *stream)
 cleanup:
     os_closedir(dir);
 
-    list_free(found);
+    list_destroy(found);
 
     return err;
 }
@@ -551,9 +551,9 @@ int cmd_update(Context *ctx, int argc, const char *argv[], FILE *stream)
 
 cleanup:
     if (err != 0) {
-        list_set_free_fn(addons, (ListFreeFn)addon_free);
+        list_set_free_fn(addons, (ListFreeFn)addon_destroy);
     }
-    list_free(addons);
+    list_destroy(addons);
 
     curl_global_cleanup();
 
@@ -697,10 +697,10 @@ int cmd_upgrade(Context *ctx, int argc, const char *argv[], FILE *stream)
 
 cleanup:
     if (err != 0) {
-        list_set_free_fn(addons, (ListFreeFn)addon_free);
+        list_set_free_fn(addons, (ListFreeFn)addon_destroy);
     }
 
-    list_free(addons);
+    list_destroy(addons);
 
     curl_global_cleanup();
 

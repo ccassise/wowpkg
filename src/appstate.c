@@ -19,32 +19,32 @@ AppState *appstate_create(void)
 
         if (result->installed == NULL || result->latest == NULL) {
             if (result->installed != NULL) {
-                list_free(result->installed);
+                list_destroy(result->installed);
             }
 
             if (result->latest != NULL) {
-                list_free(result->latest);
+                list_destroy(result->latest);
             }
 
             free(result);
             result = NULL;
         } else {
-            list_set_free_fn(result->installed, (ListFreeFn)addon_free);
-            list_set_free_fn(result->latest, (ListFreeFn)addon_free);
+            list_set_free_fn(result->installed, (ListFreeFn)addon_destroy);
+            list_set_free_fn(result->latest, (ListFreeFn)addon_destroy);
         }
     }
 
     return result;
 }
 
-void appstate_free(AppState *state)
+void appstate_destroy(AppState *state)
 {
     if (state == NULL) {
         return;
     }
 
-    list_free(state->installed);
-    list_free(state->latest);
+    list_destroy(state->installed);
+    list_destroy(state->latest);
     free(state);
 }
 

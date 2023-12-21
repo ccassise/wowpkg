@@ -28,7 +28,7 @@ static void test_list_insert(void)
 
     assert(actual == NULL);
 
-    list_free(l);
+    list_destroy(l);
 }
 
 static void test_list_remove(void)
@@ -95,7 +95,7 @@ static void test_list_remove(void)
     assert(list_len(l) == 0);
     assert(list_isempty(l));
 
-    list_free(l);
+    list_destroy(l);
 }
 
 static void test_list_search(void)
@@ -128,7 +128,7 @@ static void test_list_search(void)
     node = list_search_ptr(l, should_not_find);
     assert(node == NULL);
 
-    list_free(l);
+    list_destroy(l);
 }
 
 static void test_list_foreach(void)
@@ -154,7 +154,7 @@ static void test_list_foreach(void)
 
     assert(i == 3);
 
-    list_free(l);
+    list_destroy(l);
 }
 
 static void test_list_free_fn(void)
@@ -174,7 +174,7 @@ static void test_list_free_fn(void)
     list_insert(l, str4);
     list_insert(l, str5);
 
-    list_free(l);
+    list_destroy(l);
 }
 
 static int intcmp(const void *a, const void *b)
@@ -213,7 +213,7 @@ static void test_list_sort(void)
 
     assert(i == 8);
 
-    list_free(l);
+    list_destroy(l);
 }
 
 int main(void)

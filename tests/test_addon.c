@@ -24,8 +24,8 @@ static void test_addon_dup(void)
     assert(strcmp(actual->version, "v1.2.3") == 0);
     assert(list_isempty(actual->dirs));
 
-    addon_free(expect);
-    addon_free(actual);
+    addon_destroy(expect);
+    addon_destroy(actual);
 }
 
 static void test_addon_from_json(void)
@@ -59,7 +59,7 @@ static void test_addon_from_json(void)
     assert(strcmp("dir_1", node->value) == 0);
 
     cJSON_Delete(json);
-    addon_free(actual);
+    addon_destroy(actual);
 }
 
 static void test_addon_from_json_partial(void)
@@ -84,7 +84,7 @@ static void test_addon_from_json_partial(void)
     assert(list_isempty(actual->dirs));
 
     cJSON_Delete(json);
-    addon_free(actual);
+    addon_destroy(actual);
 }
 
 static void test_addon_from_json_overwrite(void)
@@ -103,7 +103,7 @@ static void test_addon_from_json_overwrite(void)
     assert(strcmp(actual->name, "test_name") == 0);
 
     cJSON_Delete(json);
-    addon_free(actual);
+    addon_destroy(actual);
 }
 
 static void test_addon_to_json(void)
@@ -146,7 +146,7 @@ static void test_addon_to_json(void)
 
     free(json_str);
     cJSON_Delete(json);
-    addon_free(addon);
+    addon_destroy(addon);
 }
 
 void test_addon_metadata_from_catalog(void)
@@ -162,7 +162,7 @@ void test_addon_metadata_from_catalog(void)
     assert(addon->dirs != NULL);
     assert(list_isempty(addon->dirs));
 
-    addon_free(addon);
+    addon_destroy(addon);
 }
 
 int main(void)

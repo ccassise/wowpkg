@@ -12,7 +12,7 @@
 
 typedef struct Response {
     size_t size;
-    char *data;
+    uint8_t *data;
 } Response;
 
 static size_t write_str_cb(void *restrict data, size_t size, size_t nmemb, void *restrict userdata)
@@ -20,7 +20,7 @@ static size_t write_str_cb(void *restrict data, size_t size, size_t nmemb, void 
     size_t realsize = size * nmemb;
     Response *res = userdata;
 
-    char *ptr = realloc(res->data, res->size + realsize + 1);
+    uint8_t *ptr = realloc(res->data, res->size + realsize + 1);
     if (ptr == NULL) {
         return 0;
     }
@@ -79,7 +79,7 @@ Addon *addon_create(void)
     return result;
 }
 
-void addon_free(Addon *a)
+void addon_destroy(Addon *a)
 {
     if (a == NULL) {
         return;
@@ -89,7 +89,8 @@ void addon_free(Addon *a)
     free(a->desc);
     free(a->url);
     free(a->version);
-    list_free(a->dirs);
+    free(a->_zip);
+    list_destroy(a->dirs);
     addon_cleanup_files(a);
 
     free(a);
@@ -204,12 +205,6 @@ static int snfind_catalog_path(char *restrict s, size_t n, const char *restrict 
 
 void addon_cleanup_files(Addon *a)
 {
-    if (a->_zip_path != NULL) {
-        remove(a->_zip_path);
-        free(a->_zip_path);
-        a->_zip_path = NULL;
-    }
-
     if (a->_package_path != NULL) {
         os_remove_all(a->_package_path);
         free(a->_package_path);
@@ -401,7 +396,7 @@ cJSON *addon_fetch_github_meta(const char *url, int *out_err)
         goto cleanup;
     }
 
-    resp = cJSON_Parse(res.data);
+    resp = cJSON_Parse((char *)res.data);
     if (resp == NULL) {
         err = ADDON_EINTERNAL;
         goto cleanup;
@@ -522,29 +517,8 @@ int addon_fetch_zip(Addon *a)
         res.size--; /* Remove terminating null since this should be raw data. */
     }
 
-    const char *zip_ext = ".zip";
-    char zippath[OS_MAX_PATH];
-
-    /* Creates a string with a value
-     * 'path/to/temp/wowpkg_<addon_name>_<addon_version>_XXXXXX.zip'. */
-    int nwrote = snprintf(zippath, ARRAY_SIZE(zippath), "%s%c%s_%s_%s_XXXXXX%s", os_tempdir(), OS_SEPARATOR, WOWPKG_NAME, a->name, a->version, zip_ext);
-    if (nwrote < 0 || (size_t)nwrote >= ARRAY_SIZE(zippath)) {
-        err = ADDON_ENAMETOOLONG;
-        goto cleanup;
-    }
-
-    fzip = os_mkstemps(zippath, (int)strlen(zip_ext));
-    if (fzip == NULL) {
-        err = ADDON_EINTERNAL;
-        goto cleanup;
-    }
-
-    if (fwrite(res.data, sizeof(*res.data), res.size, fzip) != res.size) {
-        err = ADDON_EINTERNAL;
-        goto cleanup;
-    }
-
-    addon_set_str(&a->_zip_path, strdup(zippath));
+    a->_zip = res.data; /* Transfer ownership to addon. */
+    a->_zip_size = res.size;
 
 cleanup:
     if (fzip != NULL) {
@@ -553,7 +527,6 @@ cleanup:
 
     curl_slist_free_all(headers);
     curl_easy_cleanup(curl);
-    free(res.data);
 
     return err;
 }
@@ -573,7 +546,7 @@ int addon_package(Addon *a)
         return ADDON_EINTERNAL;
     }
 
-    if (zipper_unzip(a->_zip_path, tmpdir) != ZIPPER_OK) {
+    if (zipper_extract_buf(a->_zip, a->_zip_size, tmpdir) != ZIPPER_OK) {
         return ADDON_EUNZIP;
     }
 

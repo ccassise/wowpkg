@@ -118,7 +118,7 @@ static void test_upgrade_single(void)
         addon_set_str(&addon->version, strdup("0"));
     }
     assert(appstate_save(state, WOWPKG_USER_FILE_DIR "/saved.wowpkg") == APPSTATE_OK);
-    appstate_free(state);
+    appstate_destroy(state);
 
     /* Check that `outdated` gives expected output. */
     FILE *fpout = popen(WOWPKG_EXEC_PATH " outdated", "r");
@@ -163,7 +163,7 @@ static void test_upgrade_all(void)
         addon_set_str(&addon->version, strdup("0"));
     }
     assert(appstate_save(state, WOWPKG_USER_FILE_DIR "/saved.wowpkg") == APPSTATE_OK);
-    appstate_free(state);
+    appstate_destroy(state);
 
     /* Check that `outdated` gives expected output. */
     FILE *fpout = popen(WOWPKG_EXEC_PATH " outdated", "r");
@@ -209,7 +209,7 @@ void test_update_single(void)
         }
     }
     assert(appstate_save(state, WOWPKG_USER_FILE_DIR "/saved.wowpkg") == APPSTATE_OK);
-    appstate_free(state);
+    appstate_destroy(state);
 
     /* Only update a single addon. */
     assert(system(WOWPKG_EXEC_PATH " update weakauras") == 0);
@@ -246,7 +246,7 @@ void test_update_all(void)
         addon_set_str(&addon->version, strdup("0"));
     }
     assert(appstate_save(state, WOWPKG_USER_FILE_DIR "/saved.wowpkg") == APPSTATE_OK);
-    appstate_free(state);
+    appstate_destroy(state);
 
     /* Only update a single addon. */
     assert(system(WOWPKG_EXEC_PATH " update") == 0);

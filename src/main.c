@@ -357,8 +357,8 @@ int main(int argc, const char *argv[])
     }
 
 cleanup:
-    config_free(ctx.config);
-    appstate_free(ctx.state);
+    config_destroy(ctx.config);
+    appstate_destroy(ctx.state);
 
     return err == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
 }

@@ -27,8 +27,10 @@ typedef struct Addon {
     char *version;
     List *dirs;
 
-    char *_zip_path;
     char *_package_path;
+
+    uint8_t *_zip;
+    size_t _zip_size;
 } Addon;
 
 #define ADDON_NAME "name"
@@ -46,14 +48,14 @@ Addon *addon_create(void);
  * Passing a NULL pointer will make this function return immediately with no
  * action.
  */
-void addon_free(Addon *a);
+void addon_destroy(Addon *a);
 
 /**
  * Deletes all files that addon currently has a handle to. If files were
  * extracted with addon_extract then those files will not be deleted.
  *
- * NOTE: This function is called implicitly by addon_free. Calling it after
- * addon_free does nothing.
+ * NOTE: This function is called implicitly by addon_destroy. Calling it after
+ * addon_destroy does nothing.
  */
 void addon_cleanup_files(Addon *a);
 

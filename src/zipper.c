@@ -32,12 +32,8 @@ static int copy_data(struct archive *reader, struct archive *writer)
     return (int)err;
 }
 
-int zipper_unzip(const char *src, const char *dest)
+static int zipper_extract_helper(struct archive *a, const char *dest)
 {
-    if (src == NULL || dest == NULL) {
-        return ZIPPER_ENOENT;
-    }
-
     char pwd[OS_MAX_PATH];
     if (os_getcwd(pwd, ARRAY_SIZE(pwd)) == NULL) {
         if (errno == ENAMETOOLONG) {
@@ -46,7 +42,6 @@ int zipper_unzip(const char *src, const char *dest)
         return ZIPPER_ENOENT;
     }
 
-    struct archive *a;
     struct archive *ext;
     struct archive_entry *entry;
 
@@ -60,16 +55,9 @@ int zipper_unzip(const char *src, const char *dest)
     flags |= ARCHIVE_EXTRACT_SECURE_SYMLINKS;
     flags |= ARCHIVE_EXTRACT_TIME;
 
-    a = archive_read_new();
-    archive_read_support_format_all(a);
-    archive_read_support_filter_all(a);
     ext = archive_write_disk_new();
     archive_write_disk_set_options(ext, flags);
     archive_write_disk_set_standard_lookup(ext);
-    if ((err = archive_read_open_filename(a, src, BUFSIZ)) != ARCHIVE_OK) {
-        err = ZIPPER_ENOENT;
-        goto cleanup;
-    }
 
     /* Change directory to dest so that libarchive will extract to it. */
     if (os_chdir(dest) != 0) {
@@ -107,9 +95,57 @@ int zipper_unzip(const char *src, const char *dest)
 
 cleanup:
     os_chdir(pwd);
-    archive_read_close(a);
-    archive_read_free(a);
     archive_write_close(ext);
     archive_write_free(ext);
+    return err;
+}
+
+int zipper_extract(const char *src, const char *dest)
+{
+    if (src == NULL || dest == NULL) {
+        return ZIPPER_ENOENT;
+    }
+
+    int err = ZIPPER_OK;
+    struct archive *a;
+
+    a = archive_read_new();
+    archive_read_support_format_all(a);
+    archive_read_support_filter_all(a);
+    if (archive_read_open_filename(a, src, BUFSIZ) != ARCHIVE_OK) {
+        err = ZIPPER_ENOENT;
+        goto cleanup;
+    }
+
+    err = zipper_extract_helper(a, dest);
+
+cleanup:
+    archive_read_close(a);
+    archive_read_free(a);
+    return err;
+}
+
+int zipper_extract_buf(const void *buf, size_t buf_size, const char *dest)
+{
+    if (dest == NULL) {
+        return ZIPPER_ENOENT;
+    }
+
+    int err = ZIPPER_OK;
+    struct archive *a;
+
+    a = archive_read_new();
+    archive_read_support_format_all(a);
+    archive_read_support_filter_all(a);
+    if (archive_read_open_memory(a, buf, buf_size) != ARCHIVE_OK) {
+        err = ZIPPER_ENOENT;
+        goto cleanup;
+    }
+
+    err = zipper_extract_helper(a, dest);
+
+cleanup:
+    archive_read_close(a);
+    archive_read_free(a);
     return err;
 }

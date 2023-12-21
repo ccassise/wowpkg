@@ -101,7 +101,7 @@ static void test_appstate_from_json(void)
 
     assert(node->next == NULL);
 
-    appstate_free(state);
+    appstate_destroy(state);
 }
 
 static void test_appstate_to_json(void)
@@ -171,7 +171,7 @@ static void test_appstate_to_json(void)
     assert(strcmp(node->value, "test_dirs_installed_one_1") == 0);
     node = node->next;
     assert(node == NULL);
-    addon_free(addon);
+    addon_destroy(addon);
 
     addon_json = cJSON_GetArrayItem(installed, 1);
     assert(addon_json != NULL);
@@ -183,7 +183,7 @@ static void test_appstate_to_json(void)
     assert(strcmp(addon->version, "test_version_installed_two") == 0);
     node = addon->dirs->head;
     assert(node == NULL);
-    addon_free(addon);
+    addon_destroy(addon);
 
     addon_json = cJSON_GetArrayItem(latest, 0);
     assert(addon_json != NULL);
@@ -197,7 +197,7 @@ static void test_appstate_to_json(void)
     assert(strcmp(node->value, "test_dirs_latest_one_1") == 0);
     node = node->next;
     assert(node == NULL);
-    addon_free(addon);
+    addon_destroy(addon);
 
     addon_json = cJSON_GetArrayItem(latest, 1);
     assert(addon_json != NULL);
@@ -209,11 +209,11 @@ static void test_appstate_to_json(void)
     assert(strcmp(addon->version, "test_version_latest_two") == 0);
     node = addon->dirs->head;
     assert(node == NULL);
-    addon_free(addon);
+    addon_destroy(addon);
 
     free(json_str);
     cJSON_Delete(json);
-    appstate_free(state);
+    appstate_destroy(state);
 }
 
 static void test_appstate_save_load(void)
@@ -278,8 +278,8 @@ static void test_appstate_save_load(void)
     assert(latest_dir != NULL);
     assert(strcmp((const char *)latest_dir->value, "Latest") == 0);
 
-    appstate_free(state);
-    appstate_free(actual);
+    appstate_destroy(state);
+    appstate_destroy(actual);
 }
 
 int main(void)

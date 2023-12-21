@@ -15,7 +15,7 @@ List *list_create(void)
     return result;
 }
 
-void list_free(List *l)
+void list_destroy(List *l)
 {
     if (l == NULL) {
         return;

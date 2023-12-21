@@ -34,7 +34,7 @@ List *list_create(void);
  * Passing a NULL pointer will make this function return immediately with no
  * action.
  */
-void list_free(List *l);
+void list_destroy(List *l);
 
 /**
  * Creates a new node and inserts it at the beginning of the list with the given
