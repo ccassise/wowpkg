@@ -5,12 +5,16 @@
 
 #ifdef _WIN32
 #include <io.h>
-#else
+#endif
+
+#ifdef __APPLE__
+#include <copyfile.h>
 #include <unistd.h>
 #endif
 
 #ifdef __linux__
 #include <sys/sendfile.h>
+#include <unistd.h>
 #endif
 
 #include "osapi.h"
@@ -23,6 +27,7 @@ static int os_copyfile(const char *oldpath, const char *newpath)
         return -1;
     }
 #elif defined(__APPLE__)
+    return copyfile(oldpath, newpath, NULL, COPYFILE_ALL);
 #else /* Linux */
     int err = 0;
 
