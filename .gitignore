@@ -64,9 +64,9 @@ dev_only/addons/**
 dev_only/tmp/**
 
 !dev_only/addons/
-!dev_only/addons/README.md
+!dev_only/addons/.ignore_me
 !dev_only/config.ini
 !dev_only/saved.wowpkg
 !dev_only/example_addon.ini
 !dev_only/tmp/
-!dev_only/tmp/README.md
+!dev_only/tmp/.ignore_me

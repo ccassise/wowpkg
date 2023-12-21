@@ -15,9 +15,7 @@ static bool is_addons_dir_empty(void)
     assert(dir != NULL);
     OsDirEnt *entry = NULL;
     while ((entry = os_readdir(dir)) != NULL) {
-        /* Ignore hidden files, '.', '..', and README.md */
-        if (entry->name[0] == '.' || strcmp(entry->name, "README.md") == 0) {
-
+        if (entry->name[0] == '.') {
             continue;
         }
         os_closedir(dir);
@@ -29,7 +27,7 @@ static bool is_addons_dir_empty(void)
 
 static void test_install_single(void)
 {
-    assert(system(WOWPKG_EXEC_PATH " install bigwigs") == EXIT_SUCCESS);
+    assert(system(WOWPKG_EXEC_PATH " install bigwigs") == 0);
     assert(!is_addons_dir_empty());
 
     /* Check that installed addons show up in list as expected. */
@@ -41,13 +39,13 @@ static void test_install_single(void)
     assert(pclose(fpout) == 0);
 
     /* Cleanup addons directory. */
-    assert(system(WOWPKG_EXEC_PATH " remove bigwigs") == EXIT_SUCCESS);
+    assert(system(WOWPKG_EXEC_PATH " remove bigwigs") == 0);
     assert(is_addons_dir_empty());
 }
 
 static void test_install_multiple(void)
 {
-    assert(system(WOWPKG_EXEC_PATH " install bigwigs weakauras GATHERMATE2") == EXIT_SUCCESS);
+    assert(system(WOWPKG_EXEC_PATH " install bigwigs weakauras GATHERMATE2") == 0);
     assert(!is_addons_dir_empty());
 
     /* Check that installed addons show up in list as expected. */
@@ -61,7 +59,7 @@ static void test_install_multiple(void)
     assert(pclose(fpout) == 0);
 
     /* Cleanup addons directory. */
-    assert(system(WOWPKG_EXEC_PATH " remove bigwigs weakauras GATHERMATE2") == EXIT_SUCCESS);
+    assert(system(WOWPKG_EXEC_PATH " remove bigwigs weakauras GATHERMATE2") == 0);
     assert(is_addons_dir_empty());
 }
 
@@ -102,7 +100,7 @@ static void test_stress(void)
 
 static void test_upgrade_single(void)
 {
-    assert(system(WOWPKG_EXEC_PATH " install bigwigs weakauras") == EXIT_SUCCESS);
+    assert(system(WOWPKG_EXEC_PATH " install bigwigs weakauras") == 0);
     assert(!is_addons_dir_empty());
 
     /* Change addon versions so that `upgrade` can be triggered. */
@@ -131,7 +129,7 @@ static void test_upgrade_single(void)
     assert(pclose(fpout) == 0);
 
     /* Only upgrade a single addon. */
-    assert(system(WOWPKG_EXEC_PATH " upgrade weakauras") == EXIT_SUCCESS);
+    assert(system(WOWPKG_EXEC_PATH " upgrade weakauras") == 0);
 
     /* Check that `outdated` gives expected output. */
     fpout = popen(WOWPKG_EXEC_PATH " outdated", "r");
@@ -141,13 +139,13 @@ static void test_upgrade_single(void)
     assert(pclose(fpout) == 0);
 
     /* Cleanup addons directory. */
-    assert(system(WOWPKG_EXEC_PATH " remove weakauras bigwigs") == EXIT_SUCCESS);
+    assert(system(WOWPKG_EXEC_PATH " remove weakauras bigwigs") == 0);
     assert(is_addons_dir_empty());
 }
 
 static void test_upgrade_all(void)
 {
-    assert(system(WOWPKG_EXEC_PATH " install bigwigs weakauras") == EXIT_SUCCESS);
+    assert(system(WOWPKG_EXEC_PATH " install bigwigs weakauras") == 0);
     assert(!is_addons_dir_empty());
 
     /* Change addon versions so that `upgrade` can be triggered. */
@@ -176,7 +174,7 @@ static void test_upgrade_all(void)
     assert(pclose(fpout) == 0);
 
     /* upgrade all outdated addons. */
-    assert(system(WOWPKG_EXEC_PATH " upgrade") == EXIT_SUCCESS);
+    assert(system(WOWPKG_EXEC_PATH " upgrade") == 0);
 
     /* Check that `outdated` gives expected output. */
     fpout = popen(WOWPKG_EXEC_PATH " outdated", "r");
@@ -185,13 +183,13 @@ static void test_upgrade_all(void)
     assert(pclose(fpout) == 0);
 
     /* Cleanup addons directory. */
-    assert(system(WOWPKG_EXEC_PATH " remove weakauras bigwigs") == EXIT_SUCCESS);
+    assert(system(WOWPKG_EXEC_PATH " remove weakauras bigwigs") == 0);
     assert(is_addons_dir_empty());
 }
 
 void test_update_single(void)
 {
-    assert(system(WOWPKG_EXEC_PATH " install bigwigs weakauras") == EXIT_SUCCESS);
+    assert(system(WOWPKG_EXEC_PATH " install bigwigs weakauras") == 0);
     assert(!is_addons_dir_empty());
 
     /* Change addon versions so that `update` can be triggered. */
@@ -213,7 +211,7 @@ void test_update_single(void)
     appstate_free(state);
 
     /* Only update a single addon. */
-    assert(system(WOWPKG_EXEC_PATH " update weakauras") == EXIT_SUCCESS);
+    assert(system(WOWPKG_EXEC_PATH " update weakauras") == 0);
 
     /* Check that `outdated` gives expected output. */
     FILE *fpout = popen(WOWPKG_EXEC_PATH " outdated", "r");
@@ -224,13 +222,13 @@ void test_update_single(void)
     assert(pclose(fpout) == 0);
 
     /* Cleanup addons directory. */
-    assert(system(WOWPKG_EXEC_PATH " remove weakauras bigwigs") == EXIT_SUCCESS);
+    assert(system(WOWPKG_EXEC_PATH " remove weakauras bigwigs") == 0);
     assert(is_addons_dir_empty());
 }
 
 void test_update_all(void)
 {
-    assert(system(WOWPKG_EXEC_PATH " install bigwigs weakauras") == EXIT_SUCCESS);
+    assert(system(WOWPKG_EXEC_PATH " install bigwigs weakauras") == 0);
     assert(!is_addons_dir_empty());
 
     /* Change addon versions so that `update` can be triggered. */
@@ -250,7 +248,7 @@ void test_update_all(void)
     appstate_free(state);
 
     /* Only update a single addon. */
-    assert(system(WOWPKG_EXEC_PATH " update") == EXIT_SUCCESS);
+    assert(system(WOWPKG_EXEC_PATH " update") == 0);
 
     /* Check that `outdated` gives expected output. */
     FILE *fpout = popen(WOWPKG_EXEC_PATH " outdated", "r");
@@ -262,9 +260,44 @@ void test_update_all(void)
     assert(pclose(fpout) == 0);
 
     /* Cleanup addons directory. */
-    assert(system(WOWPKG_EXEC_PATH " remove weakauras bigwigs") == EXIT_SUCCESS);
+    assert(system(WOWPKG_EXEC_PATH " remove weakauras bigwigs") == 0);
     assert(is_addons_dir_empty());
 }
+
+static void test_first_time_setup(void)
+{
+    assert(os_rename(WOWPKG_USER_FILE_DIR, WOWPKG_USER_FILE_DIR "_renamed_by_integration_test__") == 0);
+    struct os_stat s;
+    assert(os_stat(WOWPKG_USER_FILE_DIR, &s) != 0);
+
+    /* system(3) may return 0 or non-zero here, depending on if the addons folder
+     * from the default config.ini exists or not. Regardless, the first time
+     * setup should be ran. */
+    system(WOWPKG_EXEC_PATH " help");
+
+    int err = 0;
+    if (os_stat(WOWPKG_USER_FILE_DIR, &s) != 0 || !S_ISDIR(s.st_mode)) {
+        err = -1;
+        fprintf(stderr, "Error: %s: expected directory to exist but it does not\n", __func__);
+        goto teardown;
+    }
+    if (os_stat(WOWPKG_USER_FILE_DIR "/config.ini", &s) != 0 || !S_ISREG(s.st_mode)) {
+        err = -1;
+        fprintf(stderr, "Error: %s: expected config.ini to exist but it does not\n", __func__);
+        goto teardown;
+    }
+    if (os_stat(WOWPKG_USER_FILE_DIR "/saved.wowpkg", &s) != 0 || !S_ISREG(s.st_mode)) {
+        err = -1;
+        fprintf(stderr, "Error: %s: expected saved.wowpkg to exist but it does not\n", __func__);
+        goto teardown;
+    }
+
+teardown:
+    os_remove_all(WOWPKG_USER_FILE_DIR);
+    os_rename(WOWPKG_USER_FILE_DIR "_renamed_by_integration_test__", WOWPKG_USER_FILE_DIR);
+    assert(err == 0);
+}
+
 int main(void)
 {
     test_install_single();
@@ -274,6 +307,7 @@ int main(void)
     test_upgrade_all();
     test_update_single();
     test_update_all();
+    test_first_time_setup();
 
     return EXIT_SUCCESS;
 }

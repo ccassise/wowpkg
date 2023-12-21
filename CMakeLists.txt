@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.16)
+cmake_minimum_required(VERSION 3.17)
 
 if (NOT DEFINED ${CMAKE_TOOLCHAIN_FILE})
     set(
@@ -9,7 +9,7 @@ endif()
 
 project(
     wowpkg
-    VERSION 0.3.1
+    VERSION 0.3.3
     DESCRIPTION "A CLI World of Warcraft addon manager"
     LANGUAGES C
 )
@@ -62,9 +62,9 @@ endif()
 
 find_package(CURL REQUIRED)
 find_package(cJSON CONFIG REQUIRED)
-find_package(unofficial-minizip CONFIG REQUIRED)
+find_package(LibArchive REQUIRED)
 
-set(WOWPKG_LIBS CURL::libcurl cjson unofficial::minizip::minizip)
+set(WOWPKG_LIBS CURL::libcurl cjson LibArchive::LibArchive)
 
 if (MSVC)
     # CMake does not set proper release flags for MSVC.

@@ -1,7 +1,9 @@
 {
+    "name": "wowpkg",
+    "version": "0.3.3",
     "dependencies": [
         "cjson",
         "curl",
-        "minizip"
+        "libarchive"
     ]
 }
