@@ -19,6 +19,9 @@
 static int os_copyfile(const char *oldpath, const char *newpath)
 {
 #if defined(_WIN32)
+    if (!CopyFileA(oldpath, newpath, FALSE)) {
+        return -1;
+    }
 #elif defined(__APPLE__)
 #else /* Linux */
     int err = 0;
@@ -400,7 +403,29 @@ int os_rename(const char *oldpath, const char *newpath)
 {
 #ifdef _WIN32
     if (!MoveFileExA(oldpath, newpath, MOVEFILE_REPLACE_EXISTING | MOVEFILE_COPY_ALLOWED)) {
-        return -1;
+        if (GetLastError() != ERROR_ACCESS_DENIED) {
+            return -1;
+        }
+
+        /* MoveFile does not move directories across volumes. Check if that
+         * is the case here and if so then just create the directory on the
+         * volume.
+         * NOTE: I am not sure if there is a better way to check before just
+         * creating a directory if the new path is on a different volume. If
+         * both are absolute paths then the drive can be compared, but this
+         * should be able to be called with relative paths. _stat could be
+         * called on old path and base directory of new path and then st_dev
+         * could be compared. However, there is a case where this would fail
+         * when it should not. For example, with WSL where WSL is on the same
+         * drive. MoveFile fails in this case but st_dev for both would be the
+         * same. */
+        struct os_stat sold;
+        if (os_stat(oldpath, &sold) != 0 || !S_ISDIR(sold.st_mode)) {
+            errno = EACCES;
+            return -1;
+        }
+
+        return os_mkdir(newpath, 0755);
     }
     return 0;
 #else
