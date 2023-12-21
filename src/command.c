@@ -203,7 +203,7 @@ int cmd_install(Context *ctx, int argc, const char *argv[], FILE *stream)
             goto cleanup;
         }
 
-        err = addon_fetch_all_meta(addon, argv[i]);
+        err = addon_fetch_all_meta(addon, argv[i], ctx->config->github_token);
         if (err == ADDON_ENOTFOUND) {
             PRINT_WARNING3(CMD_ENOT_FOUND_STR, argv[0], argv[i]);
             err = 0;
@@ -219,7 +219,7 @@ int cmd_install(Context *ctx, int argc, const char *argv[], FILE *stream)
         }
 
         PRINT_STATUS(stream, TERM_WRAP(TERM_BOLD, "Downloading") " %s\n", addon->url);
-        if (addon_fetch_zip(addon) != ADDON_OK) {
+        if (addon_fetch_zip(addon, ctx->config->github_token) != ADDON_OK) {
             PRINT_ERROR3(CMD_EDOWNLOAD_STR, argv[0], addon->name);
             err = -1;
             goto loop_error;
@@ -522,7 +522,7 @@ int cmd_update(Context *ctx, int argc, const char *argv[], FILE *stream)
 
         PRINT_STATUS_ADDON(stream, "Fetching", addon->name);
 
-        err = addon_fetch_all_meta(addon, addon->name);
+        err = addon_fetch_all_meta(addon, addon->name, ctx->config->github_token);
         if (err == ADDON_ENOTFOUND) {
             PRINT_WARNING3(CMD_ENOT_FOUND_STR, argv[0], addon->name);
             err = 0;
@@ -635,7 +635,7 @@ int cmd_upgrade(Context *ctx, int argc, const char *argv[], FILE *stream)
 
         PRINT_STATUS(stream, TERM_WRAP(TERM_BOLD, "Downloading") " %s\n", addon->url);
 
-        if (addon_fetch_zip(addon) != ADDON_OK) {
+        if (addon_fetch_zip(addon, ctx->config->github_token) != ADDON_OK) {
             PRINT_ERROR3(CMD_EDOWNLOAD_STR, argv[0], addon->name);
             err = -1;
             goto cleanup;

@@ -94,7 +94,9 @@ static int zipper_extract_helper(struct archive *a, const char *dest)
     }
 
 cleanup:
-    os_chdir(pwd);
+    if (os_chdir(pwd) != 0 && err == ZIPPER_OK) {
+        err = ZIPPER_ENOENT;
+    }
     archive_write_close(ext);
     archive_write_free(ext);
     return err;

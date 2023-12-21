@@ -20,6 +20,7 @@ void config_destroy(Config *cfg)
         return;
     }
 
+    free(cfg->github_token);
     free(cfg->addons_path);
     free(cfg);
 }
@@ -35,14 +36,14 @@ int config_load(Config *cfg, const char *path)
 
     INIKey *key = NULL;
     while ((key = ini_readkey(ini)) != NULL) {
-        if (strcasecmp(key->section, "retail") == 0
+        if (strcasecmp(key->section, "config") == 0
+            && strcasecmp(key->name, "github_token") == 0) {
+
+            cfg->github_token = strdup(key->value);
+        } else if (strcasecmp(key->section, "retail") == 0
             && strcasecmp(key->name, "addons_path") == 0) {
 
             cfg->addons_path = strdup(key->value);
-        } else if (strcasecmp(key->section, "github") == 0
-            && strcasecmp(key->name, "token") == 0) {
-
-            cfg->github_token = strdup(key->value);
         }
     }
 

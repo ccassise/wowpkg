@@ -1,3 +1,5 @@
+#undef NDEBUG
+
 #include <assert.h>
 #include <stdbool.h>
 #include <stdlib.h>
@@ -5,6 +7,7 @@
 
 #include "addon.h"
 #include "appstate.h"
+#include "config.h"
 #include "list.h"
 #include "osapi.h"
 #include "osstring.h"
@@ -12,16 +15,22 @@
 
 static bool is_addons_dir_empty(void)
 {
-    OsDir *dir = os_opendir(WOWPKG_USER_FILE_DIR "/addons");
+    Config *cfg = config_create();
+    assert(cfg != NULL);
+    assert(config_load(cfg, WOWPKG_USER_FILE_DIR "/config.ini") == 0);
+
+    OsDir *dir = os_opendir(cfg->addons_path);
     assert(dir != NULL);
     OsDirEnt *entry = NULL;
     while ((entry = os_readdir(dir)) != NULL) {
         if (entry->name[0] == '.') {
             continue;
         }
+        config_destroy(cfg);
         os_closedir(dir);
         return false;
     }
+    config_destroy(cfg);
     os_closedir(dir);
     return true;
 }
@@ -271,12 +280,15 @@ static void test_first_time_setup(void)
     struct os_stat s;
     assert(os_stat(WOWPKG_USER_FILE_DIR, &s) != 0);
 
+    int err = 0;
+
     /* system(3) may return 0 or non-zero here, depending on if the addons folder
      * from the default config.ini exists or not. Regardless, the first time
      * setup should be ran. */
-    system(WOWPKG_EXEC_PATH " help");
+    if ((err = system(WOWPKG_EXEC_PATH " help")) != 0) {
+        err = 0;
+    }
 
-    int err = 0;
     if (os_stat(WOWPKG_USER_FILE_DIR, &s) != 0 || !S_ISDIR(s.st_mode)) {
         err = -1;
         fprintf(stderr, "Error: %s: expected directory to exist but it does not\n", __func__);

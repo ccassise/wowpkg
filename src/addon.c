@@ -1,5 +1,4 @@
 #include <stdlib.h>
-#include <sys/stat.h>
 
 #include <curl/curl.h>
 
@@ -54,10 +53,17 @@ static char *create_str_from_property(const cJSON *json, const char *property)
     return NULL;
 }
 
-static struct curl_slist *set_github_headers(struct curl_slist *list)
+static struct curl_slist *set_github_headers(struct curl_slist *list, const char *token)
 {
     list = curl_slist_append(list, "Accept: application/vnd.github+json");
     list = curl_slist_append(list, "X-GitHub-Api-Version: 2022-11-28");
+    if (token != NULL) {
+        char auth_hdr[512];
+        int n = snprintf(auth_hdr, ARRAY_SIZE(auth_hdr), "Authorization: Bearer %s", token);
+        if (n >= 0 && n < (int)ARRAY_SIZE(auth_hdr)) {
+            list = curl_slist_append(list, auth_hdr);
+        }
+    }
 
     return list;
 }
@@ -356,7 +362,7 @@ cleanup:
     return err;
 }
 
-cJSON *addon_fetch_github_meta(const char *url, int *out_err)
+cJSON *addon_fetch_github_meta(const char *url, const char *token, int *out_err)
 {
     int err = ADDON_OK;
     Response res = { .data = NULL, .size = 0 };
@@ -370,7 +376,7 @@ cJSON *addon_fetch_github_meta(const char *url, int *out_err)
         goto cleanup;
     }
 
-    headers = set_github_headers(headers);
+    headers = set_github_headers(headers, token);
 
     // curl_easy_setopt(curl, CURLOPT_VERBOSE, true);
     curl_easy_setopt(curl, CURLOPT_URL, url);
@@ -448,7 +454,7 @@ cleanup:
     return result;
 }
 
-int addon_fetch_all_meta(Addon *a, const char *name)
+int addon_fetch_all_meta(Addon *a, const char *name, const char *token)
 {
     int err = ADDON_OK;
 
@@ -459,7 +465,7 @@ int addon_fetch_all_meta(Addon *a, const char *name)
         goto cleanup;
     }
 
-    gh_json = addon_fetch_github_meta(a->url, &err);
+    gh_json = addon_fetch_github_meta(a->url, token, &err);
     if (err != ADDON_OK) {
         goto cleanup;
     }
@@ -475,7 +481,7 @@ cleanup:
     return err;
 }
 
-int addon_fetch_zip(Addon *a)
+int addon_fetch_zip(Addon *a, const char *token)
 {
     int err = ADDON_OK;
     FILE *fzip = NULL;
@@ -487,7 +493,7 @@ int addon_fetch_zip(Addon *a)
         return ADDON_EINTERNAL;
     }
 
-    headers = set_github_headers(headers);
+    headers = set_github_headers(headers, token);
 
     curl_easy_setopt(curl, CURLOPT_URL, a->url);
     curl_easy_setopt(curl, CURLOPT_USERAGENT, WOWPKG_USER_AGENT);

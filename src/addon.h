@@ -97,26 +97,29 @@ void addon_set_str(char **restrict oldstr, char *restrict newstr);
 int addon_fetch_catalog_meta(Addon *a, const char *name);
 
 /**
- * Retrieves addon metadata from GitHub.
+ * Retrieves addon metadata from GitHub. If token is not null then it will be
+ * used to authorize the HTTP request.
  *
  * Returns NULL on error and sets out_err.
  */
-cJSON *addon_fetch_github_meta(const char *url, int *out_err);
+cJSON *addon_fetch_github_meta(const char *url, const char *token, int *out_err);
 
 /**
  * Fetches all metadata for addon that matches the given name. On success the
  * addon will have all metadata filled out and its url will point to a .zip
- * download.
+ * download. If token is not null then it will be used to authorize the HTTP
+ * request.
  *
  * Returns ADDON_ENOT_FOUND if name doesn't match any known addons.
  */
-int addon_fetch_all_meta(Addon *a, const char *name);
+int addon_fetch_all_meta(Addon *a, const char *name, const char *token);
 
 /**
  * Downloads the .zip associated to Addon. Addon.url shall be a download link to
- * the .zip before calling this function.
+ * the .zip before calling this function. If token is not null then it will be
+ * used to authorize the HTTP request.
  */
-int addon_fetch_zip(Addon *a);
+int addon_fetch_zip(Addon *a, const char *token);
 
 /**
  * Prepares addon for extraction.

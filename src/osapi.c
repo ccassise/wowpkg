@@ -9,43 +9,57 @@
 #include <unistd.h>
 #endif
 
+#ifdef __linux__
+#include <sys/sendfile.h>
+#endif
+
 #include "osapi.h"
 #include "wowpkg.h"
 
-static int copy_file(const char *oldpath, const char *newpath)
+static int os_copyfile(const char *oldpath, const char *newpath)
 {
+#if defined(_WIN32)
+#elif defined(__APPLE__)
+#else /* Linux */
+    int err = 0;
+
     FILE *fold = fopen(oldpath, "rb");
     FILE *fnew = fopen(newpath, "wb");
     if (fold == NULL || fnew == NULL) {
-        return -1;
+        err = -1;
+        goto cleanup;
     }
 
-#ifndef _WIN32
-    /* Change permission of new file to match that of old file. */
-    struct os_stat s_old;
-    if (fstat(fileno(fnew), &s_old) != 0) {
-        return -1;
+    int fdold = fileno(fold);
+    int fdnew = fileno(fnew);
+    if (fdold == -1 || fdnew == -1) {
+        err = -1;
+        goto cleanup;
     }
 
-    if (fchmod(fileno(fnew), s_old.st_mode & (S_IRWXU | S_IRWXG | S_IRWXG)) != 0) {
-        return -1;
+    struct stat sold;
+    if (fstat(fdold, &sold) != 0 || sold.st_size < 0) {
+        err = -1;
+        goto cleanup;
     }
-#endif
 
-    unsigned char buf[BUFSIZ];
-    size_t n = 0;
-    while ((n = fread(buf, sizeof(*buf), ARRAY_SIZE(buf), fold)) > 0) {
-        if (fwrite(buf, sizeof(*buf), n, fnew) != n) {
-            fclose(fold);
-            fclose(fnew);
-            return -1;
+    ssize_t wrote = 0;
+    while ((wrote += sendfile(fdnew, fdold, NULL, (size_t)sold.st_size)) < (ssize_t)sold.st_size) {
+        if (wrote < 0) {
+            err = -1;
+            goto cleanup;
         }
     }
 
-    fclose(fold);
-    fclose(fnew);
-
-    return 0;
+cleanup:
+    if (fold != NULL) {
+        fclose(fold);
+    }
+    if (fnew != NULL) {
+        fclose(fnew);
+    }
+    return err;
+#endif
 }
 
 /**
@@ -57,7 +71,7 @@ static int copy_file(const char *oldpath, const char *newpath)
  *
  * Returns 0, -1 and sets errno on errors.
  */
-static int copy_dir(const char *oldpath, const char *newpath)
+static int os_copydir(const char *oldpath, const char *newpath)
 {
     int err = 0;
 
@@ -121,9 +135,9 @@ static int copy_dir(const char *oldpath, const char *newpath)
                 return -1;
             }
 
-            err = copy_dir(oldname, newname);
+            err = os_copydir(oldname, newname);
         } else {
-            err = copy_file(oldname, newname);
+            err = os_copyfile(oldname, newname);
         }
 
         if (err != 0) {
@@ -405,7 +419,7 @@ int os_rename(const char *oldpath, const char *newpath)
     }
 
     if (S_ISREG(s_old.st_mode)) {
-        if (copy_file(oldpath, newpath) != 0) {
+        if (os_copyfile(oldpath, newpath) != 0) {
             return -1;
         }
         remove(oldpath);
@@ -448,7 +462,7 @@ int os_rename(const char *oldpath, const char *newpath)
             }
         }
 
-        if (copy_dir(oldpath, newpath) != 0) {
+        if (os_copydir(oldpath, newpath) != 0) {
             return -1;
         }
 
