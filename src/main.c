@@ -197,16 +197,20 @@ static int perform_first_time_setup(const char *user_path, const char *saved_fil
         err = -1;
     }
     const char config_default[] = "[Config]\n"
+                                  "; This token is used to authorize GitHub requests. If you are getting rate limit\n"
+                                  "; errors -- adding a token will increase the rate limit from 50 to 5000.\n"
+                                  "; github_token =\n"
                                   "\n"
                                   "[Retail]\n"
                                   "; Absolute path the the World of Warcraft AddOns directory.\n"
+                                  "; addons_path =\n"
                                   ";\n"
                                   "; Windows example:\n"
                                   "addons_path = C:\\Program Files (x86)\\World of Warcraft\\_retail_\\Interface\\AddOns\n"
                                   "\n"
                                   "; macOS example:\n"
                                   "; addons_path = /Applications/World of Warcraft/_retail_/Interface/AddOns\n";
-    if (fwrite(config_default, sizeof(config_default) - 1, 1, fconfig) != 1) {
+    if (fwrite(config_default, ARRAY_SIZE(config_default) - 1, 1, fconfig) != 1) {
         PRINT_ERROR("failed to perform first time setup\n");
         remove(config_file_path);
         err = -1;
