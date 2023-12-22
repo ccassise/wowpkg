@@ -412,18 +412,9 @@ int os_rename(const char *oldpath, const char *newpath)
             return -1;
         }
 
-        /* MoveFile does not move directories across volumes. Check if that
-         * is the case here and if so then just create the directory on the
-         * volume.
-         * NOTE: I am not sure if there is a better way to check before just
-         * creating a directory if the new path is on a different volume. If
-         * both are absolute paths then the drive can be compared, but this
-         * should be able to be called with relative paths. _stat could be
-         * called on old path and base directory of new path and then st_dev
-         * could be compared. However, there is a case where this would fail
-         * when it should not. For example, with WSL where WSL is on the same
-         * drive. MoveFile fails in this case but st_dev for both would be the
-         * same. */
+        /* MoveFile does not move directories across volumes. Try creating the
+         * directory and if it succeeds then it was on a different volume,
+         * otherwise it is a different error. */
         struct os_stat sold;
         if (os_stat(oldpath, &sold) != 0 || !S_ISDIR(sold.st_mode)) {
             errno = EACCES;
