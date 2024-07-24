@@ -39,23 +39,10 @@ typedef struct Addon {
     char *_package_path;
 } Addon;
 
-typedef struct AddonAssetZip {
+typedef struct AddonAsset {
     size_t size;
     uint8_t *data;
     char *url;
-} AddonAssetZip;
-
-typedef enum AddonAssetTag {
-    ADDON_ASSET_ZIP = 1,
-} AddonAssetTag;
-
-typedef union AddonAssetType {
-    AddonAssetZip *zip;
-} AddonAssetType;
-
-typedef struct AddonAsset {
-    AddonAssetTag tag;
-    AddonAssetType asset;
 } AddonAsset;
 
 #define ADDON_KEY_NAME "name"

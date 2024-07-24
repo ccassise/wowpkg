@@ -225,13 +225,11 @@ int cmd_install(Context *ctx, int argc, const char *argv[], FILE *stream)
         list_foreach(asset_node, addon->assets)
         {
             AddonAsset *asset = asset_node->value;
-            if (asset->tag == ADDON_ASSET_ZIP) {
-                fprintf(stream, "Download: %s\n", asset->asset.zip->url);
-                if ((err = addon_fetch(addon, ctx, asset)) != ADDON_OK) {
-                    PRINT_ERROR2(addon_strerror(err), addon->name);
-                    err = -1;
-                    goto cleanup;
-                }
+            fprintf(stream, "Download: %s\n", asset->url);
+            if ((err = addon_fetch(addon, ctx, asset)) != ADDON_OK) {
+                PRINT_ERROR2(addon_strerror(err), addon->name);
+                err = -1;
+                goto cleanup;
             }
         }
 
@@ -647,13 +645,11 @@ int cmd_upgrade(Context *ctx, int argc, const char *argv[], FILE *stream)
         list_foreach(asset_node, addon->assets)
         {
             AddonAsset *asset = asset_node->value;
-            if (asset->tag == ADDON_ASSET_ZIP) {
-                fprintf(stream, "Download: %s\n", asset->asset.zip->url);
-                if ((err = addon_fetch(addon, ctx, asset)) != ADDON_OK) {
-                    PRINT_ERROR2(addon_strerror(err), addon->name);
-                    err = -1;
-                    goto cleanup;
-                }
+            fprintf(stream, "Download: %s\n", asset->url);
+            if ((err = addon_fetch(addon, ctx, asset)) != ADDON_OK) {
+                PRINT_ERROR2(addon_strerror(err), addon->name);
+                err = -1;
+                goto cleanup;
             }
         }
     }
