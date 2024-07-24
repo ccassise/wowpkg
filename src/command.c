@@ -5,7 +5,9 @@
 #include <curl/curl.h>
 
 #include "addon.h"
+#include "appstate.h"
 #include "command.h"
+#include "config.h"
 #include "context.h"
 #include "list.h"
 #include "osapi.h"
@@ -16,7 +18,7 @@
 // #define CMD_ECREATE_TMP_DIR_STR "failed to create temp directory"
 // #define CMD_EMOVE_STR "failed to move file/directory"
 // #define CMD_EOPEN_DIR_STR "failed to open directory"
-#define CMD_EDOWNLOAD_STR "failed to make HTTP request"
+// #define CMD_EDOWNLOAD_STR "failed to make HTTP request"
 #define CMD_EEXTRACT_STR "failed to extract addon"
 #define CMD_EINVALID_ARGS_STR "invalid args"
 #define CMD_EMETADATA_STR "failed to get metadata"
@@ -137,7 +139,7 @@ int cmd_info(Context *ctx, int argc, const char *argv[], FILE *stream)
             goto cleanup;
         }
 
-        err = addon_fetch_catalog_meta(addon, argv[i]);
+        err = addon_info(addon, ctx, argv[i]);
         if (err != ADDON_OK) {
             if (err == ADDON_ENOTFOUND) {
                 PRINT_WARNING3(CMD_ENOT_FOUND_STR, argv[0], argv[i]);
@@ -194,7 +196,7 @@ int cmd_install(Context *ctx, int argc, const char *argv[], FILE *stream)
     }
 
     for (int i = 1; i < argc; i++) {
-        PRINT_STATUS_ADDON(stream, "Fetching", argv[i]);
+        PRINT_STATUS_ADDON(stream, "Info", argv[i]);
 
         Addon *addon = addon_create();
         if (addon == NULL) {
@@ -203,7 +205,7 @@ int cmd_install(Context *ctx, int argc, const char *argv[], FILE *stream)
             goto cleanup;
         }
 
-        err = addon_fetch_all_meta(addon, argv[i], ctx->config->github_token);
+        err = addon_info(addon, ctx, argv[i]);
         if (err == ADDON_ENOTFOUND) {
             PRINT_WARNING3(CMD_ENOT_FOUND_STR, argv[0], argv[i]);
             err = 0;
@@ -218,11 +220,19 @@ int cmd_install(Context *ctx, int argc, const char *argv[], FILE *stream)
             goto loop_error;
         }
 
-        PRINT_STATUS(stream, TERM_WRAP(TERM_BOLD, "Downloading") " %s\n", addon->url);
-        if (addon_fetch_zip(addon, ctx->config->github_token) != ADDON_OK) {
-            PRINT_ERROR3(CMD_EDOWNLOAD_STR, argv[0], addon->name);
-            err = -1;
-            goto loop_error;
+        PRINT_STATUS_ADDON(stream, "Fetching", addon->name);
+        ListNode *asset_node = NULL;
+        list_foreach(asset_node, addon->assets)
+        {
+            AddonAsset *asset = asset_node->value;
+            if (asset->tag == ADDON_ASSET_ZIP) {
+                fprintf(stream, "Download: %s\n", asset->asset.zip->url);
+                if ((err = addon_fetch(addon, ctx, asset)) != ADDON_OK) {
+                    PRINT_ERROR2(addon_strerror(err), addon->name);
+                    err = -1;
+                    goto cleanup;
+                }
+            }
         }
 
         list_insert(addons, addon);
@@ -255,14 +265,14 @@ int cmd_install(Context *ctx, int argc, const char *argv[], FILE *stream)
         }
 
         PRINT_STATUS_ADDON(stream, "Packaging", addon->name);
-        if (addon_package(addon) != ADDON_OK) {
+        if (addon_package(addon, ctx) != ADDON_OK) {
             PRINT_ERROR3(CMD_EPACKAGE_STR, argv[0], addon->name);
             err = -1;
             goto cleanup;
         }
 
         PRINT_STATUS_ADDON(stream, "Extracting", addon->name);
-        if (addon_extract(addon, ctx->config->addons_path) != ADDON_OK) {
+        if (addon_extract(addon, ctx, ctx->config->addons_path) != ADDON_OK) {
             PRINT_ERROR3(CMD_EEXTRACT_STR, argv[0], addon->name);
             err = -1;
             goto cleanup;
@@ -520,9 +530,9 @@ int cmd_update(Context *ctx, int argc, const char *argv[], FILE *stream)
     {
         Addon *addon = node->value;
 
-        PRINT_STATUS_ADDON(stream, "Fetching", addon->name);
+        PRINT_STATUS_ADDON(stream, "Info", addon->name);
 
-        err = addon_fetch_all_meta(addon, addon->name, ctx->config->github_token);
+        err = addon_info(addon, ctx, addon->name);
         if (err == ADDON_ENOTFOUND) {
             PRINT_WARNING3(CMD_ENOT_FOUND_STR, argv[0], addon->name);
             err = 0;
@@ -632,13 +642,19 @@ int cmd_upgrade(Context *ctx, int argc, const char *argv[], FILE *stream)
     list_foreach(node, addons)
     {
         Addon *addon = node->value;
-
-        PRINT_STATUS(stream, TERM_WRAP(TERM_BOLD, "Downloading") " %s\n", addon->url);
-
-        if (addon_fetch_zip(addon, ctx->config->github_token) != ADDON_OK) {
-            PRINT_ERROR3(CMD_EDOWNLOAD_STR, argv[0], addon->name);
-            err = -1;
-            goto cleanup;
+        PRINT_STATUS_ADDON(stream, "Fetching", addon->name);
+        ListNode *asset_node = NULL;
+        list_foreach(asset_node, addon->assets)
+        {
+            AddonAsset *asset = asset_node->value;
+            if (asset->tag == ADDON_ASSET_ZIP) {
+                fprintf(stream, "Download: %s\n", asset->asset.zip->url);
+                if ((err = addon_fetch(addon, ctx, asset)) != ADDON_OK) {
+                    PRINT_ERROR2(addon_strerror(err), addon->name);
+                    err = -1;
+                    goto cleanup;
+                }
+            }
         }
     }
 
@@ -662,14 +678,14 @@ int cmd_upgrade(Context *ctx, int argc, const char *argv[], FILE *stream)
         }
 
         PRINT_STATUS_ADDON(stream, "Packaging", addon->name);
-        if (addon_package(addon) != ADDON_OK) {
+        if (addon_package(addon, ctx) != ADDON_OK) {
             PRINT_ERROR3(CMD_EPACKAGE_STR, argv[0], addon->name);
             err = -1;
             goto cleanup;
         }
 
         PRINT_STATUS_ADDON(stream, "Extracting", addon->name);
-        if (addon_extract(addon, ctx->config->addons_path) != ADDON_OK) {
+        if (addon_extract(addon, ctx, ctx->config->addons_path) != ADDON_OK) {
             PRINT_ERROR3(CMD_EEXTRACT_STR, argv[0], addon->name);
             err = -1;
             goto cleanup;

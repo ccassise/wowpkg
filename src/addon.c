@@ -1,9 +1,15 @@
+#include <errno.h>
 #include <stdlib.h>
 
+#include <cjson/cJSON.h>
 #include <curl/curl.h>
 
 #include "addon.h"
+#include "appstate.h"
+#include "config.h"
+#include "context.h"
 #include "ini.h"
+#include "list.h"
 #include "osapi.h"
 #include "osstring.h"
 #include "wowpkg.h"
@@ -13,6 +19,46 @@ typedef struct Response {
     size_t size;
     uint8_t *data;
 } Response;
+
+static AddonAssetZip *zipasset_create(void)
+{
+    return calloc(1, sizeof(AddonAssetZip));
+}
+
+static void zipasset_destroy(AddonAssetZip *za)
+{
+    if (za != NULL) {
+        free(za->data);
+        free(za->url);
+    }
+    free(za);
+}
+
+static AddonAsset *addon_asset_create(AddonAssetTag tag)
+{
+    AddonAsset *result = malloc(sizeof(*result));
+    if (result == NULL) {
+        return result;
+    }
+
+    if (tag == ADDON_ASSET_ZIP) {
+        result->tag = tag;
+        result->asset.zip = zipasset_create();
+        if (result->asset.zip == NULL) {
+            free(result);
+            return NULL;
+        }
+    }
+    return result;
+}
+
+static void addon_asset_destroy(AddonAsset *asset)
+{
+    if (asset->tag == ADDON_ASSET_ZIP) {
+        zipasset_destroy(asset->asset.zip);
+    }
+    free(asset);
+}
 
 static size_t write_str_cb(void *restrict data, size_t size, size_t nmemb, void *restrict userdata)
 {
@@ -30,27 +76,6 @@ static size_t write_str_cb(void *restrict data, size_t size, size_t nmemb, void 
     res->data[res->size] = '\0';
 
     return realsize;
-}
-
-static int json_check_string(const cJSON *value)
-{
-    return cJSON_IsString(value) && value->valuestring != NULL;
-}
-
-/**
- * Duplicates the string value for the given property if it exists.
- *
- * On success return a newly allocated string that the caller shall free. If the
- * property is not found or has no value then NULL is returned.
- */
-static char *create_str_from_property(const cJSON *json, const char *property)
-{
-    cJSON *prop = cJSON_GetObjectItemCaseSensitive(json, property);
-    if (json_check_string(prop)) {
-        return strdup(prop->valuestring);
-    }
-
-    return NULL;
 }
 
 static struct curl_slist *set_github_headers(struct curl_slist *list, const char *token)
@@ -78,8 +103,15 @@ Addon *addon_create(void)
             free(result);
             return NULL;
         }
+        result->assets = list_create();
+        if (result->assets == NULL) {
+            list_destroy(result->dirs);
+            free(result);
+            return NULL;
+        }
 
         list_set_free_fn(result->dirs, free);
+        list_set_free_fn(result->assets, (ListFreeFn)addon_asset_destroy);
     }
 
     return result;
@@ -95,8 +127,8 @@ void addon_destroy(Addon *a)
     free(a->desc);
     free(a->url);
     free(a->version);
-    free(a->_zip);
     list_destroy(a->dirs);
+    list_destroy(a->assets);
     addon_cleanup_files(a);
 
     free(a);
@@ -130,43 +162,6 @@ static int move_filename(const char *restrict srcdir, const char *restrict destd
     }
 
     return ADDON_OK;
-}
-
-/**
- * Returns a reference to a cJSON string that contains the .zip download link.
- *
- * IMPORTANT: It shall not attempt to be freed. It shall not outlive the
- * lifetime of the passed in cJSON object.
- */
-static const char *gh_resp_find_asset_zip(const cJSON *json)
-{
-    char *result = NULL;
-    cJSON *assets = cJSON_GetObjectItemCaseSensitive(json, "assets");
-    if (!cJSON_IsArray(assets)) {
-        return NULL;
-    }
-
-    cJSON *asset = NULL;
-    cJSON_ArrayForEach(asset, assets)
-    {
-        cJSON *content_type = cJSON_GetObjectItemCaseSensitive(asset, "content_type");
-        if (!json_check_string(content_type)) {
-            continue;
-        }
-
-        if (strcmp(content_type->valuestring, "application/zip") != 0) {
-            continue;
-        }
-
-        cJSON *download_url = cJSON_GetObjectItemCaseSensitive(asset, "browser_download_url");
-        if (!json_check_string(download_url)) {
-            continue;
-        }
-
-        result = download_url->valuestring;
-    }
-
-    return result;
 }
 
 /**
@@ -209,117 +204,7 @@ static int snfind_catalog_path(char *restrict s, size_t n, const char *restrict 
     return result;
 }
 
-void addon_cleanup_files(Addon *a)
-{
-    if (a->_package_path != NULL) {
-        os_remove_all(a->_package_path);
-        free(a->_package_path);
-        a->_package_path = NULL;
-    }
-}
-
-Addon *addon_dup(Addon *a)
-{
-    Addon *result = addon_create();
-    if (result) {
-        result->name = a->name == NULL ? NULL : strdup(a->name);
-        result->desc = a->desc == NULL ? NULL : strdup(a->desc);
-        result->version = a->version == NULL ? NULL : strdup(a->version);
-        result->url = a->url == NULL ? NULL : strdup(a->url);
-    }
-
-    return result;
-}
-
-int addon_from_json(Addon *a, const cJSON *json)
-{
-    addon_set_str(&a->name, create_str_from_property(json, ADDON_NAME));
-    addon_set_str(&a->desc, create_str_from_property(json, ADDON_DESC));
-    addon_set_str(&a->url, create_str_from_property(json, ADDON_URL));
-    addon_set_str(&a->version, create_str_from_property(json, ADDON_VERSION));
-
-    cJSON *dirs = cJSON_GetObjectItemCaseSensitive(json, ADDON_DIRS);
-    if (cJSON_IsArray(dirs)) {
-        cJSON *dir = NULL;
-        cJSON_ArrayForEach(dir, dirs)
-        {
-            if (!cJSON_IsString(dir) || dir->valuestring == NULL) {
-                continue;
-            }
-
-            list_insert(a->dirs, strdup(dir->valuestring));
-        }
-    }
-
-    return ADDON_OK;
-}
-
-char *addon_to_json(Addon *a)
-{
-    int err = ADDON_OK;
-    char *result = NULL;
-    cJSON *json = cJSON_CreateObject();
-    if (json == NULL) {
-        err = ADDON_EINTERNAL;
-        goto cleanup;
-    }
-
-    if (cJSON_AddStringToObject(json, ADDON_NAME, a->name) == NULL) {
-        err = ADDON_EINTERNAL;
-        goto cleanup;
-    }
-
-    if (cJSON_AddStringToObject(json, ADDON_DESC, a->desc) == NULL) {
-        err = ADDON_EINTERNAL;
-        goto cleanup;
-    }
-
-    if (cJSON_AddStringToObject(json, ADDON_VERSION, a->version) == NULL) {
-        err = ADDON_EINTERNAL;
-        goto cleanup;
-    }
-
-    if (cJSON_AddStringToObject(json, ADDON_URL, a->url) == NULL) {
-        err = ADDON_EINTERNAL;
-        goto cleanup;
-    }
-
-    cJSON *dirs = cJSON_AddArrayToObject(json, ADDON_DIRS);
-    if (dirs == NULL) {
-        err = ADDON_EINTERNAL;
-        goto cleanup;
-    }
-
-    ListNode *node = NULL;
-    list_foreach(node, a->dirs)
-    {
-        cJSON_AddItemToArray(dirs, cJSON_CreateString((char *)node->value));
-    }
-
-cleanup:
-    if (err == ADDON_OK) {
-        result = cJSON_PrintUnformatted(json);
-    }
-
-    cJSON_Delete(json);
-
-    return result;
-}
-
-void addon_set_str(char **restrict oldstr, char *restrict newstr)
-{
-    if (newstr == NULL) {
-        return;
-    }
-
-    if (*oldstr != NULL) {
-        free(*oldstr);
-        *oldstr = NULL;
-    }
-    *oldstr = newstr;
-}
-
-int addon_fetch_catalog_meta(Addon *a, const char *name)
+static int fetch_catalog_meta(Addon *a, const char *name)
 {
     int err = ADDON_OK;
 
@@ -338,12 +223,12 @@ int addon_fetch_catalog_meta(Addon *a, const char *name)
 
     INIKey *key = NULL;
     while ((key = ini_readkey(ini)) != NULL) {
-        if (strcasecmp(key->name, ADDON_NAME) == 0) {
-            addon_set_str(&a->name, strdup(key->value));
-        } else if (strcasecmp(key->name, ADDON_DESC) == 0) {
-            addon_set_str(&a->desc, strdup(key->value));
-        } else if (strcasecmp(key->name, ADDON_URL) == 0) {
-            addon_set_str(&a->url, strdup(key->value));
+        if (strcasecmp(key->name, ADDON_KEY_NAME) == 0) {
+            ADDON_SET_NAME(a, key->value);
+        } else if (strcasecmp(key->name, ADDON_KEY_DESC) == 0) {
+            ADDON_SET_DESC(a, key->value);
+        } else if (strcasecmp(key->name, ADDON_KEY_URL) == 0) {
+            ADDON_SET_URL(a, key->value);
         }
     }
 
@@ -362,12 +247,13 @@ cleanup:
     return err;
 }
 
-cJSON *addon_fetch_github_meta(const char *url, const char *token, int *out_err)
+static int fetch_github_info(Addon *a, const char *token)
 {
     int err = ADDON_OK;
     Response res = { .data = NULL, .size = 0 };
     cJSON *resp = NULL;
-    cJSON *result = NULL;
+    cJSON *assets = NULL;
+    cJSON *asset = NULL;
     struct curl_slist *headers = NULL;
 
     CURL *curl = curl_easy_init();
@@ -379,7 +265,7 @@ cJSON *addon_fetch_github_meta(const char *url, const char *token, int *out_err)
     headers = set_github_headers(headers, token);
 
     // curl_easy_setopt(curl, CURLOPT_VERBOSE, true);
-    curl_easy_setopt(curl, CURLOPT_URL, url);
+    curl_easy_setopt(curl, CURLOPT_URL, a->url);
     curl_easy_setopt(curl, CURLOPT_USERAGENT, WOWPKG_USER_AGENT);
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_str_cb);
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void *)&res);
@@ -396,6 +282,8 @@ cJSON *addon_fetch_github_meta(const char *url, const char *token, int *out_err)
     if (http_code != 200) {
         if (http_code == 403 || http_code == 429) {
             err = ADDON_ERATE_LIMIT;
+        } else if (http_code == 401) {
+            err = ADDON_EUNAUTHORIZED;
         } else {
             err = ADDON_EINTERNAL;
         }
@@ -404,87 +292,50 @@ cJSON *addon_fetch_github_meta(const char *url, const char *token, int *out_err)
 
     resp = cJSON_Parse((char *)res.data);
     if (resp == NULL) {
-        err = ADDON_EINTERNAL;
-        goto cleanup;
-    }
-
-    cJSON *tag_name = cJSON_GetObjectItemCaseSensitive(resp, "tag_name");
-    if (!json_check_string(tag_name)) {
         err = ADDON_EBADJSON;
         goto cleanup;
     }
 
-    result = cJSON_CreateObject();
-    if (result == NULL) {
-        err = ADDON_EINTERNAL;
+    /* Get addon version info. */
+    cJSON *tag_name = cJSON_GetObjectItemCaseSensitive(resp, "tag_name");
+    if (!cJSON_IsString(tag_name) || tag_name->valuestring == NULL) {
+        err = ADDON_EBADJSON;
         goto cleanup;
     }
+    ADDON_SET_VERSION(a, tag_name->valuestring);
 
-    if (cJSON_AddStringToObject(result, "version", tag_name->valuestring) == NULL) {
-        err = ADDON_EINTERNAL;
-        goto cleanup;
-    }
-
-    const char *zip_url = gh_resp_find_asset_zip(resp);
-    if (zip_url == NULL) {
-        err = ADDON_ENO_ZIP_ASSET;
-        goto cleanup;
-    }
-
-    if (cJSON_AddStringToObject(result, "url", zip_url) == NULL) {
-        err = ADDON_EINTERNAL;
-        goto cleanup;
+    /* Get addon ZIP URLs. Some addons (like DBM-Dungeons) may have mutliple
+     * ZIPs. */
+    assets = cJSON_GetObjectItemCaseSensitive(resp, "assets");
+    cJSON_ArrayForEach(asset, assets)
+    {
+        cJSON *content_type = cJSON_GetObjectItemCaseSensitive(asset, "content_type");
+        if (cJSON_IsString(content_type) && strcmp(content_type->valuestring, "application/zip") == 0) {
+            cJSON *download_url = cJSON_GetObjectItemCaseSensitive(asset, "browser_download_url");
+            if (cJSON_IsString(download_url) && download_url->valuestring != NULL) {
+                AddonAsset *zip = addon_asset_create(ADDON_ASSET_ZIP);
+                if (zip == NULL) {
+                    err = ADDON_EINTERNAL;
+                    goto cleanup;
+                }
+                ADDON_SET_URL(zip->asset.zip, download_url->valuestring);
+                list_insert(a->assets, zip);
+            }
+        }
     }
 
 cleanup:
-    curl_easy_cleanup(curl);
     curl_slist_free_all(headers);
+    curl_easy_cleanup(curl);
     free(res.data);
     cJSON_Delete(resp);
-
-    if (out_err != NULL) {
-        *out_err = err;
-    }
-
-    if (err != ADDON_OK) {
-        cJSON_Delete(result);
-        result = NULL;
-    }
-
-    return result;
-}
-
-int addon_fetch_all_meta(Addon *a, const char *name, const char *token)
-{
-    int err = ADDON_OK;
-
-    cJSON *gh_json = NULL;
-
-    err = addon_fetch_catalog_meta(a, name);
-    if (err != ADDON_OK) {
-        goto cleanup;
-    }
-
-    gh_json = addon_fetch_github_meta(a->url, token, &err);
-    if (err != ADDON_OK) {
-        goto cleanup;
-    }
-
-    err = addon_from_json(a, gh_json);
-    if (err != ADDON_OK) {
-        goto cleanup;
-    }
-
-cleanup:
-    cJSON_Delete(gh_json);
 
     return err;
 }
 
-int addon_fetch_zip(Addon *a, const char *token)
+static int fetch_github_zip(AddonAssetZip *asset, const char *token)
 {
     int err = ADDON_OK;
-    FILE *fzip = NULL;
     Response res = { .data = NULL, .size = 0 };
     struct curl_slist *headers = NULL;
 
@@ -495,7 +346,7 @@ int addon_fetch_zip(Addon *a, const char *token)
 
     headers = set_github_headers(headers, token);
 
-    curl_easy_setopt(curl, CURLOPT_URL, a->url);
+    curl_easy_setopt(curl, CURLOPT_URL, asset->url);
     curl_easy_setopt(curl, CURLOPT_USERAGENT, WOWPKG_USER_AGENT);
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_str_cb);
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void *)&res);
@@ -520,25 +371,242 @@ int addon_fetch_zip(Addon *a, const char *token)
     }
 
     if (res.size > 0) {
-        res.size--; /* Remove terminating null since this should be raw data. */
+        /* write_str_cb adds a terminating null to the data. Remove it here since
+         * this should be raw data. */
+        res.size--;
     }
 
-    a->_zip = res.data; /* Transfer ownership to addon. */
-    a->_zip_size = res.size;
+    asset->data = res.data; /* Transfer ownership to addon. */
+    asset->size = res.size;
+    res.data = NULL;
+    res.size = 0;
 
 cleanup:
-    if (fzip != NULL) {
-        fclose(fzip);
-    }
-
-    curl_slist_free_all(headers);
     curl_easy_cleanup(curl);
+    curl_slist_free_all(headers);
+    free(res.data);
 
     return err;
 }
 
-int addon_package(Addon *a)
+void addon_cleanup_files(Addon *a)
 {
+    if (a->_package_path != NULL) {
+        os_remove_all(a->_package_path);
+        free(a->_package_path);
+        a->_package_path = NULL;
+    }
+}
+
+Addon *addon_dup(Addon *a)
+{
+    Addon *result = addon_create();
+    if (result) {
+        ADDON_SET_NAME(result, a->name);
+        ADDON_SET_DESC(result, a->desc);
+        ADDON_SET_VERSION(result, a->version);
+        ADDON_SET_URL(result, a->url);
+        ListNode *node = NULL;
+        list_foreach(node, a->assets)
+        {
+            AddonAsset *orig = node->value;
+            AddonAsset *new = addon_asset_create(ADDON_ASSET_ZIP);
+            if (new == NULL) {
+                addon_destroy(result);
+                return NULL;
+            }
+            ADDON_SET_URL(new->asset.zip, orig->asset.zip->url);
+            if (new->asset.zip->url == NULL) {
+                addon_asset_destroy(new);
+                addon_destroy(result);
+                return NULL;
+            }
+            if (list_insert(result->assets, new) == NULL) {
+                addon_asset_destroy(new);
+                addon_destroy(result);
+                return NULL;
+            }
+        }
+    }
+
+    return result;
+}
+
+int addon_from_json(Addon *a, const cJSON *json)
+{
+    cJSON *addon_name = cJSON_GetObjectItemCaseSensitive(json, ADDON_KEY_NAME);
+    if (cJSON_IsString(addon_name) && addon_name->valuestring != NULL) {
+        ADDON_SET_NAME(a, addon_name->valuestring);
+    }
+    cJSON *addon_desc = cJSON_GetObjectItemCaseSensitive(json, ADDON_KEY_DESC);
+    if (cJSON_IsString(addon_desc) && addon_desc->valuestring != NULL) {
+        ADDON_SET_DESC(a, addon_desc->valuestring);
+    }
+    cJSON *addon_url = cJSON_GetObjectItemCaseSensitive(json, ADDON_KEY_URL);
+    if (cJSON_IsString(addon_url) && addon_url->valuestring != NULL) {
+        ADDON_SET_URL(a, addon_url->valuestring);
+    }
+    cJSON *addon_version = cJSON_GetObjectItemCaseSensitive(json, ADDON_KEY_VERSION);
+    if (cJSON_IsString(addon_version) && addon_version->valuestring != NULL) {
+        ADDON_SET_VERSION(a, addon_version->valuestring);
+    }
+
+    cJSON *dirs = cJSON_GetObjectItemCaseSensitive(json, ADDON_KEY_DIRS);
+    if (cJSON_IsArray(dirs)) {
+        cJSON *dir = NULL;
+        cJSON_ArrayForEach(dir, dirs)
+        {
+            if (!cJSON_IsString(dir) || dir->valuestring == NULL) {
+                continue;
+            }
+
+            list_insert(a->dirs, strdup(dir->valuestring));
+        }
+    }
+
+    cJSON *assets = cJSON_GetObjectItemCaseSensitive(json, ADDON_KEY_ASSETS);
+    if (cJSON_IsArray(assets)) {
+        cJSON *asset = NULL;
+        cJSON_ArrayForEach(asset, assets)
+        {
+            if (!cJSON_IsString(asset) || asset->valuestring == NULL) {
+                continue;
+            }
+            AddonAsset *zip = addon_asset_create(ADDON_ASSET_ZIP);
+            if (zip == NULL) {
+                return ADDON_EINTERNAL;
+            }
+            ADDON_SET_URL(zip->asset.zip, asset->valuestring);
+            list_insert(a->assets, zip);
+        }
+    }
+
+    return ADDON_OK;
+}
+
+char *addon_to_json(Addon *a)
+{
+    int err = ADDON_OK;
+    char *result = NULL;
+    cJSON *json = cJSON_CreateObject();
+    if (json == NULL) {
+        err = ADDON_EINTERNAL;
+        goto cleanup;
+    }
+
+    if (cJSON_AddStringToObject(json, ADDON_KEY_NAME, a->name) == NULL) {
+        err = ADDON_EINTERNAL;
+        goto cleanup;
+    }
+
+    if (cJSON_AddStringToObject(json, ADDON_KEY_DESC, a->desc) == NULL) {
+        err = ADDON_EINTERNAL;
+        goto cleanup;
+    }
+
+    if (cJSON_AddStringToObject(json, ADDON_KEY_VERSION, a->version) == NULL) {
+        err = ADDON_EINTERNAL;
+        goto cleanup;
+    }
+
+    if (cJSON_AddStringToObject(json, ADDON_KEY_URL, a->url) == NULL) {
+        err = ADDON_EINTERNAL;
+        goto cleanup;
+    }
+
+    cJSON *dirs = cJSON_AddArrayToObject(json, ADDON_KEY_DIRS);
+    if (dirs == NULL) {
+        err = ADDON_EINTERNAL;
+        goto cleanup;
+    }
+    ListNode *node = NULL;
+    list_foreach(node, a->dirs)
+    {
+        cJSON_AddItemToArray(dirs, cJSON_CreateString((char *)node->value));
+    }
+
+    cJSON *assets = cJSON_AddArrayToObject(json, ADDON_KEY_ASSETS);
+    if (assets == NULL) {
+        err = ADDON_EINTERNAL;
+        goto cleanup;
+    }
+    node = NULL;
+    list_foreach(node, a->assets)
+    {
+        AddonAsset *asset = node->value;
+        if (asset->tag == ADDON_ASSET_ZIP) {
+            cJSON_AddItemToArray(assets, cJSON_CreateString(asset->asset.zip->url));
+        }
+    }
+
+cleanup:
+    if (err == ADDON_OK) {
+        result = cJSON_PrintUnformatted(json);
+    }
+
+    cJSON_Delete(json);
+
+    return result;
+}
+
+const char *addon_strerror(int errcode)
+{
+    static const char *str_errors[] = {
+        NULL,
+        /* ADDON_EBADJSON */ "could not parse JSON",
+        /* ADDON_ECONFIG */ "could not parse config.ini",
+        /* ADDON_EINTERNAL */ "addon internal",
+        /* ADDON_ENAMETOOLONG */ "path or filename too long",
+        /* ADDON_ENOENT */ "no such file or directory",
+        /* ADDON_ENOTFOUND */ "could not find addon",
+        /* ADDON_ENO_ZIP_ASSET */ "could not find ZIP URL",
+        /* ADDON_ERATE_LIMIT */ "rate limit exceeded",
+        /* ADDON_EUNAUTHORIZED */ "unauthorized request",
+        /* ADDON_EUNZIP */ "could not extract ZIP",
+    };
+
+    if (errcode > 0 && errcode < (int)ARRAY_SIZE(str_errors)) {
+        return str_errors[errcode];
+    }
+    return NULL;
+}
+
+int addon_info(Addon *a, Context *ctx, const char *name)
+{
+    int err = ADDON_OK;
+
+    err = fetch_catalog_meta(a, name);
+    if (err != ADDON_OK) {
+        return err;
+    }
+    err = fetch_github_info(a, ctx->config->github_token);
+    if (err != ADDON_OK) {
+        return err;
+    }
+
+    return err;
+}
+
+int addon_fetch(Addon *a, Context *ctx, AddonAsset *asset)
+{
+    UNUSED(a);
+    UNUSED(ctx);
+    int err = ADDON_OK;
+    if (asset->tag == ADDON_ASSET_ZIP) {
+        if ((err = fetch_github_zip(asset->asset.zip, ctx->config->github_token)) != ADDON_OK) {
+            return err;
+        }
+    }
+    return err;
+}
+
+int addon_package(Addon *a, Context *ctx)
+{
+    UNUSED(ctx);
+    if (list_isempty(a->assets)) {
+        return ADDON_ENO_ZIP_ASSET;
+    }
+
     char tmpdir[OS_MAX_PATH];
 
     /* Creates a string with a value
@@ -552,17 +620,25 @@ int addon_package(Addon *a)
         return ADDON_EINTERNAL;
     }
 
-    if (zipper_extract_buf(a->_zip, a->_zip_size, tmpdir) != ZIPPER_OK) {
-        return ADDON_EUNZIP;
-    }
+    ADDON_SET_STRING(a->_package_path, tmpdir);
 
-    addon_set_str(&a->_package_path, strdup(tmpdir));
+    ListNode *asset_node = NULL;
+    list_foreach(asset_node, a->assets)
+    {
+        AddonAsset *asset = asset_node->value;
+        if (asset->tag == ADDON_ASSET_ZIP) {
+            if (zipper_extract_buf(asset->asset.zip->data, asset->asset.zip->size, tmpdir) != ZIPPER_OK) {
+                return ADDON_EUNZIP;
+            }
+        }
+    }
 
     return ADDON_OK;
 }
 
-int addon_extract(Addon *a, const char *path)
+int addon_extract(Addon *a, Context *ctx, const char *path)
 {
+    UNUSED(ctx);
     int err = ADDON_OK;
 
     OsDir *dir = os_opendir(a->_package_path);

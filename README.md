@@ -6,7 +6,7 @@ Available for Windows and macOS.
 
 ## Usage
 ```
-wowpkg COMMAND [ARGS... | OPTIONS]
+wowpkg COMMAND [TEXT | ADDON...]
 
 wowpkg info ADDON...
 wowpkg install ADDON...
@@ -38,8 +38,6 @@ wowpkg list
 
 
 Lists all outdated addons.
-
-Currently, this command does not automatically call `update`. 
 ```
 wowpkg outdated
 ```
@@ -49,7 +47,7 @@ Remove/uninstall given addons.
 wowpkg remove ADDON...
 ```
 
-Searches catalog for any addons that matches TEXT. TEXT should not include any whitespace.
+Searches catalog for any addons that matches TEXT.
 
 Currently, only the addon names are searched.
 ```

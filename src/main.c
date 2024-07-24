@@ -2,7 +2,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "appstate.h"
 #include "command.h"
+#include "config.h"
 #include "context.h"
 #include "osapi.h"
 #include "osstring.h"

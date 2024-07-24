@@ -2,22 +2,22 @@
 
 #include <stdio.h>
 
-#include "context.h"
+struct Context;
 
-int cmd_help(Context *ctx, int argc, const char *argv[], FILE *stream);
+int cmd_help(struct Context *ctx, int argc, const char *argv[], FILE *stream);
 
-int cmd_info(Context *ctx, int argc, const char *argv[], FILE *stream);
+int cmd_info(struct Context *ctx, int argc, const char *argv[], FILE *stream);
 
-int cmd_install(Context *ctx, int argc, const char *argv[], FILE *stream);
+int cmd_install(struct Context *ctx, int argc, const char *argv[], FILE *stream);
 
-int cmd_list(Context *ctx, int argc, const char *argv[], FILE *stream);
+int cmd_list(struct Context *ctx, int argc, const char *argv[], FILE *stream);
 
-int cmd_outdated(Context *ctx, int argc, const char *argv[], FILE *stream);
+int cmd_outdated(struct Context *ctx, int argc, const char *argv[], FILE *stream);
 
-int cmd_remove(Context *ctx, int argc, const char *argv[], FILE *stream);
+int cmd_remove(struct Context *ctx, int argc, const char *argv[], FILE *stream);
 
-int cmd_search(Context *ctx, int argc, const char *argv[], FILE *stream);
+int cmd_search(struct Context *ctx, int argc, const char *argv[], FILE *stream);
 
-int cmd_update(Context *ctx, int argc, const char *argv[], FILE *stream);
+int cmd_update(struct Context *ctx, int argc, const char *argv[], FILE *stream);
 
-int cmd_upgrade(Context *ctx, int argc, const char *argv[], FILE *stream);
+int cmd_upgrade(struct Context *ctx, int argc, const char *argv[], FILE *stream);

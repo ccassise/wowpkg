@@ -1,44 +1,88 @@
 #pragma once
 
+/**
+ * OVERVIEW
+ * --------
+ *
+ * Addon module handles entire lifecycle of an addon. The lifecycle generally goes as such:
+ *   addon_info -> addon_fetch -> addon_package -> addon_extract
+ */
+
 #include <stdint.h>
 
-#include <cjson/cJSON.h>
-
-#include "list.h"
+struct cJSON;
+struct Context;
 
 enum {
     ADDON_OK = 0,
 
-    ADDON_ENOTFOUND, /* Addon could not be found. */
-    ADDON_ENOENT, /* File/directory doesn't exist. */
-    ADDON_EBADJSON, /* Failed to parse JSON. */
-    ADDON_ENO_ZIP_ASSET, /* Could not find .zip asset in GitHub release. */
-    ADDON_ENAMETOOLONG, /* Path or filename is too long. */
-    ADDON_EUNZIP, /* Failed to extract .zip. */
-    ADDON_EINTERNAL, /* Internal error. */
-    ADDON_ERATE_LIMIT, /* Failed because rate limit to external API exceeded. */
-    ADDON_ECONFIG, /* Config file bad format. */
+    ADDON_EBADJSON, /* could not parse JSON */
+    ADDON_ECONFIG, /* could not parse config.ini */
+    ADDON_EINTERNAL, /* addon internal */
+    ADDON_ENAMETOOLONG, /* path or filename too long */
+    ADDON_ENOENT, /* no such file or directory */
+    ADDON_ENOTFOUND, /* could not find addon */
+    ADDON_ENO_ZIP_ASSET, /* could not find ZIP URL */
+    ADDON_ERATE_LIMIT, /* rate limit exceeded */
+    ADDON_EUNAUTHORIZED, /* request returned 401 */
+    ADDON_EUNZIP, /* could not extract ZIP */
 };
 
 typedef struct Addon {
     char *name;
     char *desc;
-    char *url;
     char *version;
-    List *dirs;
+    char *url;
+    struct List *dirs; /* List of strings */
+    struct List *assets; /* List of AddonAsset */
 
-    /* TODO: This should be given a path when the addon is created. */
     char *_package_path;
-
-    uint8_t *_zip;
-    size_t _zip_size;
 } Addon;
 
-#define ADDON_NAME "name"
-#define ADDON_DESC "desc"
-#define ADDON_URL "url"
-#define ADDON_VERSION "version"
-#define ADDON_DIRS "dirs"
+typedef struct AddonAssetZip {
+    size_t size;
+    uint8_t *data;
+    char *url;
+} AddonAssetZip;
+
+typedef enum AddonAssetTag {
+    ADDON_ASSET_ZIP = 1,
+} AddonAssetTag;
+
+typedef union AddonAssetType {
+    AddonAssetZip *zip;
+} AddonAssetType;
+
+typedef struct AddonAsset {
+    AddonAssetTag tag;
+    AddonAssetType asset;
+} AddonAsset;
+
+#define ADDON_KEY_NAME "name"
+#define ADDON_KEY_DESC "desc"
+#define ADDON_KEY_URL "url"
+#define ADDON_KEY_VERSION "version"
+#define ADDON_KEY_DIRS "dirs"
+#define ADDON_KEY_ASSETS "assets"
+
+#define ADDON_SET_STRING(astr, str) \
+    do {                            \
+        if ((astr) != NULL)         \
+            free((astr));           \
+        if (str == NULL)            \
+            (astr) = NULL;          \
+        else                        \
+            (astr) = strdup(str);   \
+    } while (0)
+
+/**
+ * Duplicates the string and sets the addon property to it. If str is NULL then
+ * the addon property is released and set to NULL.
+ */
+#define ADDON_SET_NAME(a, str) ADDON_SET_STRING((a)->name, str)
+#define ADDON_SET_DESC(a, str) ADDON_SET_STRING((a)->desc, str)
+#define ADDON_SET_VERSION(a, str) ADDON_SET_STRING((a)->version, str)
+#define ADDON_SET_URL(a, str) ADDON_SET_STRING((a)->url, str)
 
 Addon *addon_create(void);
 
@@ -78,8 +122,14 @@ Addon *addon_dup(Addon *a);
  * addon_to_json returns a string that shall be freed by the caller on success,
  * and NULL on error.
  */
-int addon_from_json(Addon *a, const cJSON *json);
+int addon_from_json(Addon *a, const struct cJSON *json);
 char *addon_to_json(Addon *a);
+
+/**
+ * Returns the error string for the given error code. If the code is out of
+ * range or is not an error then NULL is returned.
+ */
+const char *addon_strerror(int errcode);
 
 /**
  * Sets the string pointed to by old to the string pointed to by new. If old is
@@ -90,43 +140,29 @@ char *addon_to_json(Addon *a);
 void addon_set_str(char **restrict oldstr, char *restrict newstr);
 
 /**
- * Retrieves addon metadata from the catalog.
+ * Fetches addon metadata.
  *
- * Returns 0, non-zero on error.
+ * Returns ADDON_OK on success, otherwise an addon error number.
  */
-int addon_fetch_catalog_meta(Addon *a, const char *name);
+int addon_info(Addon *a, struct Context *ctx, const char *name);
 
 /**
- * Retrieves addon metadata from GitHub. If token is not null then it will be
- * used to authorize the HTTP request.
+ * Fetches the given addon asset.
  *
- * Returns NULL on error and sets out_err.
- */
-cJSON *addon_fetch_github_meta(const char *url, const char *token, int *out_err);
-
-/**
- * Fetches all metadata for addon that matches the given name. On success the
- * addon will have all metadata filled out and its url will point to a .zip
- * download. If token is not null then it will be used to authorize the HTTP
- * request.
+ * NOTE: This should generally be called after addon_info.
  *
- * Returns ADDON_ENOT_FOUND if name doesn't match any known addons.
+ * Returns ADDON_OK on success, otherwise an addon error number.
  */
-int addon_fetch_all_meta(Addon *a, const char *name, const char *token);
-
-/**
- * Downloads the .zip associated to Addon. Addon.url shall be a download link to
- * the .zip before calling this function. If token is not null then it will be
- * used to authorize the HTTP request.
- */
-int addon_fetch_zip(Addon *a, const char *token);
+int addon_fetch(Addon *a, struct Context *ctx, AddonAsset *asset);
 
 /**
  * Prepares addon for extraction.
  *
- * Returns non zero on errors.
+ * NOTE: This should generally be called after addon_fetch.
+ *
+ * Returns ADDON_OK on success, otherwise an addon error number.
  */
-int addon_package(Addon *a);
+int addon_package(Addon *a, struct Context *ctx);
 
 /**
  * Moves all packaged files from the package directory to the given path. First
@@ -134,5 +170,7 @@ int addon_package(Addon *a);
  * the packaged files.
  *
  * NOTE: addon_package shall be called before this function.
+ *
+ * Returns ADDON_OK on success, otherwise an addon error number.
  */
-int addon_extract(Addon *a, const char *path);
+int addon_extract(Addon *a, struct Context *ctx, const char *path);

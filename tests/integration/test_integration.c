@@ -35,6 +35,24 @@ static bool is_addons_dir_empty(void)
     return true;
 }
 
+static bool is_nothing_installed(void)
+{
+    bool result = true;
+    FILE *list = popen(WOWPKG_EXEC_PATH " list", "r");
+    if (list == NULL) {
+        return false;
+    }
+
+    int c;
+    c = fgetc(list);
+    if (c != EOF) {
+        result = false;
+    }
+
+    pclose(list);
+    return result;
+}
+
 static void test_install_single(void)
 {
     assert(system(WOWPKG_EXEC_PATH " install bigwigs") == 0);
@@ -101,6 +119,32 @@ static void test_stress(void)
     assert(system(cmd_install) == 0);
     assert(!is_addons_dir_empty());
 
+    /* Assert `wowpkg list` number is equal to number of .ini in catalog. */
+    int ncatalog = 0;
+    dir = os_opendir(WOWPKG_CATALOG_PATH);
+    entry = NULL;
+    while ((entry = os_readdir(dir)) != NULL) {
+        if (strcmp(entry->name, ".") == 0 || strcmp(entry->name, "..") == 0) {
+            continue;
+        }
+        char *ext = strstr(entry->name, ".ini");
+        if (ext != NULL) {
+            ncatalog++;
+        }
+    }
+    os_closedir(dir);
+    FILE *list = popen(WOWPKG_EXEC_PATH " list", "r");
+    assert(list != NULL);
+    int ninstalled = 0;
+    int c;
+    while ((c = getc(list)) != EOF) {
+        if (c == '\n') {
+            ninstalled++;
+        }
+    }
+    pclose(list);
+    assert(ncatalog == ninstalled);
+
     /* Cleanup addons directory. */
     char cmd_remove[1024] = { '\0' };
     assert(snprintf(cmd_remove, ARRAY_SIZE(cmd_remove), "%s remove %s", WOWPKG_EXEC_PATH, cmd_args) < (int)ARRAY_SIZE(cmd_remove));
@@ -124,7 +168,7 @@ static void test_upgrade_single(void)
     list_foreach(n, state->latest)
     {
         Addon *addon = n->value;
-        addon_set_str(&addon->version, strdup("0"));
+        ADDON_SET_VERSION(addon, "0");
     }
     assert(appstate_save(state, WOWPKG_USER_FILE_DIR "/saved.wowpkg") == APPSTATE_OK);
     appstate_destroy(state);
@@ -169,7 +213,7 @@ static void test_upgrade_all(void)
     list_foreach(n, state->latest)
     {
         Addon *addon = n->value;
-        addon_set_str(&addon->version, strdup("0"));
+        ADDON_SET_VERSION(addon, "0");
     }
     assert(appstate_save(state, WOWPKG_USER_FILE_DIR "/saved.wowpkg") == APPSTATE_OK);
     appstate_destroy(state);
@@ -214,7 +258,7 @@ void test_update_single(void)
     {
         Addon *addon = n->value;
         if (strcmp(addon->name, "WeakAuras") == 0) {
-            addon_set_str(&addon->version, strdup("0"));
+            ADDON_SET_VERSION(addon, "0");
         }
     }
     assert(appstate_save(state, WOWPKG_USER_FILE_DIR "/saved.wowpkg") == APPSTATE_OK);
@@ -252,7 +296,7 @@ void test_update_all(void)
     list_foreach(n, state->installed)
     {
         Addon *addon = n->value;
-        addon_set_str(&addon->version, strdup("0"));
+        ADDON_SET_VERSION(addon, "0");
     }
     assert(appstate_save(state, WOWPKG_USER_FILE_DIR "/saved.wowpkg") == APPSTATE_OK);
     appstate_destroy(state);
@@ -313,11 +357,11 @@ teardown:
 
 int main(void)
 {
-    if (!is_addons_dir_empty()) {
+    if (!is_addons_dir_empty() || !is_nothing_installed()) {
         fprintf(stderr, "Test pre-requisite failed: addons directory should be ");
         fprintf(stderr, "empty and `wowpkg list` should output nothing in order ");
         fprintf(stderr, "for integration tests to pass\n");
-        exit(1);
+        exit(EXIT_FAILURE);
     }
 
     test_install_single();

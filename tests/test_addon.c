@@ -6,15 +6,16 @@
 #include <cjson/cJSON.h>
 
 #include "addon.h"
+#include "list.h"
 #include "osstring.h"
 
 static void test_addon_dup(void)
 {
     Addon *expect = addon_create();
-    expect->name = strdup("Test");
-    expect->desc = strdup("Test Desc");
-    expect->url = strdup("test_url");
-    expect->version = strdup("v1.2.3");
+    ADDON_SET_NAME(expect, "Test");
+    ADDON_SET_DESC(expect, "Test Desc");
+    ADDON_SET_URL(expect, "test_url");
+    ADDON_SET_VERSION(expect, "v1.2.3");
     list_insert(expect->dirs, strdup("dont_copy_me"));
 
     Addon *actual = addon_dup(expect);
@@ -37,10 +38,10 @@ static void test_addon_from_json(void)
 
     Addon *actual = addon_create();
 
-    assert(cJSON_AddStringToObject(json, ADDON_NAME, "test_name") != NULL);
-    assert(cJSON_AddStringToObject(json, ADDON_DESC, "test_desc") != NULL);
-    assert(cJSON_AddStringToObject(json, ADDON_URL, "test_url") != NULL);
-    assert(cJSON_AddStringToObject(json, ADDON_VERSION, "test_version") != NULL);
+    assert(cJSON_AddStringToObject(json, ADDON_KEY_NAME, "test_name") != NULL);
+    assert(cJSON_AddStringToObject(json, ADDON_KEY_DESC, "test_desc") != NULL);
+    assert(cJSON_AddStringToObject(json, ADDON_KEY_URL, "test_url") != NULL);
+    assert(cJSON_AddStringToObject(json, ADDON_KEY_VERSION, "test_version") != NULL);
 
     cJSON *dirs = cJSON_AddArrayToObject(json, "dirs");
     assert(dirs != NULL);
@@ -71,10 +72,10 @@ static void test_addon_from_json_partial(void)
 
     Addon *actual = addon_create();
 
-    actual->version = strdup("should not be changed");
+    ADDON_SET_VERSION(actual, "should not be changed");
 
-    assert(cJSON_AddStringToObject(json, ADDON_NAME, "test_name") != NULL);
-    assert(cJSON_AddStringToObject(json, ADDON_DESC, "test_desc") != NULL);
+    assert(cJSON_AddStringToObject(json, ADDON_KEY_NAME, "test_name") != NULL);
+    assert(cJSON_AddStringToObject(json, ADDON_KEY_DESC, "test_desc") != NULL);
 
     addon_from_json(actual, json);
 
@@ -96,9 +97,9 @@ static void test_addon_from_json_overwrite(void)
 
     Addon *actual = addon_create();
 
-    actual->name = strdup("test_name_overwrite");
+    ADDON_SET_NAME(actual, "test_name_overwrite");
 
-    assert(cJSON_AddStringToObject(json, ADDON_NAME, "test_name") != NULL);
+    assert(cJSON_AddStringToObject(json, ADDON_KEY_NAME, "test_name") != NULL);
 
     addon_from_json(actual, json);
 
@@ -112,10 +113,10 @@ static void test_addon_to_json(void)
 {
     Addon *addon = addon_create();
 
-    addon->name = strdup("test name");
-    addon->desc = strdup("test desc");
-    addon->url = strdup("test url");
-    addon->version = strdup("test version");
+    ADDON_SET_NAME(addon, "test name");
+    ADDON_SET_DESC(addon, "test desc");
+    ADDON_SET_URL(addon, "test url");
+    ADDON_SET_VERSION(addon, "test version");
     list_insert(addon->dirs, strdup("dirs_2"));
     list_insert(addon->dirs, strdup("dirs_1"));
 
@@ -127,20 +128,20 @@ static void test_addon_to_json(void)
 
     cJSON *actual = NULL;
 
-    actual = cJSON_GetObjectItemCaseSensitive(json, ADDON_NAME);
+    actual = cJSON_GetObjectItemCaseSensitive(json, ADDON_KEY_NAME);
     assert(strcmp(actual->valuestring, "test name") == 0);
 
-    actual = cJSON_GetObjectItemCaseSensitive(json, ADDON_DESC);
+    actual = cJSON_GetObjectItemCaseSensitive(json, ADDON_KEY_DESC);
     assert(strcmp(actual->valuestring, "test desc") == 0);
 
-    actual = cJSON_GetObjectItemCaseSensitive(json, ADDON_URL);
+    actual = cJSON_GetObjectItemCaseSensitive(json, ADDON_KEY_URL);
     assert(strcmp(actual->valuestring, "test url") == 0);
 
-    actual = cJSON_GetObjectItemCaseSensitive(json, ADDON_VERSION);
+    actual = cJSON_GetObjectItemCaseSensitive(json, ADDON_KEY_VERSION);
     assert(strcmp(actual->valuestring, "test version") == 0);
 
     cJSON *item = NULL;
-    actual = cJSON_GetObjectItemCaseSensitive(json, ADDON_DIRS);
+    actual = cJSON_GetObjectItemCaseSensitive(json, ADDON_KEY_DIRS);
     item = cJSON_GetArrayItem(actual, 0);
     assert(strcmp(item->valuestring, "dirs_1") == 0);
     item = cJSON_GetArrayItem(actual, 1);
@@ -151,22 +152,6 @@ static void test_addon_to_json(void)
     addon_destroy(addon);
 }
 
-void test_addon_metadata_from_catalog(void)
-{
-    Addon *addon = addon_create();
-
-    assert(addon_fetch_catalog_meta(addon, "weakauras") == ADDON_OK);
-
-    assert(strcmp(addon->name, "WeakAuras") == 0);
-    assert(strcmp(addon->desc, "A powerful, comprehensive utility for displaying graphics and information based on buffs, debuffs, and other triggers.") == 0);
-    assert(strcmp(addon->url, "https://api.github.com/repos/WeakAuras/WeakAuras2/releases/latest") == 0);
-    assert(addon->version == NULL);
-    assert(addon->dirs != NULL);
-    assert(list_isempty(addon->dirs));
-
-    addon_destroy(addon);
-}
-
 int main(void)
 {
     test_addon_dup();
@@ -174,7 +159,6 @@ int main(void)
     test_addon_from_json_partial();
     test_addon_from_json_overwrite();
     test_addon_to_json();
-    test_addon_metadata_from_catalog();
 
     return 0;
 }
