@@ -57,6 +57,7 @@ dkms.conf
 build/
 vcpkg/
 vcpkg_installed/
+_CPack_Packages/
 
 # Setup development directory so that it is easier to run from source.
 dev_only/**

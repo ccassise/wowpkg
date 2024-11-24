@@ -278,6 +278,10 @@ static int fetch_github_info(Addon *a, const char *token)
     }
     ADDON_SET_VERSION(a, tag_name->valuestring);
 
+    /* Reset addon's asset list. */
+    while (a->assets->head != NULL) {
+        list_remove(a->assets, a->assets->head);
+    }
     /* Get addon ZIP URLs. Some addons (like DBM-Dungeons) may have mutliple
      * ZIPs. */
     assets = cJSON_GetObjectItemCaseSensitive(resp, "assets");

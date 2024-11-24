@@ -168,6 +168,7 @@ static int snuser_file_path(char *s, size_t n, const char *filename)
 static int perform_first_time_setup(const char *user_path, const char *saved_file_path, const char *config_file_path)
 {
     int err = 0;
+    AppState *appstate = NULL;
     FILE *fsaved = NULL;
     FILE *fconfig = NULL;
 
@@ -185,12 +186,20 @@ static int perform_first_time_setup(const char *user_path, const char *saved_fil
         err = -1;
         goto cleanup;
     }
-    const char saved_default[] = "{}\n";
-    if (fwrite(saved_default, sizeof(saved_default) - 1, 1, fsaved) != 1) {
+    fclose(fsaved);
+    fsaved = NULL;
+    appstate = appstate_create();
+    if (appstate_save(appstate, saved_file_path) != APPSTATE_OK) {
         PRINT_ERROR("failed to perform first time setup\n");
         err = -1;
         goto cleanup;
     }
+    // const char saved_default[] = "{\"installed\":[],\"latest\":[]}\n";
+    // if (fwrite(saved_default, sizeof(saved_default) - 1, 1, fsaved) != 1) {
+    //     PRINT_ERROR("failed to perform first time setup\n");
+    //     err = -1;
+    //     goto cleanup;
+    // }
 
     /* Create config.ini */
     fconfig = fopen(config_file_path, "w");
@@ -220,9 +229,6 @@ static int perform_first_time_setup(const char *user_path, const char *saved_fil
     }
 
 cleanup:
-    if (fsaved != NULL) {
-        fclose(fsaved);
-    }
     if (fconfig != NULL) {
         fclose(fconfig);
     }
@@ -231,6 +237,7 @@ cleanup:
         remove(config_file_path);
         os_rmdir(user_path);
     }
+    appstate_destroy(appstate);
     return err;
 }
 
