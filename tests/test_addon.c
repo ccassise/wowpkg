@@ -12,10 +12,10 @@
 static void test_addon_dup(void)
 {
     Addon *expect = addon_create();
-    ADDON_SET_NAME(expect, "Test");
-    ADDON_SET_DESC(expect, "Test Desc");
-    ADDON_SET_URL(expect, "test_url");
-    ADDON_SET_VERSION(expect, "v1.2.3");
+    ADDON_SET_NAME(expect, strdup("Test"));
+    ADDON_SET_DESC(expect, strdup("Test Desc"));
+    ADDON_SET_URL(expect, strdup("test_url"));
+    ADDON_SET_VERSION(expect, strdup("v1.2.3"));
     list_insert(expect->dirs, strdup("dont_copy_me"));
 
     Addon *actual = addon_dup(expect);
@@ -72,7 +72,7 @@ static void test_addon_from_json_partial(void)
 
     Addon *actual = addon_create();
 
-    ADDON_SET_VERSION(actual, "should not be changed");
+    ADDON_SET_VERSION(actual, strdup("should not be changed"));
 
     assert(cJSON_AddStringToObject(json, ADDON_KEY_NAME, "test_name") != NULL);
     assert(cJSON_AddStringToObject(json, ADDON_KEY_DESC, "test_desc") != NULL);
@@ -97,7 +97,7 @@ static void test_addon_from_json_overwrite(void)
 
     Addon *actual = addon_create();
 
-    ADDON_SET_NAME(actual, "test_name_overwrite");
+    ADDON_SET_NAME(actual, strdup("test_name_overwrite"));
 
     assert(cJSON_AddStringToObject(json, ADDON_KEY_NAME, "test_name") != NULL);
 
@@ -113,10 +113,10 @@ static void test_addon_to_json(void)
 {
     Addon *addon = addon_create();
 
-    ADDON_SET_NAME(addon, "test name");
-    ADDON_SET_DESC(addon, "test desc");
-    ADDON_SET_URL(addon, "test url");
-    ADDON_SET_VERSION(addon, "test version");
+    ADDON_SET_NAME(addon, strdup("test name"));
+    ADDON_SET_DESC(addon, strdup("test desc"));
+    ADDON_SET_URL(addon, strdup("test url"));
+    ADDON_SET_VERSION(addon, strdup("test version"));
     list_insert(addon->dirs, strdup("dirs_2"));
     list_insert(addon->dirs, strdup("dirs_1"));
 

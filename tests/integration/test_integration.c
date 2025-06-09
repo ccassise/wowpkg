@@ -168,7 +168,7 @@ static void test_upgrade_single(void)
     list_foreach(n, state->latest)
     {
         Addon *addon = n->value;
-        ADDON_SET_VERSION(addon, "0");
+        ADDON_SET_VERSION(addon, strdup("0"));
     }
     assert(appstate_save(state, WOWPKG_USER_FILE_DIR "/saved.wowpkg") == APPSTATE_OK);
     appstate_destroy(state);
@@ -213,7 +213,7 @@ static void test_upgrade_all(void)
     list_foreach(n, state->latest)
     {
         Addon *addon = n->value;
-        ADDON_SET_VERSION(addon, "0");
+        ADDON_SET_VERSION(addon, strdup("0"));
     }
     assert(appstate_save(state, WOWPKG_USER_FILE_DIR "/saved.wowpkg") == APPSTATE_OK);
     appstate_destroy(state);
@@ -258,7 +258,7 @@ void test_update_single(void)
     {
         Addon *addon = n->value;
         if (strcmp(addon->name, "WeakAuras") == 0) {
-            ADDON_SET_VERSION(addon, "0");
+            ADDON_SET_VERSION(addon, strdup("0"));
         }
     }
     assert(appstate_save(state, WOWPKG_USER_FILE_DIR "/saved.wowpkg") == APPSTATE_OK);
@@ -296,7 +296,7 @@ void test_update_all(void)
     list_foreach(n, state->installed)
     {
         Addon *addon = n->value;
-        ADDON_SET_VERSION(addon, "0");
+        ADDON_SET_VERSION(addon, strdup("0"));
     }
     assert(appstate_save(state, WOWPKG_USER_FILE_DIR "/saved.wowpkg") == APPSTATE_OK);
     appstate_destroy(state);
