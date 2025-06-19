@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CatalogItem>
+	<Name>GatherMate2</Name>
+	<Description>Collects Herbs, Mines, Gas Clouds, Archaeology, Treasure and Fishing locations and adds them to the worldmap and minimap</Description>
+	<Uri>https://api.github.com/repos/Nevcairiel/GatherMate2/releases/latest</Uri>
+</CatalogItem>

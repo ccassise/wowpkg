@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CatalogItem>
+	<Name>RaiderIO-AddOn</Name>
+	<Description>RaiderIO AddOn</Description>
+	<Uri>https://api.github.com/repos/RaiderIO/raiderio-addon/releases/latest</Uri>
+</CatalogItem>

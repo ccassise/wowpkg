@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CatalogItem>
+	<Name>DetailsDamageMeter</Name>
+	<Description>Addon for World of Warcraft, does combat analyzes offering clean visual data for the player</Description>
+	<Uri>https://api.github.com/repos/packagedwowaddons/Details/releases/latest</Uri>
+</CatalogItem>

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CatalogItem>
+	<Name>BigWigs_Voice</Name>
+	<Description>A plugin for BigWigs that will play Text-To-Speech sounds for boss abilities.</Description>
+	<Uri>https://api.github.com/repos/BigWigsMods/BigWigs_Voice/releases/latest</Uri>
+</CatalogItem>

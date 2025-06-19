@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CatalogItem>
+	<Name>SavedInstances</Name>
+	<Description>Tracks Raid, Instance, World Boss lockouts for all your characters, daily/weekly quests, currencies, trade cooldowns, and more!</Description>
+	<Uri>https://api.github.com/repos/SavedInstances/SavedInstances/releases/latest</Uri>
+</CatalogItem>

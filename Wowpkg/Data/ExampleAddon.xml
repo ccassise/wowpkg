@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CatalogItem>
+    <!-- 
+        The addon name. Should be the same name as the file withouth the .xml
+        extension.
+    -->
+    <Name>{{ ADDON_NAME }}</Name>
+
+    <!-- Addon description. Set to anything. -->
+    <Description>{{ ADDON_DESCRIPTION }}</Description>
+
+    <!--
+        Set to the GitHub latest release URI. Set {{ OWNER }} and {{ REPO }} in
+        the below URI to that of the addon maintainer.
+    -->
+    <Uri>https://api.github.com/repos/{{ OWNER }}/{{ REPO }}/releases/latest</Uri>
+</CatalogItem>

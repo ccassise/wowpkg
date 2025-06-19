@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Config>
+    <Retail>
+        <!-- Absolute path to the World of Warcraft AddOns directory. -->
+        <!-- <AddonsPath>{{ PATH }}</AddonsPath> -->
+
+        <!-- Windows Example -->
+        <AddonsPath>C:\Program Files (x86)\World of Warcraft\_retail_\Interface\AddOns</AddonsPath>
+
+        <!-- macOS Example -->
+        <!--
+        <AddonsPath>/Applications/World of Warcraft/_retail_/Interface/AddOns</AddonsPath>
+        -->
+    </Retail>
+</Config>

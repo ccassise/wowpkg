@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CatalogItem>
+	<Name>PremadeGroupsFilter</Name>
+	<Description>Allows filtering of premade groups using an UI or advanced filter expressions.</Description>
+	<Uri>https://api.github.com/repos/0xbs/premade-groups-filter/releases/latest</Uri>
+</CatalogItem>

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CatalogItem>
+	<Name>SilverDragon</Name>
+	<Description>Remember where rares were</Description>
+	<Uri>https://api.github.com/repos/kemayo/wow-silverdragon/releases/latest</Uri>
+</CatalogItem>

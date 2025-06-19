@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CatalogItem>
+	<Name>DBM-PvP</Name>
+	<Description>This mod adds support for PvP battlegrounds and arena to Deadly Boss Mods.</Description>
+	<Uri>https://api.github.com/repos/DeadlyBossMods/DBM-PvP/releases/latest</Uri>
+</CatalogItem>
