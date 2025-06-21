@@ -32,7 +32,7 @@ typedef struct Addon {
     char *name;
     char *desc;
     char *version;
-    char *url;
+    char *uri;
     struct List *dirs; /* List of strings */
     struct List *assets; /* List of AddonAsset */
 
@@ -42,12 +42,12 @@ typedef struct Addon {
 typedef struct AddonAsset {
     size_t size;
     uint8_t *data;
-    char *url;
+    char *uri;
 } AddonAsset;
 
 #define ADDON_KEY_NAME "name"
 #define ADDON_KEY_DESC "desc"
-#define ADDON_KEY_URL "url"
+#define ADDON_KEY_URI "uri"
 #define ADDON_KEY_VERSION "version"
 #define ADDON_KEY_DIRS "dirs"
 #define ADDON_KEY_ASSETS "assets"
@@ -69,7 +69,7 @@ typedef struct AddonAsset {
 #define ADDON_SET_NAME(a, str) ADDON_SET_STRING((a)->name, str)
 #define ADDON_SET_DESC(a, str) ADDON_SET_STRING((a)->desc, str)
 #define ADDON_SET_VERSION(a, str) ADDON_SET_STRING((a)->version, str)
-#define ADDON_SET_URL(a, str) ADDON_SET_STRING((a)->url, str)
+#define ADDON_SET_URI(a, str) ADDON_SET_STRING((a)->uri, str)
 
 Addon *addon_create(void);
 

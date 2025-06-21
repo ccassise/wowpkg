@@ -14,7 +14,7 @@ static void test_addon_dup(void)
     Addon *expect = addon_create();
     ADDON_SET_NAME(expect, (const char *)"Test");
     ADDON_SET_DESC(expect, (const char *)"Test Desc");
-    ADDON_SET_URL(expect, (const char *)"test_url");
+    ADDON_SET_URI(expect, (const char *)"test_uri");
     ADDON_SET_VERSION(expect, (const char *)"v1.2.3");
     list_insert(expect->dirs, strdup("dont_copy_me"));
 
@@ -23,7 +23,7 @@ static void test_addon_dup(void)
     assert(actual != expect);
     assert(strcmp(actual->name, "Test") == 0);
     assert(strcmp(actual->desc, "Test Desc") == 0);
-    assert(strcmp(actual->url, "test_url") == 0);
+    assert(strcmp(actual->uri, "test_uri") == 0);
     assert(strcmp(actual->version, "v1.2.3") == 0);
     assert(list_isempty(actual->dirs));
 
@@ -40,7 +40,7 @@ static void test_addon_from_json(void)
 
     assert(cJSON_AddStringToObject(json, ADDON_KEY_NAME, "test_name") != NULL);
     assert(cJSON_AddStringToObject(json, ADDON_KEY_DESC, "test_desc") != NULL);
-    assert(cJSON_AddStringToObject(json, ADDON_KEY_URL, "test_url") != NULL);
+    assert(cJSON_AddStringToObject(json, ADDON_KEY_URI, "test_uri") != NULL);
     assert(cJSON_AddStringToObject(json, ADDON_KEY_VERSION, "test_version") != NULL);
 
     cJSON *dirs = cJSON_AddArrayToObject(json, "dirs");
@@ -52,7 +52,7 @@ static void test_addon_from_json(void)
 
     assert(strcmp(actual->name, "test_name") == 0);
     assert(strcmp(actual->desc, "test_desc") == 0);
-    assert(strcmp(actual->url, "test_url") == 0);
+    assert(strcmp(actual->uri, "test_uri") == 0);
     assert(strcmp(actual->version, "test_version") == 0);
 
     ListNode *node = NULL;
@@ -82,7 +82,7 @@ static void test_addon_from_json_partial(void)
     assert(strcmp(actual->version, "should not be changed") == 0);
     assert(strcmp(actual->name, "test_name") == 0);
     assert(strcmp(actual->desc, "test_desc") == 0);
-    assert(actual->url == NULL);
+    assert(actual->uri == NULL);
     assert(actual->dirs != NULL);
     assert(list_isempty(actual->dirs));
 
@@ -115,7 +115,7 @@ static void test_addon_to_json(void)
 
     ADDON_SET_NAME(addon, (const char *)"test name");
     ADDON_SET_DESC(addon, (const char *)"test desc");
-    ADDON_SET_URL(addon, (const char *)"test url");
+    ADDON_SET_URI(addon, (const char *)"test uri");
     ADDON_SET_VERSION(addon, (const char *)"test version");
     list_insert(addon->dirs, strdup("dirs_2"));
     list_insert(addon->dirs, strdup("dirs_1"));
@@ -134,8 +134,8 @@ static void test_addon_to_json(void)
     actual = cJSON_GetObjectItemCaseSensitive(json, ADDON_KEY_DESC);
     assert(strcmp(actual->valuestring, "test desc") == 0);
 
-    actual = cJSON_GetObjectItemCaseSensitive(json, ADDON_KEY_URL);
-    assert(strcmp(actual->valuestring, "test url") == 0);
+    actual = cJSON_GetObjectItemCaseSensitive(json, ADDON_KEY_URI);
+    assert(strcmp(actual->valuestring, "test uri") == 0);
 
     actual = cJSON_GetObjectItemCaseSensitive(json, ADDON_KEY_VERSION);
     assert(strcmp(actual->valuestring, "test version") == 0);

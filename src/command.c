@@ -155,13 +155,13 @@ int cmd_info(Context *ctx, int argc, const char *argv[], FILE *stream)
         /* \b removes an extra space. */
         PRINT_STATUS_ADDON(stream, "\b", addon->name);
         fprintf(stream, TERM_WRAP(TERM_BOLD, "%-*s") " %s\n", width, "Description:", addon->desc);
-        fprintf(stream, TERM_WRAP(TERM_BOLD, "%-*s") " %s\n", width, "From:", addon->url);
+        fprintf(stream, TERM_WRAP(TERM_BOLD, "%-*s") " %s\n", width, "From:", addon->uri);
         fprintf(stream, TERM_WRAP(TERM_BOLD, "%-*s") " %s\n", width, "Installed:", installed_node ? "Yes" : "No");
 
         if (installed_node) {
             Addon *installed = installed_node->value;
             fprintf(stream, TERM_WRAP(TERM_BOLD, "%-*s") " %s\n", width, "Version:", installed->version);
-            fprintf(stream, TERM_WRAP(TERM_BOLD, "%-*s") " %s\n", width, "ZIP:", installed->url);
+            fprintf(stream, TERM_WRAP(TERM_BOLD, "%-*s") " %s\n", width, "ZIP:", installed->uri);
         }
 
     cleanup:
@@ -250,7 +250,7 @@ int cmd_install(Context *ctx, int argc, const char *argv[], FILE *stream)
         list_foreach(asset_node, addon->assets)
         {
             AddonAsset *asset = asset_node->value;
-            fprintf(stream, "Download: %s\n", asset->url);
+            fprintf(stream, "Download: %s\n", asset->uri);
             if ((err = addon_fetch(addon, ctx, asset)) != ADDON_OK) {
                 PRINT_ERROR2(addon_strerror(err), addon->name);
                 err = -1;
@@ -642,7 +642,7 @@ int cmd_upgrade(Context *ctx, int argc, const char *argv[], FILE *stream)
         list_foreach(asset_node, addon->assets)
         {
             AddonAsset *asset = asset_node->value;
-            fprintf(stream, "Download: %s\n", asset->url);
+            fprintf(stream, "Download: %s\n", asset->uri);
             if ((err = addon_fetch(addon, ctx, asset)) != ADDON_OK) {
                 PRINT_ERROR2(addon_strerror(err), addon->name);
                 err = -1;

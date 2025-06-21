@@ -23,21 +23,21 @@ static void test_cmd_list(void)
                              "        {\n"
                              "            \"name\": \"c_test_name\",\n"
                              "            \"desc\": \"c_test_desc\",\n"
-                             "            \"url\": \"c_test_url\",\n"
+                             "            \"uri\": \"c_test_uri\",\n"
                              "            \"version\": \"v7.8.9\",\n"
                              "            \"dirs\": []\n"
                              "        },\n"
                              "        {\n"
                              "            \"name\": \"a_test_name\",\n"
                              "            \"desc\": \"a_test_desc\",\n"
-                             "            \"url\": \"a_test_url\",\n"
+                             "            \"uri\": \"a_test_uri\",\n"
                              "            \"version\": \"v1.2.3\",\n"
                              "            \"dirs\": []\n"
                              "        },\n"
                              "        {\n"
                              "            \"name\": \"b_test_name\",\n"
                              "            \"desc\": \"b_test_desc\",\n"
-                             "            \"url\": \"b_test_url\",\n"
+                             "            \"uri\": \"b_test_uri\",\n"
                              "            \"version\": \"v4.5.6\",\n"
                              "            \"dirs\": []\n"
                              "        }\n"
@@ -238,7 +238,7 @@ static void test_cmd_info(void)
 
     Addon *addon = addon_create();
     ADDON_SET_NAME(addon, (const char *)"Simulationcraft");
-    ADDON_SET_URL(addon, (const char *)"zip_url");
+    ADDON_SET_URI(addon, (const char *)"zip_uri");
     ADDON_SET_VERSION(addon, (const char *)"v1.2.3");
 
     list_insert(ctx.state->installed, addon); /* Transfer ownership of addon to ctx.state. */
@@ -295,7 +295,7 @@ static void test_cmd_info(void)
 
     assert(fgets(actual, (int)actual_len, stream) != NULL);
     assert(strstr(actual, "ZIP:") != NULL);
-    assert(strstr(actual, "zip_url") != NULL);
+    assert(strstr(actual, "zip_uri") != NULL);
 
     assert(fgets(actual, (int)actual_len, stream) == NULL);
 

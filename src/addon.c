@@ -32,7 +32,7 @@ static void asset_destroy(AddonAsset *asset)
             free(asset->data);
             asset->size = 0;
         }
-        free(asset->url);
+        free(asset->uri);
     }
     free(asset);
 }
@@ -102,7 +102,7 @@ void addon_destroy(Addon *a)
 
     free(a->name);
     free(a->desc);
-    free(a->url);
+    free(a->uri);
     free(a->version);
     list_destroy(a->dirs);
     list_destroy(a->assets);
@@ -204,15 +204,15 @@ static int fetch_catalog_meta(Addon *a, const char *name)
             ADDON_SET_NAME(a, key->value);
         } else if (strcasecmp(key->name, ADDON_KEY_DESC) == 0) {
             ADDON_SET_DESC(a, key->value);
-        } else if (strcasecmp(key->name, ADDON_KEY_URL) == 0) {
-            ADDON_SET_URL(a, key->value);
+        } else if (strcasecmp(key->name, ADDON_KEY_URI) == 0) {
+            ADDON_SET_URI(a, key->value);
         }
     }
 
     if (ini_last_error(ini) != INI_OK
         || a->name == NULL
         || a->desc == NULL
-        || a->url == NULL) {
+        || a->uri == NULL) {
 
         err = ADDON_ECONFIG;
         goto cleanup;
@@ -236,7 +236,7 @@ static int fetch_github_info(Addon *a, Context *ctx)
     headers = set_github_headers(headers, ctx->config->github_token);
 
     // curl_easy_setopt(ctx->curl, CURLOPT_VERBOSE, true);
-    curl_easy_setopt(ctx->curl, CURLOPT_URL, a->url);
+    curl_easy_setopt(ctx->curl, CURLOPT_URL, a->uri);
     curl_easy_setopt(ctx->curl, CURLOPT_USERAGENT, WOWPKG_USER_AGENT);
     curl_easy_setopt(ctx->curl, CURLOPT_WRITEFUNCTION, write_str_cb);
     curl_easy_setopt(ctx->curl, CURLOPT_WRITEDATA, (void *)&res);
@@ -286,15 +286,15 @@ static int fetch_github_info(Addon *a, Context *ctx)
     {
         cJSON *content_type = cJSON_GetObjectItemCaseSensitive(asset, "content_type");
         if (cJSON_IsString(content_type) && strcmp(content_type->valuestring, "application/zip") == 0) {
-            cJSON *download_url = cJSON_GetObjectItemCaseSensitive(asset, "browser_download_url");
-            if (cJSON_IsString(download_url) && download_url->valuestring != NULL) {
+            cJSON *download_uri = cJSON_GetObjectItemCaseSensitive(asset, "browser_download_url");
+            if (cJSON_IsString(download_uri) && download_uri->valuestring != NULL) {
                 AddonAsset *zip = asset_create();
                 if (zip == NULL) {
                     err = ADDON_EINTERNAL;
                     goto cleanup;
                 }
 
-                zip->url = strdup(download_url->valuestring);
+                zip->uri = strdup(download_uri->valuestring);
                 list_insert(a->assets, zip);
             }
         }
@@ -317,7 +317,7 @@ static int fetch_github_zip(AddonAsset *asset, Context *ctx)
 
     headers = set_github_headers(headers, ctx->config->github_token);
 
-    curl_easy_setopt(ctx->curl, CURLOPT_URL, asset->url);
+    curl_easy_setopt(ctx->curl, CURLOPT_URL, asset->uri);
     curl_easy_setopt(ctx->curl, CURLOPT_USERAGENT, WOWPKG_USER_AGENT);
     curl_easy_setopt(ctx->curl, CURLOPT_WRITEFUNCTION, write_str_cb);
     curl_easy_setopt(ctx->curl, CURLOPT_WRITEDATA, (void *)&res);
@@ -376,7 +376,7 @@ Addon *addon_dup(Addon *a)
         ADDON_SET_NAME(result, a->name);
         ADDON_SET_DESC(result, a->desc);
         ADDON_SET_VERSION(result, a->version);
-        ADDON_SET_URL(result, a->url);
+        ADDON_SET_URI(result, a->uri);
         ListNode *node = NULL;
         list_foreach(node, a->assets)
         {
@@ -386,8 +386,8 @@ Addon *addon_dup(Addon *a)
                 addon_destroy(result);
                 return NULL;
             }
-            new->url = strdup(orig->url);
-            if (new->url == NULL) {
+            new->uri = strdup(orig->uri);
+            if (new->uri == NULL) {
                 asset_destroy(new);
                 addon_destroy(result);
                 return NULL;
@@ -413,9 +413,9 @@ int addon_from_json(Addon *a, const cJSON *json)
     if (cJSON_IsString(addon_desc) && addon_desc->valuestring != NULL) {
         ADDON_SET_DESC(a, addon_desc->valuestring);
     }
-    cJSON *addon_url = cJSON_GetObjectItemCaseSensitive(json, ADDON_KEY_URL);
-    if (cJSON_IsString(addon_url) && addon_url->valuestring != NULL) {
-        ADDON_SET_URL(a, addon_url->valuestring);
+    cJSON *addon_uri = cJSON_GetObjectItemCaseSensitive(json, ADDON_KEY_URI);
+    if (cJSON_IsString(addon_uri) && addon_uri->valuestring != NULL) {
+        ADDON_SET_URI(a, addon_uri->valuestring);
     }
     cJSON *addon_version = cJSON_GetObjectItemCaseSensitive(json, ADDON_KEY_VERSION);
     if (cJSON_IsString(addon_version) && addon_version->valuestring != NULL) {
@@ -447,7 +447,7 @@ int addon_from_json(Addon *a, const cJSON *json)
             if (zip == NULL) {
                 return ADDON_EINTERNAL;
             }
-            zip->url = strdup(asset->valuestring);
+            zip->uri = strdup(asset->valuestring);
             list_insert(a->assets, zip);
         }
     }
@@ -480,7 +480,7 @@ char *addon_to_json(Addon *a)
         goto cleanup;
     }
 
-    if (cJSON_AddStringToObject(json, ADDON_KEY_URL, a->url) == NULL) {
+    if (cJSON_AddStringToObject(json, ADDON_KEY_URI, a->uri) == NULL) {
         err = ADDON_EINTERNAL;
         goto cleanup;
     }
@@ -505,7 +505,7 @@ char *addon_to_json(Addon *a)
     list_foreach(node, a->assets)
     {
         AddonAsset *asset = node->value;
-        cJSON_AddItemToArray(assets, cJSON_CreateString(asset->url));
+        cJSON_AddItemToArray(assets, cJSON_CreateString(asset->uri));
     }
 
 cleanup:

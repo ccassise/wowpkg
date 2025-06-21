@@ -16,14 +16,14 @@ static const char *const json_input = "{\n"
                                       "    {\n"
                                       "        \"name\": \"test_name_installed_one\",\n"
                                       "        \"desc\": \"test_desc_installed_one\",\n"
-                                      "        \"url\": \"test_url_installed_one\",\n"
+                                      "        \"uri\": \"test_uri_installed_one\",\n"
                                       "        \"version\": \"test_version_installed_one\",\n"
                                       "        \"dirs\": [ \"test_dirs_installed_one_1\", \"test_dirs_installed_one_2\" ]\n"
                                       "    },\n"
                                       "    {\n"
                                       "        \"name\": \"test_name_installed_two\",\n"
                                       "        \"desc\": \"test_desc_installed_two\",\n"
-                                      "        \"url\": \"test_url_installed_two\",\n"
+                                      "        \"uri\": \"test_uri_installed_two\",\n"
                                       "        \"version\": \"test_version_installed_two\",\n"
                                       "        \"dirs\": []\n"
                                       "    }\n"
@@ -32,14 +32,14 @@ static const char *const json_input = "{\n"
                                       "    {\n"
                                       "        \"name\": \"test_name_latest_one\",\n"
                                       "        \"desc\": \"test_desc_latest_one\",\n"
-                                      "        \"url\": \"test_url_latest_one\",\n"
+                                      "        \"uri\": \"test_uri_latest_one\",\n"
                                       "        \"version\": \"test_version_latest_one\",\n"
                                       "        \"dirs\": [ \"test_dirs_latest_one_1\" ]\n"
                                       "    },\n"
                                       "    {\n"
                                       "        \"name\": \"test_name_latest_two\",\n"
                                       "        \"desc\": \"test_desc_latest_two\",\n"
-                                      "        \"url\": \"test_url_latest_two\",\n"
+                                      "        \"uri\": \"test_uri_latest_two\",\n"
                                       "        \"version\": \"test_version_latest_two\",\n"
                                       "        \"dirs\": []\n"
                                       "    }\n"
@@ -61,7 +61,7 @@ static void test_appstate_from_json(void)
 
     assert(strcmp(addon->name, "test_name_installed_two") == 0);
     assert(strcmp(addon->desc, "test_desc_installed_two") == 0);
-    assert(strcmp(addon->url, "test_url_installed_two") == 0);
+    assert(strcmp(addon->uri, "test_uri_installed_two") == 0);
     assert(strcmp(addon->version, "test_version_installed_two") == 0);
     dir = addon->dirs->head;
     assert(dir == NULL);
@@ -71,7 +71,7 @@ static void test_appstate_from_json(void)
 
     assert(strcmp(addon->name, "test_name_installed_one") == 0);
     assert(strcmp(addon->desc, "test_desc_installed_one") == 0);
-    assert(strcmp(addon->url, "test_url_installed_one") == 0);
+    assert(strcmp(addon->uri, "test_uri_installed_one") == 0);
     assert(strcmp(addon->version, "test_version_installed_one") == 0);
     dir = addon->dirs->head;
     assert(strcmp(dir->value, "test_dirs_installed_one_2") == 0);
@@ -87,7 +87,7 @@ static void test_appstate_from_json(void)
 
     assert(strcmp(addon->name, "test_name_latest_two") == 0);
     assert(strcmp(addon->desc, "test_desc_latest_two") == 0);
-    assert(strcmp(addon->url, "test_url_latest_two") == 0);
+    assert(strcmp(addon->uri, "test_uri_latest_two") == 0);
     assert(strcmp(addon->version, "test_version_latest_two") == 0);
     dir = addon->dirs->head;
     assert(dir == NULL);
@@ -97,7 +97,7 @@ static void test_appstate_from_json(void)
 
     assert(strcmp(addon->name, "test_name_latest_one") == 0);
     assert(strcmp(addon->desc, "test_desc_latest_one") == 0);
-    assert(strcmp(addon->url, "test_url_latest_one") == 0);
+    assert(strcmp(addon->uri, "test_uri_latest_one") == 0);
     assert(strcmp(addon->version, "test_version_latest_one") == 0);
     dir = addon->dirs->head;
     assert(strcmp(dir->value, "test_dirs_latest_one_1") == 0);
@@ -120,25 +120,25 @@ static void test_appstate_to_json(void)
 
     ADDON_SET_NAME(installed1, (const char *)"test_name_installed_one");
     ADDON_SET_DESC(installed1, (const char *)"test_desc_installed_one");
-    ADDON_SET_URL(installed1, (const char *)"test_url_installed_one");
+    ADDON_SET_URI(installed1, (const char *)"test_uri_installed_one");
     ADDON_SET_VERSION(installed1, (const char *)"test_version_installed_one");
     list_insert(installed1->dirs, strdup("test_dirs_installed_one_2"));
     list_insert(installed1->dirs, strdup("test_dirs_installed_one_1"));
 
     ADDON_SET_NAME(installed2, (const char *)"test_name_installed_two");
     ADDON_SET_DESC(installed2, (const char *)"test_desc_installed_two");
-    ADDON_SET_URL(installed2, (const char *)"test_url_installed_two");
+    ADDON_SET_URI(installed2, (const char *)"test_uri_installed_two");
     ADDON_SET_VERSION(installed2, (const char *)"test_version_installed_two");
 
     ADDON_SET_NAME(latest1, (const char *)"test_name_latest_one");
     ADDON_SET_DESC(latest1, (const char *)"test_desc_latest_one");
-    ADDON_SET_URL(latest1, (const char *)"test_url_latest_one");
+    ADDON_SET_URI(latest1, (const char *)"test_uri_latest_one");
     ADDON_SET_VERSION(latest1, (const char *)"test_version_latest_one");
     list_insert(latest1->dirs, strdup("test_dirs_latest_one_1"));
 
     ADDON_SET_NAME(latest2, (const char *)"test_name_latest_two");
     ADDON_SET_DESC(latest2, (const char *)"test_desc_latest_two");
-    ADDON_SET_URL(latest2, (const char *)"test_url_latest_two");
+    ADDON_SET_URI(latest2, (const char *)"test_uri_latest_two");
     ADDON_SET_VERSION(latest2, (const char *)"test_version_latest_two");
 
     /* Transfer ownership of Addons to state. */
@@ -168,7 +168,7 @@ static void test_appstate_to_json(void)
     addon_from_json(addon, addon_json);
     assert(strcmp(addon->name, "test_name_installed_one") == 0);
     assert(strcmp(addon->desc, "test_desc_installed_one") == 0);
-    assert(strcmp(addon->url, "test_url_installed_one") == 0);
+    assert(strcmp(addon->uri, "test_uri_installed_one") == 0);
     assert(strcmp(addon->version, "test_version_installed_one") == 0);
     node = addon->dirs->head;
     assert(strcmp(node->value, "test_dirs_installed_one_2") == 0);
@@ -184,7 +184,7 @@ static void test_appstate_to_json(void)
     addon_from_json(addon, addon_json);
     assert(strcmp(addon->name, "test_name_installed_two") == 0);
     assert(strcmp(addon->desc, "test_desc_installed_two") == 0);
-    assert(strcmp(addon->url, "test_url_installed_two") == 0);
+    assert(strcmp(addon->uri, "test_uri_installed_two") == 0);
     assert(strcmp(addon->version, "test_version_installed_two") == 0);
     node = addon->dirs->head;
     assert(node == NULL);
@@ -196,7 +196,7 @@ static void test_appstate_to_json(void)
     addon_from_json(addon, addon_json);
     assert(strcmp(addon->name, "test_name_latest_one") == 0);
     assert(strcmp(addon->desc, "test_desc_latest_one") == 0);
-    assert(strcmp(addon->url, "test_url_latest_one") == 0);
+    assert(strcmp(addon->uri, "test_uri_latest_one") == 0);
     assert(strcmp(addon->version, "test_version_latest_one") == 0);
     node = addon->dirs->head;
     assert(strcmp(node->value, "test_dirs_latest_one_1") == 0);
@@ -210,7 +210,7 @@ static void test_appstate_to_json(void)
     addon_from_json(addon, addon_json);
     assert(strcmp(addon->name, "test_name_latest_two") == 0);
     assert(strcmp(addon->desc, "test_desc_latest_two") == 0);
-    assert(strcmp(addon->url, "test_url_latest_two") == 0);
+    assert(strcmp(addon->uri, "test_uri_latest_two") == 0);
     assert(strcmp(addon->version, "test_version_latest_two") == 0);
     node = addon->dirs->head;
     assert(node == NULL);
@@ -235,7 +235,7 @@ static void test_appstate_save_load(void)
     ADDON_SET_NAME(installed, (const char *)"Installed");
     ADDON_SET_DESC(installed, (const char *)"Installed desc");
     ADDON_SET_VERSION(installed, (const char *)"v1.2.3");
-    ADDON_SET_URL(installed, (const char *)"installed_url");
+    ADDON_SET_URI(installed, (const char *)"installed_uri");
     list_insert(installed->dirs, strdup("Installed"));
     list_insert(installed->dirs, strdup("Installed_Core"));
     list_insert(installed->dirs, strdup("Installed_Plugins"));
@@ -243,7 +243,7 @@ static void test_appstate_save_load(void)
     ADDON_SET_NAME(latest, (const char *)"Latest");
     ADDON_SET_DESC(latest, (const char *)"Latest desc");
     ADDON_SET_VERSION(latest, (const char *)"v4.5.6");
-    ADDON_SET_URL(latest, (const char *)"latest_url");
+    ADDON_SET_URI(latest, (const char *)"latest_uri");
     list_insert(latest->dirs, strdup("Latest"));
 
     list_insert(state->installed, installed);
@@ -261,7 +261,7 @@ static void test_appstate_save_load(void)
     assert(strcmp(installed_actual->name, "Installed") == 0);
     assert(strcmp(installed_actual->desc, "Installed desc") == 0);
     assert(strcmp(installed_actual->version, "v1.2.3") == 0);
-    assert(strcmp(installed_actual->url, "installed_url") == 0);
+    assert(strcmp(installed_actual->uri, "installed_uri") == 0);
     assert(installed_actual->dirs->head != NULL);
     ListNode *installed_dir = installed_actual->dirs->head;
     assert(installed_dir != NULL);
@@ -277,7 +277,7 @@ static void test_appstate_save_load(void)
     assert(strcmp(latest_actual->name, "Latest") == 0);
     assert(strcmp(latest_actual->desc, "Latest desc") == 0);
     assert(strcmp(latest_actual->version, "v4.5.6") == 0);
-    assert(strcmp(latest_actual->url, "latest_url") == 0);
+    assert(strcmp(latest_actual->uri, "latest_uri") == 0);
     assert(latest_actual->dirs->head != NULL);
     ListNode *latest_dir = latest_actual->dirs->head;
     assert(latest_dir != NULL);
