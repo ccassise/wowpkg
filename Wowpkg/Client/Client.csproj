@@ -16,7 +16,9 @@
 
   <ItemGroup>
     <CatalogFiles Include="../Data/Catalog/**"></CatalogFiles>
-    <Content Include="../WowpkgConfig.xml"></Content>
+    <Content Include="../Data/Config.xml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
 
   <Target Name="CopyCatalogOnBuild" AfterTargets="AfterBuild">

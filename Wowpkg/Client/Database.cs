@@ -1,6 +1,5 @@
 using System.Collections.ObjectModel;
 using System.Text.Json;
-using System.Xml.Serialization;
 using Wowpkg.Addon;
 
 namespace Wowpkg.Client;

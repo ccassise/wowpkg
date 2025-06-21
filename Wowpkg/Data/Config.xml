@@ -1,15 +1,23 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Config>
+    <!--
+        GitHub access token that will be used to authenticate GitHub requests.
+        May be needed if rate limit is being reached.
+    -->
+    <!-- <GitHubToken>{{ GITHUB_TOKEN }}</GitHubToken> -->
+
     <Retail>
         <!-- Absolute path to the World of Warcraft AddOns directory. -->
         <!-- <AddonsPath>{{ PATH }}</AddonsPath> -->
 
         <!-- Windows Example -->
-        <AddonsPath>C:\Program Files (x86)\World of Warcraft\_retail_\Interface\AddOns</AddonsPath>
+        <!-- <AddonsPath>C:\Program Files (x86)\World of Warcraft\_retail_\Interface\AddOns</AddonsPath> -->
 
         <!-- macOS Example -->
         <!--
         <AddonsPath>/Applications/World of Warcraft/_retail_/Interface/AddOns</AddonsPath>
         -->
+
+        <AddonsPath>/Users/cole/Developer/repos/wowpkg/Wowpkg/TestAddonFolder</AddonsPath>
     </Retail>
 </Config>
