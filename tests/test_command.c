@@ -149,7 +149,7 @@ static void test_cmd_remove(void)
     Addon *installed = addon_create();
     assert(installed != NULL);
 
-    ADDON_SET_NAME(installed, strdup("MockAddon"));
+    ADDON_SET_NAME(installed, (const char *)"MockAddon");
     list_insert(installed->dirs, strdup("test_a"));
     list_insert(installed->dirs, strdup("test_b"));
     list_insert(installed->dirs, strdup("test_c"));
@@ -181,20 +181,20 @@ static void test_cmd_outdated(void)
     Addon *addon2 = addon_create();
     Addon *addon3 = addon_create();
 
-    ADDON_SET_NAME(addon1, strdup("AddonOne"));
-    ADDON_SET_VERSION(addon1, strdup("v1.2.3"));
-    ADDON_SET_NAME(addon2, strdup("AddonTwo"));
-    ADDON_SET_VERSION(addon2, strdup("v4.5.6"));
-    ADDON_SET_NAME(addon3, strdup("AddonThree"));
-    ADDON_SET_VERSION(addon3, strdup("19700101.1"));
+    ADDON_SET_NAME(addon1, (const char *)"AddonOne");
+    ADDON_SET_VERSION(addon1, (const char *)"v1.2.3");
+    ADDON_SET_NAME(addon2, (const char *)"AddonTwo");
+    ADDON_SET_VERSION(addon2, (const char *)"v4.5.6");
+    ADDON_SET_NAME(addon3, (const char *)"AddonThree");
+    ADDON_SET_VERSION(addon3, (const char *)"19700101.1");
 
     Addon *addon1_latest = addon_dup(addon1);
     Addon *addon2_latest = addon_dup(addon2);
     Addon *addon3_latest = addon_dup(addon3);
 
-    ADDON_SET_VERSION(addon1_latest, strdup("v1.2.5"));
-    ADDON_SET_VERSION(addon2_latest, strdup("v5.6.7"));
-    ADDON_SET_VERSION(addon3_latest, strdup("20200809.5"));
+    ADDON_SET_VERSION(addon1_latest, (const char *)"v1.2.5");
+    ADDON_SET_VERSION(addon2_latest, (const char *)"v5.6.7");
+    ADDON_SET_VERSION(addon3_latest, (const char *)"20200809.5");
 
     Context ctx;
     memset(&ctx, 0, sizeof(ctx));
@@ -237,9 +237,9 @@ static void test_cmd_info(void)
     ctx.state = appstate_create();
 
     Addon *addon = addon_create();
-    ADDON_SET_NAME(addon, strdup("Simulationcraft"));
-    ADDON_SET_URL(addon, strdup("zip_url"));
-    ADDON_SET_VERSION(addon, strdup("v1.2.3"));
+    ADDON_SET_NAME(addon, (const char *)"Simulationcraft");
+    ADDON_SET_URL(addon, (const char *)"zip_url");
+    ADDON_SET_VERSION(addon, (const char *)"v1.2.3");
 
     list_insert(ctx.state->installed, addon); /* Transfer ownership of addon to ctx.state. */
 
