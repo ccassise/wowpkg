@@ -2,8 +2,6 @@
 #include <errno.h>
 #include <stdlib.h>
 
-#include <curl/curl.h>
-
 #include "addon.h"
 #include "appstate.h"
 #include "command.h"
@@ -186,8 +184,6 @@ int cmd_install(Context *ctx, int argc, const char *argv[], FILE *stream)
 
     int err = 0;
 
-    curl_global_init(CURL_GLOBAL_DEFAULT);
-
     List *addons = list_create();
     if (addons == NULL) {
         PRINT_ERROR2(CMD_ENO_MEM_STR, argv[0]);
@@ -220,19 +216,6 @@ int cmd_install(Context *ctx, int argc, const char *argv[], FILE *stream)
             goto loop_error;
         }
 
-        PRINT_STATUS_ADDON(stream, "Fetching", addon->name);
-        ListNode *asset_node = NULL;
-        list_foreach(asset_node, addon->assets)
-        {
-            AddonAsset *asset = asset_node->value;
-            fprintf(stream, "Download: %s\n", asset->url);
-            if ((err = addon_fetch(addon, ctx, asset)) != ADDON_OK) {
-                PRINT_ERROR2(addon_strerror(err), addon->name);
-                err = -1;
-                goto cleanup;
-            }
-        }
-
         list_insert(addons, addon);
 
         continue;
@@ -262,6 +245,19 @@ int cmd_install(Context *ctx, int argc, const char *argv[], FILE *stream)
             }
         }
 
+        PRINT_STATUS_ADDON(stream, "Fetching", addon->name);
+        ListNode *asset_node = NULL;
+        list_foreach(asset_node, addon->assets)
+        {
+            AddonAsset *asset = asset_node->value;
+            fprintf(stream, "Download: %s\n", asset->url);
+            if ((err = addon_fetch(addon, ctx, asset)) != ADDON_OK) {
+                PRINT_ERROR2(addon_strerror(err), addon->name);
+                err = -1;
+                goto cleanup;
+            }
+        }
+
         PRINT_STATUS_ADDON(stream, "Packaging", addon->name);
         if (addon_package(addon, ctx) != ADDON_OK) {
             PRINT_ERROR3(CMD_EPACKAGE_STR, argv[0], addon->name);
@@ -270,6 +266,14 @@ int cmd_install(Context *ctx, int argc, const char *argv[], FILE *stream)
         }
 
         PRINT_STATUS_ADDON(stream, "Extracting", addon->name);
+
+        ListNode *string_node = NULL;
+        list_foreach(string_node, addon->dirs)
+        {
+            char *dir = string_node->value;
+            printf("Move: %s -> %s\n", dir, ctx->config->addons_path);
+        }
+
         if (addon_extract(addon, ctx, ctx->config->addons_path) != ADDON_OK) {
             PRINT_ERROR3(CMD_EEXTRACT_STR, argv[0], addon->name);
             err = -1;
@@ -308,8 +312,6 @@ cleanup:
     }
 
     list_destroy(addons);
-
-    curl_global_cleanup();
 
     return err;
 }
@@ -492,8 +494,6 @@ int cmd_update(Context *ctx, int argc, const char *argv[], FILE *stream)
         return -1;
     }
 
-    curl_global_init(CURL_GLOBAL_DEFAULT);
-
     int err = 0;
     List *addons = list_create();
     if (addons == NULL) {
@@ -563,8 +563,6 @@ cleanup:
     }
     list_destroy(addons);
 
-    curl_global_cleanup();
-
     return err;
 }
 
@@ -578,8 +576,6 @@ int cmd_upgrade(Context *ctx, int argc, const char *argv[], FILE *stream)
         PRINT_ERROR1(CMD_EINVALID_ARGS_STR);
         return -1;
     }
-
-    curl_global_init(CURL_GLOBAL_DEFAULT);
 
     int err = 0;
     List *addons = list_create();
@@ -640,6 +636,7 @@ int cmd_upgrade(Context *ctx, int argc, const char *argv[], FILE *stream)
     list_foreach(node, addons)
     {
         Addon *addon = node->value;
+
         PRINT_STATUS_ADDON(stream, "Fetching", addon->name);
         ListNode *asset_node = NULL;
         list_foreach(asset_node, addon->assets)
@@ -652,12 +649,13 @@ int cmd_upgrade(Context *ctx, int argc, const char *argv[], FILE *stream)
                 goto cleanup;
             }
         }
-    }
 
-    node = NULL;
-    list_foreach(node, addons)
-    {
-        Addon *addon = node->value;
+        PRINT_STATUS_ADDON(stream, "Packaging", addon->name);
+        if (addon_package(addon, ctx) != ADDON_OK) {
+            PRINT_ERROR3(CMD_EPACKAGE_STR, argv[0], addon->name);
+            err = -1;
+            goto cleanup;
+        }
 
         ListNode *found = list_search(ctx->state->installed, addon, cmp_addon);
         if (found) {
@@ -673,14 +671,15 @@ int cmd_upgrade(Context *ctx, int argc, const char *argv[], FILE *stream)
             }
         }
 
-        PRINT_STATUS_ADDON(stream, "Packaging", addon->name);
-        if (addon_package(addon, ctx) != ADDON_OK) {
-            PRINT_ERROR3(CMD_EPACKAGE_STR, argv[0], addon->name);
-            err = -1;
-            goto cleanup;
+        PRINT_STATUS_ADDON(stream, "Extracting", addon->name);
+
+        ListNode *string_node = NULL;
+        list_foreach(string_node, addon->dirs)
+        {
+            char *dir = string_node->value;
+            printf("Move: %s -> %s\n", dir, ctx->config->addons_path);
         }
 
-        PRINT_STATUS_ADDON(stream, "Extracting", addon->name);
         if (addon_extract(addon, ctx, ctx->config->addons_path) != ADDON_OK) {
             PRINT_ERROR3(CMD_EEXTRACT_STR, argv[0], addon->name);
             err = -1;
@@ -713,8 +712,6 @@ cleanup:
     }
 
     list_destroy(addons);
-
-    curl_global_cleanup();
 
     return err;
 }

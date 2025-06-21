@@ -28,7 +28,10 @@ static AddonAsset *asset_create(void)
 static void asset_destroy(AddonAsset *asset)
 {
     if (asset != NULL) {
-        free(asset->data);
+        if (asset->size > 0) {
+            free(asset->data);
+            asset->size = 0;
+        }
         free(asset->url);
     }
     free(asset);
@@ -221,7 +224,7 @@ cleanup:
     return err;
 }
 
-static int fetch_github_info(Addon *a, const char *token)
+static int fetch_github_info(Addon *a, Context *ctx)
 {
     int err = ADDON_OK;
     Response res = { .data = NULL, .size = 0 };
@@ -230,29 +233,23 @@ static int fetch_github_info(Addon *a, const char *token)
     cJSON *asset = NULL;
     struct curl_slist *headers = NULL;
 
-    CURL *curl = curl_easy_init();
-    if (curl == NULL) {
-        err = ADDON_EINTERNAL;
-        goto cleanup;
-    }
+    headers = set_github_headers(headers, ctx->config->github_token);
 
-    headers = set_github_headers(headers, token);
+    // curl_easy_setopt(ctx->curl, CURLOPT_VERBOSE, true);
+    curl_easy_setopt(ctx->curl, CURLOPT_URL, a->url);
+    curl_easy_setopt(ctx->curl, CURLOPT_USERAGENT, WOWPKG_USER_AGENT);
+    curl_easy_setopt(ctx->curl, CURLOPT_WRITEFUNCTION, write_str_cb);
+    curl_easy_setopt(ctx->curl, CURLOPT_WRITEDATA, (void *)&res);
+    curl_easy_setopt(ctx->curl, CURLOPT_HTTPHEADER, headers);
 
-    // curl_easy_setopt(curl, CURLOPT_VERBOSE, true);
-    curl_easy_setopt(curl, CURLOPT_URL, a->url);
-    curl_easy_setopt(curl, CURLOPT_USERAGENT, WOWPKG_USER_AGENT);
-    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_str_cb);
-    curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void *)&res);
-    curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
-
-    CURLcode status = curl_easy_perform(curl);
+    CURLcode status = curl_easy_perform(ctx->curl);
     if (status != CURLE_OK) {
         err = ADDON_EINTERNAL;
         goto cleanup;
     }
 
     long http_code;
-    curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_code);
+    curl_easy_getinfo(ctx->curl, CURLINFO_RESPONSE_CODE, &http_code);
     if (http_code != 200) {
         if (http_code == 403 || http_code == 429) {
             err = ADDON_ERATE_LIMIT;
@@ -305,41 +302,36 @@ static int fetch_github_info(Addon *a, const char *token)
 
 cleanup:
     curl_slist_free_all(headers);
-    curl_easy_cleanup(curl);
+    curl_easy_reset(ctx->curl);
     free(res.data);
     cJSON_Delete(resp);
 
     return err;
 }
 
-static int fetch_github_zip(AddonAsset *asset, const char *token)
+static int fetch_github_zip(AddonAsset *asset, Context *ctx)
 {
     int err = ADDON_OK;
     Response res = { .data = NULL, .size = 0 };
     struct curl_slist *headers = NULL;
 
-    CURL *curl = curl_easy_init();
-    if (curl == NULL) {
-        return ADDON_EINTERNAL;
-    }
+    headers = set_github_headers(headers, ctx->config->github_token);
 
-    headers = set_github_headers(headers, token);
+    curl_easy_setopt(ctx->curl, CURLOPT_URL, asset->url);
+    curl_easy_setopt(ctx->curl, CURLOPT_USERAGENT, WOWPKG_USER_AGENT);
+    curl_easy_setopt(ctx->curl, CURLOPT_WRITEFUNCTION, write_str_cb);
+    curl_easy_setopt(ctx->curl, CURLOPT_WRITEDATA, (void *)&res);
+    curl_easy_setopt(ctx->curl, CURLOPT_FOLLOWLOCATION, 1);
+    curl_easy_setopt(ctx->curl, CURLOPT_HTTPHEADER, headers);
 
-    curl_easy_setopt(curl, CURLOPT_URL, asset->url);
-    curl_easy_setopt(curl, CURLOPT_USERAGENT, WOWPKG_USER_AGENT);
-    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_str_cb);
-    curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void *)&res);
-    curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1);
-    curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
-
-    CURLcode status = curl_easy_perform(curl);
+    CURLcode status = curl_easy_perform(ctx->curl);
     if (status != CURLE_OK) {
         err = ADDON_EINTERNAL;
         goto cleanup;
     }
 
     long http_code;
-    curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_code);
+    curl_easy_getinfo(ctx->curl, CURLINFO_RESPONSE_CODE, &http_code);
     if (http_code != 200) {
         if (http_code == 403 || http_code == 429) {
             err = ADDON_ERATE_LIMIT;
@@ -361,8 +353,8 @@ static int fetch_github_zip(AddonAsset *asset, const char *token)
     res.size = 0;
 
 cleanup:
-    curl_easy_cleanup(curl);
     curl_slist_free_all(headers);
+    curl_easy_reset(ctx->curl);
     free(res.data);
 
     return err;
@@ -556,7 +548,7 @@ int addon_info(Addon *a, Context *ctx, const char *name)
     if (err != ADDON_OK) {
         return err;
     }
-    err = fetch_github_info(a, ctx->config->github_token);
+    err = fetch_github_info(a, ctx);
     if (err != ADDON_OK) {
         return err;
     }
@@ -569,7 +561,7 @@ int addon_fetch(Addon *a, Context *ctx, AddonAsset *asset)
     UNUSED(a);
     UNUSED(ctx);
     int err = ADDON_OK;
-    if ((err = fetch_github_zip(asset, ctx->config->github_token)) != ADDON_OK) {
+    if ((err = fetch_github_zip(asset, ctx)) != ADDON_OK) {
         return err;
     }
     return err;
@@ -601,9 +593,29 @@ int addon_package(Addon *a, Context *ctx)
     list_foreach(asset_node, a->assets)
     {
         AddonAsset *asset = asset_node->value;
+        if (asset->size == 0) {
+            return ADDON_ENO_ZIP_ASSET;
+        }
         if (zipper_extract_buf(asset->data, asset->size, tmpdir) != ZIPPER_OK) {
             return ADDON_EUNZIP;
         }
+        free(asset->data);
+        asset->data = NULL;
+        asset->size = 0;
+    }
+
+    OsDir *dir = os_opendir(a->_package_path);
+    if (dir == NULL) {
+        return ADDON_ENOENT;
+    }
+
+    OsDirEnt *entry = NULL;
+    while ((entry = os_readdir(dir)) != NULL) {
+        if (strcmp(entry->name, ".") == 0 || strcmp(entry->name, "..") == 0) {
+            continue;
+        }
+
+        list_insert(a->dirs, strdup(entry->name));
     }
 
     return ADDON_OK;
@@ -629,7 +641,7 @@ int addon_extract(Addon *a, Context *ctx, const char *path)
             goto cleanup;
         }
 
-        list_insert(a->dirs, strdup(entry->name));
+        //     list_insert(a->dirs, strdup(entry->name));
     }
 
 cleanup:

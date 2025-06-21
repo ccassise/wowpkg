@@ -9,7 +9,7 @@ endif()
 
 project(
     wowpkg
-    VERSION 0.3.3
+    VERSION 0.4.0
     DESCRIPTION "A CLI World of Warcraft addon manager"
     LANGUAGES C
 )
@@ -126,7 +126,8 @@ if (WOWPKG_ENABLE_SANITIZERS)
         set (WFLAGS ${WFLAGS} ${SANFLAGS})
 
         if (APPLE)
-            set(LDFLAGS ${SANFLAGS} -static-libsan)
+            # set(LDFLAGS ${SANFLAGS} -static-libsan)
+            set(LDFLAGS ${SANFLAGS})
         else()
             set(LDFLAGS ${SANFLAGS} -static-libasan)
         endif()

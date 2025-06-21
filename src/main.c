@@ -2,6 +2,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include <curl/curl.h>
+
 #include "appstate.h"
 #include "command.h"
 #include "config.h"
@@ -253,12 +255,15 @@ int main(int argc, const char *argv[])
         exit(EXIT_FAILURE);
     }
 
+    curl_global_init(CURL_GLOBAL_DEFAULT);
+
     Context ctx;
     memset(&ctx, 0, sizeof(ctx));
 
+    ctx.curl = curl_easy_init();
     ctx.config = config_create();
     ctx.state = appstate_create();
-    if (ctx.config == NULL || ctx.state == NULL) {
+    if (ctx.config == NULL || ctx.state == NULL || ctx.curl == NULL) {
         PRINT_ERROR("%s\n", strerror(ENOMEM));
         exit(EXIT_FAILURE);
     }
@@ -370,6 +375,9 @@ int main(int argc, const char *argv[])
     }
 
 cleanup:
+    curl_easy_cleanup(ctx.curl);
+    curl_global_cleanup();
+
     config_destroy(ctx.config);
     appstate_destroy(ctx.state);
 
