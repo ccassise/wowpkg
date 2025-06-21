@@ -22,7 +22,7 @@ foreach(TEST IN LISTS TESTS)
 	set_target_properties(${TEST_NAME} PROPERTIES C_STANDARD ${WOWPKG_C_STANDARD})
 	target_compile_definitions(${TEST_NAME} PRIVATE
 		${WOWPKG_DEFINES}
-		WOWPKG_TEST_TMPDIR="${PROJECT_SOURCE_DIR}/dev_only/tmp/"
+		WOWPKG_TEST_TMPDIR="${PROJECT_SOURCE_DIR}/data/tmp/"
 		WOWPKG_TEST_DIR="${PROJECT_SOURCE_DIR}/tests"
 	)
 

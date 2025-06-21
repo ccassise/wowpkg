@@ -53,21 +53,20 @@ dkms.conf
 
 # Repo ignores
 .DS_Store
-.vscode/
 build/
 vcpkg/
 vcpkg_installed/
 _CPack_Packages/
 
 # Setup development directory so that it is easier to run from source.
-dev_only/**
-dev_only/addons/**
-dev_only/tmp/**
+data/**
+data/addons/**
+data/tmp/**
 
-!dev_only/addons/
-!dev_only/addons/.ignore_me
-!dev_only/config.ini
-!dev_only/saved.wowpkg
-!dev_only/example_addon.ini
-!dev_only/tmp/
-!dev_only/tmp/.ignore_me
+!data/addons/
+!data/addons/.ignore_me
+!data/config.ini
+!data/saved.wowpkg
+!data/example_addon.ini
+!data/tmp/
+!data/tmp/.ignore_me

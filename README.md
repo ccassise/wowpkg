@@ -92,7 +92,7 @@ Add the new addon to the catalog by:
 
 1. Creating a <addon_name>.ini file in `wowpkg/catalog/`.
    - This name must be unique and contain no spaces.
-2. See the [example addon](dev_only/example_addon.ini) for what should be in the new addon file.
+2. See the [example addon](data/example_addon.ini) for what should be in the new addon file.
 3. Check that the addon is available by running `wowpkg info <addon_name>`
 
 ## Installing
@@ -101,7 +101,7 @@ Add the new addon to the catalog by:
 
 1. Run "wowpkg-VERSION-win64.exe" from the latest release.
 2. Create a wowpkg directory in the %APPDATA% directory.
-3. Copy [config.ini](dev_only/config.ini) to %APPDATA%\wowpkg and update the addons path to the path of your World of Warcraft AddOns directory.
+3. Copy [config.ini](data/config.ini) to %APPDATA%\wowpkg and update the addons path to the path of your World of Warcraft AddOns directory.
 4. Assuming wowpkg was installed in the default location. Add C:\Program Files\wowpkg\bin to the user PATH environment variable. This makes it easy to run wowpkg from anywhere in the terminal.
 
 ### macOS
@@ -114,7 +114,7 @@ The below should work on Apple silicon. I have not been able to test on an Intel
    ```
    $ mkdir ~/.config/wowpkg
    ```
-4. Copy [config.ini](dev_only/config.ini) to ~/.config/wowpkg and update the addons path to the path of your World of Warcraft AddOns directory.
+4. Copy [config.ini](data/config.ini) to ~/.config/wowpkg and update the addons path to the path of your World of Warcraft AddOns directory.
 5. Add wowpkg to your PATH by appending `export PATH="$PATH:/Applications/wowpkg/bin"` to `~/.zshrc` or equivalent config file for your terminal.
 
 ## Uninstalling
@@ -140,7 +140,7 @@ There are a couple of project-specific CMake options to pass in that can change 
 | --- | --- | --- |
 | WOWPKG_ENABLE_SANITIZERS | OFF | Builds the program with or without sanitizers |
 | WOWPKG_ENABLE_TESTS | OFF | Determines whether or not tests will be built |
-| WOWPKG_USE_DEVELOPMENT_PATHS | OFF | When enabled, the path to config.ini and location are saved. wowpkg will be set to the [dev_only](dev_only) project directory. When disabled, the paths to config.ini are saved. wowpkg will be dependent on the current OS. %APPDATA%/wowpkg for Windows and ~/.config/wowpkg for macOS/Linux. Generally, use development paths unless the project is being built for packaging or release. |
+| WOWPKG_USE_DEVELOPMENT_PATHS | OFF | When enabled, the path to config.ini and location are saved. wowpkg will be set to the [data](data) project directory. When disabled, the paths to config.ini are saved. wowpkg will be dependent on the current OS. %APPDATA%/wowpkg for Windows and ~/.config/wowpkg for macOS/Linux. Generally, use development paths unless the project is being built for packaging or release. |
 
 1. Clone the repo.
    ```
@@ -163,7 +163,7 @@ There are a couple of project-specific CMake options to pass in that can change 
    $ cmake .. -DWOWPKG_USE_DEVELOPMENT_PATHS:option=on
    $ cmake --build .
    ```
-6. Change the path in [config.ini](dev_only/config.ini) to where you want the addons to be extracted. Something like `/path/to/wowpkg/dev_only/addons`.
+6. Change the path in [config.ini](data/config.ini) to where you want the addons to be extracted. Something like `/path/to/wowpkg/data/addons`.
 7. Run the compiled program.
 
 8. Clone the repo.
@@ -194,5 +194,5 @@ There are a couple of project-specific CMake options to pass in that can change 
     $ cmake .. -DWOWPKG_USE_DEVELOPMENT_PATHS:option=on
     $ cmake --build .
     ```
-13. Change the path in [config.ini](dev_only/config.ini) to where you want the addons to be extracted. Something like `/path/to/wowpkg/dev_only/addons`.
+13. Change the path in [config.ini](data/config.ini) to where you want the addons to be extracted. Something like `/path/to/wowpkg/data/addons`.
 14. Run the compiled program.
