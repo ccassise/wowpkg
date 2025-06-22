@@ -48,8 +48,9 @@
 /**
  * Searches haystack to see if needle appears in the string, ignoring case.
  *
- * Returns the beginning of the first occurrence of needle in haystack. Returns
- * NULL if needle was not found.
+ * RETURNS:
+ *  The beginning of the first occurrence of needle in haystack or NULL if
+ *  needle was not found.
  */
 static const char *cmd_strcasestr(const char *haystack, const char *needle)
 {

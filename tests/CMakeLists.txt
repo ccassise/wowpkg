@@ -9,6 +9,7 @@ set(
 	ini
 	list
 	osapi
+	osstring
 	zipper
 )
 

@@ -1,3 +1,5 @@
+#include <stdlib.h>
+
 #include "ini.h"
 #include "osapi.h"
 #include "osstring.h"
@@ -25,6 +27,9 @@ static int parse_ini(CatalogItem *item, const char *path)
 
     int err = CATALOG_OK;
 
+    item->name[0] = '\0';
+    item->desc[0] = '\0';
+    item->uri[0] = '\0';
     INIKey *key = NULL;
     while ((key = ini_readkey(ini)) != NULL) {
         size_t key_size = strlen(key->value) + 1;
@@ -42,9 +47,9 @@ static int parse_ini(CatalogItem *item, const char *path)
     }
 
     if (ini_last_error(ini) != INI_OK
-        || item->name == NULL
-        || item->desc == NULL
-        || item->uri == NULL) {
+        || item->name[0] == '\0'
+        || item->desc[0] == '\0'
+        || item->uri[0] == '\0') {
 
         err = CATALOG_EINVALID;
         goto cleanup;
@@ -96,4 +101,58 @@ int catalog_find(CatalogItem *item, const char *path, const char *name)
 cleanup:
     os_closedir(dir);
     return err;
+}
+
+CatalogSearch *catalog_search_begin(const char *path, const char *text)
+{
+    CatalogSearch *result = malloc(sizeof(*result));
+    if (result == NULL) {
+        return result;
+    }
+    result->_dir = os_opendir(path);
+    if (result->_dir == NULL) {
+        free(result);
+        return NULL;
+    }
+    result->_found = malloc(sizeof(*result->_found));
+    if (result->_found == NULL) {
+        free(result);
+        return NULL;
+    }
+    result->path = path;
+    result->search_term = text;
+    return result;
+}
+
+CatalogItem *catalog_search_inext(CatalogSearch *cs)
+{
+    CatalogItem *result = NULL;
+    OsDirEnt *entry = NULL;
+    char item_path[OS_MAX_PATH];
+    while ((entry = os_readdir(cs->_dir)) != NULL) {
+        if (strcmp(entry->name, ".") == 0 || strcmp(entry->name, "..") == 0) {
+            continue;
+        }
+        int n = snprintf(item_path, ARRAY_SIZE(item_path), "%s%c%s", cs->path, OS_SEPARATOR, entry->name);
+        if (n < 0 || (size_t)n >= ARRAY_SIZE(item_path)) {
+            continue;
+        }
+        if (parse_ini(cs->_found, item_path) != CATALOG_OK) {
+            continue;
+        }
+        if (os_strcasestr(cs->_found->name, cs->search_term) != NULL
+            || os_strcasestr(cs->_found->desc, cs->search_term) != NULL) {
+
+            result = cs->_found;
+            break;
+        }
+    }
+    return result;
+}
+
+void catalog_search_end(CatalogSearch *cs)
+{
+    os_closedir(cs->_dir);
+    free(cs->_found);
+    free(cs);
 }

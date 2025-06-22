@@ -139,11 +139,13 @@ set(
 
     ${PROJECT_SOURCE_DIR}/src/addon.c
     ${PROJECT_SOURCE_DIR}/src/appstate.c
+    ${PROJECT_SOURCE_DIR}/src/catalog.c
     ${PROJECT_SOURCE_DIR}/src/command.c
     ${PROJECT_SOURCE_DIR}/src/config.c
     ${PROJECT_SOURCE_DIR}/src/ini.c
     ${PROJECT_SOURCE_DIR}/src/list.c
     ${PROJECT_SOURCE_DIR}/src/osapi.c
+    ${PROJECT_SOURCE_DIR}/src/osstring.c
     ${PROJECT_SOURCE_DIR}/src/zipper.c
 )
 
