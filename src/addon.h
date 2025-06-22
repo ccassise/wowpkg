@@ -17,6 +17,7 @@ enum {
     ADDON_OK = 0,
 
     ADDON_EBADJSON, /* could not parse JSON */
+    ADDON_ECATALOG, /* could not get item from catalog */
     ADDON_ECONFIG, /* could not parse config.ini */
     ADDON_EINTERNAL, /* addon internal */
     ADDON_ENAMETOOLONG, /* path or filename too long */
@@ -89,7 +90,8 @@ void addon_destroy(Addon *a);
  * NOTE: This function is called implicitly by addon_destroy. Calling it after
  * addon_destroy does nothing.
  */
-void addon_cleanup_files(Addon *a);
+// TODO: REMOVE
+// void addon_cleanup_files(Addon *a);
 
 /**
  * Creates and returns a new addon that was deep copied from the given addon.

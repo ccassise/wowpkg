@@ -4,6 +4,7 @@
 
 #include "addon.h"
 #include "appstate.h"
+#include "catalog.h"
 #include "command.h"
 #include "config.h"
 #include "context.h"
@@ -44,46 +45,6 @@
 
 #define PRINT_STATUS(stream, ...) fprintf(stream, "==> " __VA_ARGS__)
 #define PRINT_STATUS_ADDON(stream, msg, addon) fprintf(stream, "==> " TERM_WRAP(TERM_BOLD, msg) " " TERM_WRAP(TERM_BOLD_BLUE, "%s") "\n", addon)
-
-/**
- * Searches haystack to see if needle appears in the string, ignoring case.
- *
- * RETURNS:
- *  The beginning of the first occurrence of needle in haystack or NULL if
- *  needle was not found.
- */
-static const char *cmd_strcasestr(const char *haystack, const char *needle)
-{
-    const char *result = NULL;
-    const char *haystackp = haystack;
-    const char *needlep = needle;
-    bool isstart = true;
-
-    while (*haystackp) {
-        if (*needlep == '\0') {
-            break;
-        }
-
-        if (tolower(*haystackp) == tolower(*needlep)) {
-            if (isstart) {
-                result = haystackp;
-                isstart = false;
-            }
-            needlep++;
-        } else {
-            needlep = needle;
-            isstart = true;
-        }
-
-        haystackp++;
-    }
-
-    if (*needlep != '\0') {
-        result = NULL;
-    }
-
-    return result;
-}
 
 static int cmp_addon(const void *a, const void *b)
 {
@@ -153,16 +114,40 @@ int cmd_info(Context *ctx, int argc, const char *argv[], FILE *stream)
         ListNode *installed_node = list_search(ctx->state->installed, addon, cmp_addon);
 
         int width = 16;
+        if (installed_node != NULL) {
+            width = 24;
+        }
         /* \b removes an extra space. */
         PRINT_STATUS_ADDON(stream, "\b", addon->name);
-        fprintf(stream, TERM_WRAP(TERM_BOLD, "%-*s") " %s\n", width, "Description:", addon->desc);
-        fprintf(stream, TERM_WRAP(TERM_BOLD, "%-*s") " %s\n", width, "From:", addon->uri);
-        fprintf(stream, TERM_WRAP(TERM_BOLD, "%-*s") " %s\n", width, "Installed:", installed_node ? "Yes" : "No");
-
+        fprintf(stream, TERM_WRAP(TERM_BOLD, "%*s") " %s\n", width, "Name:", addon->name);
+        fprintf(stream, TERM_WRAP(TERM_BOLD, "%*s") " %s\n", width, "Description:", addon->desc);
+        fprintf(stream, TERM_WRAP(TERM_BOLD, "%*s") " %s\n", width, "Uri:", addon->uri);
+        fprintf(stream, TERM_WRAP(TERM_BOLD, "%*s") " %s\n", width, "Version:", addon->version);
+        fprintf(stream, TERM_WRAP(TERM_BOLD, "%*s"), width, "ZIP:");
+        ListNode *asset_node = NULL;
+        list_foreach(asset_node, addon->assets)
+        {
+            AddonAsset *asset = asset_node->value;
+            fprintf(stream, " %s", asset->uri);
+            if (asset_node->next != NULL) {
+                fprintf(stream, ";");
+            }
+        }
+        fprintf(stream, "\n");
         if (installed_node) {
             Addon *installed = installed_node->value;
-            fprintf(stream, TERM_WRAP(TERM_BOLD, "%-*s") " %s\n", width, "Version:", installed->version);
-            fprintf(stream, TERM_WRAP(TERM_BOLD, "%-*s") " %s\n", width, "ZIP:", installed->uri);
+            fprintf(stream, TERM_WRAP(TERM_BOLD, "%*s") " %s\n", width, "Installed-Version:", installed->version);
+            fprintf(stream, TERM_WRAP(TERM_BOLD, "%*s"), width, "Installed-Directories:");
+            ListNode *dirs = NULL;
+            list_foreach(dirs, installed->dirs)
+            {
+                const char *dir = dirs->value;
+                fprintf(stream, " %s", dir);
+                if (dirs->next != NULL) {
+                    fprintf(stream, ";");
+                }
+            }
+            fprintf(stream, "\n");
         }
 
     cleanup:
@@ -204,11 +189,11 @@ int cmd_install(Context *ctx, int argc, const char *argv[], FILE *stream)
 
         err = addon_info(addon, ctx, argv[i]);
         if (err == ADDON_ENOTFOUND) {
-            PRINT_WARNING3(CMD_ENOT_FOUND_STR, argv[0], argv[i]);
+            PRINT_WARNING3(addon_strerror(err), argv[0], argv[i]);
             err = 0;
             goto loop_error;
         } else if (err == ADDON_ERATE_LIMIT) {
-            PRINT_ERROR2(CMD_ERATE_LIMIT_STR, argv[i]);
+            PRINT_ERROR2(addon_strerror(err), argv[i]);
             err = -1;
             goto loop_error;
         } else if (err != ADDON_OK) {
@@ -281,7 +266,7 @@ int cmd_install(Context *ctx, int argc, const char *argv[], FILE *stream)
             goto cleanup;
         }
 
-        addon_cleanup_files(addon);
+        // addon_cleanup_files(addon);
     }
 
     node = NULL;
@@ -439,53 +424,19 @@ int cmd_search(Context *ctx, int argc, const char *argv[], FILE *stream)
         return -1;
     }
 
-    int err = 0;
-    List *found = list_create();
-    list_set_free_fn(found, free);
-    OsDir *dir = os_opendir(WOWPKG_CATALOG_PATH);
-    if (dir == NULL) {
-        err = -1;
-        goto cleanup;
+    CatalogSearch *cs = catalog_search_begin(WOWPKG_CATALOG_PATH, argv[1]);
+    if (cs == NULL) {
+        return -1;
     }
 
-    OsDirEnt *entry = NULL;
-    while ((entry = os_readdir(dir)) != NULL) {
-        if (strcmp(entry->name, ".") == 0 || strcmp(entry->name, "..") == 0) {
-            continue;
-        }
-
-        if (cmd_strcasestr(entry->name, argv[1]) != NULL) {
-            char *basename = strdup(entry->name);
-            if (basename == NULL) {
-                err = -1;
-                goto cleanup;
-            }
-
-            char *ext_start = strstr(basename, ".ini");
-            if (ext_start == NULL) {
-                continue;
-            }
-
-            *ext_start = '\0';
-
-            list_insert(found, basename);
-        }
+    CatalogItem *item = NULL;
+    while ((item = catalog_search_inext(cs)) != NULL) {
+        fprintf(stream, "%s\n", item->name);
     }
 
-    list_sort(found, (ListCompareFn)strcmp);
+    catalog_search_end(cs);
 
-    ListNode *node = NULL;
-    list_foreach(node, found)
-    {
-        fprintf(stream, "%s\n", (char *)node->value);
-    }
-
-cleanup:
-    os_closedir(dir);
-
-    list_destroy(found);
-
-    return err;
+    return 0;
 }
 
 int cmd_update(Context *ctx, int argc, const char *argv[], FILE *stream)
@@ -687,7 +638,7 @@ int cmd_upgrade(Context *ctx, int argc, const char *argv[], FILE *stream)
             goto cleanup;
         }
 
-        addon_cleanup_files(addon);
+        // addon_cleanup_files(addon);
     }
 
     list_foreach(node, addons)

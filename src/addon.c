@@ -6,6 +6,7 @@
 
 #include "addon.h"
 #include "appstate.h"
+#include "catalog.h"
 #include "config.h"
 #include "context.h"
 #include "ini.h"
@@ -70,45 +71,13 @@ static struct curl_slist *set_github_headers(struct curl_slist *list, const char
     return list;
 }
 
-Addon *addon_create(void)
+static void addon_cleanup_files(Addon *a)
 {
-    Addon *result = malloc(sizeof(*result));
-    if (result != NULL) {
-        memset(result, 0, sizeof(*result));
-        result->dirs = list_create();
-        if (result->dirs == NULL) {
-            free(result);
-            return NULL;
-        }
-        result->assets = list_create();
-        if (result->assets == NULL) {
-            list_destroy(result->dirs);
-            free(result);
-            return NULL;
-        }
-
-        list_set_free_fn(result->dirs, free);
-        list_set_free_fn(result->assets, (ListFreeFn)asset_destroy);
+    if (a->_package_path != NULL) {
+        os_remove_all(a->_package_path);
+        free(a->_package_path);
+        a->_package_path = NULL;
     }
-
-    return result;
-}
-
-void addon_destroy(Addon *a)
-{
-    if (a == NULL) {
-        return;
-    }
-
-    free(a->name);
-    free(a->desc);
-    free(a->uri);
-    free(a->version);
-    list_destroy(a->dirs);
-    list_destroy(a->assets);
-    addon_cleanup_files(a);
-
-    free(a);
 }
 
 static int move_filename(const char *restrict srcdir, const char *restrict destdir, const char *restrict filename)
@@ -139,89 +108,6 @@ static int move_filename(const char *restrict srcdir, const char *restrict destd
     }
 
     return ADDON_OK;
-}
-
-/**
- * Finds the catalog item path and stores it in s. s will always be null
- * terminated. If the amount of characters that would be written to s is equal
- * to or larger than n, then the characters that could fit will be in s and the
- * returned value will equal the amount of characters that would have been wrote
- * if s had sufficient space.
- */
-static int snfind_catalog_path(char *restrict s, size_t n, const char *restrict name)
-{
-    int result = -1;
-
-    OsDir *dir = dir = os_opendir(WOWPKG_CATALOG_PATH);
-    if (dir == NULL) {
-        return -1;
-    }
-
-    OsDirEnt *entry;
-    while ((entry = os_readdir(dir)) != NULL) {
-        if (strcmp(entry->name, ".") == 0 || strcmp(entry->name, "..") == 0) {
-            continue;
-        }
-
-        char *ext_start = strstr(entry->name, ".ini");
-        if (ext_start == NULL) {
-            continue;
-        }
-
-        size_t filename_len = (size_t)(ext_start - entry->name);
-        if (strncasecmp(entry->name, name, filename_len) == 0 && strlen(name) == filename_len) {
-            result = snprintf(s, n, "%s%c%s", WOWPKG_CATALOG_PATH, OS_SEPARATOR, entry->name);
-
-            break;
-        }
-    }
-
-    os_closedir(dir);
-
-    return result;
-}
-
-static int fetch_catalog_meta(Addon *a, const char *name)
-{
-    int err = ADDON_OK;
-
-    char path[OS_MAX_PATH];
-    int n = snfind_catalog_path(path, ARRAY_SIZE(path), name);
-    if (n < 0 || (size_t)n >= ARRAY_SIZE(path)) {
-        err = ADDON_ENOTFOUND;
-        return err;
-    }
-
-    INI *ini = ini_open(path);
-    if (ini == NULL) {
-        err = ADDON_ENOENT;
-        goto cleanup;
-    }
-
-    INIKey *key = NULL;
-    while ((key = ini_readkey(ini)) != NULL) {
-        if (strcasecmp(key->name, ADDON_KEY_NAME) == 0) {
-            ADDON_SET_NAME(a, key->value);
-        } else if (strcasecmp(key->name, ADDON_KEY_DESC) == 0) {
-            ADDON_SET_DESC(a, key->value);
-        } else if (strcasecmp(key->name, ADDON_KEY_URI) == 0) {
-            ADDON_SET_URI(a, key->value);
-        }
-    }
-
-    if (ini_last_error(ini) != INI_OK
-        || a->name == NULL
-        || a->desc == NULL
-        || a->uri == NULL) {
-
-        err = ADDON_ECONFIG;
-        goto cleanup;
-    }
-
-cleanup:
-    ini_close(ini);
-
-    return err;
 }
 
 static int fetch_github_info(Addon *a, Context *ctx)
@@ -335,6 +221,8 @@ static int fetch_github_zip(AddonAsset *asset, Context *ctx)
     if (http_code != 200) {
         if (http_code == 403 || http_code == 429) {
             err = ADDON_ERATE_LIMIT;
+        } else if (http_code == 401) {
+            err = ADDON_EUNAUTHORIZED;
         } else {
             err = ADDON_EINTERNAL;
         }
@@ -360,13 +248,45 @@ cleanup:
     return err;
 }
 
-void addon_cleanup_files(Addon *a)
+Addon *addon_create(void)
 {
-    if (a->_package_path != NULL) {
-        os_remove_all(a->_package_path);
-        free(a->_package_path);
-        a->_package_path = NULL;
+    Addon *result = malloc(sizeof(*result));
+    if (result != NULL) {
+        memset(result, 0, sizeof(*result));
+        result->dirs = list_create();
+        if (result->dirs == NULL) {
+            free(result);
+            return NULL;
+        }
+        result->assets = list_create();
+        if (result->assets == NULL) {
+            list_destroy(result->dirs);
+            free(result);
+            return NULL;
+        }
+
+        list_set_free_fn(result->dirs, free);
+        list_set_free_fn(result->assets, (ListFreeFn)asset_destroy);
     }
+
+    return result;
+}
+
+void addon_destroy(Addon *a)
+{
+    if (a == NULL) {
+        return;
+    }
+
+    free(a->name);
+    free(a->desc);
+    free(a->uri);
+    free(a->version);
+    list_destroy(a->dirs);
+    list_destroy(a->assets);
+    addon_cleanup_files(a);
+
+    free(a);
 }
 
 Addon *addon_dup(Addon *a)
@@ -523,6 +443,7 @@ const char *addon_strerror(int errcode)
     static const char *str_errors[] = {
         NULL,
         /* ADDON_EBADJSON */ "could not parse JSON",
+        /* ADDON_ECATALOG */ "could not get item from catalog",
         /* ADDON_ECONFIG */ "could not parse config.ini",
         /* ADDON_EINTERNAL */ "addon internal",
         /* ADDON_ENAMETOOLONG */ "path or filename too long",
@@ -544,10 +465,18 @@ int addon_info(Addon *a, Context *ctx, const char *name)
 {
     int err = ADDON_OK;
 
-    err = fetch_catalog_meta(a, name);
-    if (err != ADDON_OK) {
-        return err;
+    CatalogItem item;
+    err = catalog_find(&item, WOWPKG_CATALOG_PATH, name);
+    if (err == CATALOG_EINVALID) {
+        return ADDON_EINTERNAL;
+    } else if (err == CATALOG_ENAMETOOLONG) {
+        return ADDON_ENAMETOOLONG;
+    } else if (err == CATALOG_ENOENT) {
+        return ADDON_ENOENT;
     }
+    ADDON_SET_NAME(a, item.name);
+    ADDON_SET_DESC(a, item.desc);
+    ADDON_SET_URI(a, item.uri);
     err = fetch_github_info(a, ctx);
     if (err != ADDON_OK) {
         return err;

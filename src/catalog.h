@@ -11,7 +11,7 @@ enum {
 };
 
 static const char *CATALOG_ERROR_STRINGS[] = {
-    /* CATALOG_OK */ "OK",
+    /* CATALOG_OK */ NULL,
 
     /* CATALOG_EINVALID */ "catalog file not in expected format",
     /* CATALOG_ENAMETOOLONG */ "catalog file path or value in file is too long",

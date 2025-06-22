@@ -66,23 +66,20 @@ typedef struct OsDirEnt {
 
 #ifdef _WIN32
 
-struct OsDir_Win32 {
+typedef struct OsDir {
     OsDirEnt entry;
     HANDLE dir;
     WIN32_FIND_DATA ffd;
     BOOL _is_first;
-};
-
-typedef struct OsDir_Win32 OsDir;
+} OsDir;
 
 #else
 
-struct OsDir {
+typedef struct OsDir {
     OsDirEnt entry;
     DIR *dir;
 };
 
-typedef struct OsDir OsDir;
 #endif
 
 /**
