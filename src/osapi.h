@@ -78,7 +78,7 @@ typedef struct OsDir {
 typedef struct OsDir {
     OsDirEnt entry;
     DIR *dir;
-};
+} OsDir;
 
 #endif
 

@@ -130,7 +130,7 @@ static int fetch_github_info(Addon *a, Context *ctx)
 
     CURLcode status = curl_easy_perform(ctx->curl);
     if (status != CURLE_OK) {
-        err = ADDON_EINTERNAL;
+        err = ADDON_EHTTPREQ;
         goto cleanup;
     }
 
@@ -142,7 +142,7 @@ static int fetch_github_info(Addon *a, Context *ctx)
         } else if (http_code == 401) {
             err = ADDON_EUNAUTHORIZED;
         } else {
-            err = ADDON_EINTERNAL;
+            err = ADDON_EHTTPREQ;
         }
         goto cleanup;
     }
@@ -176,7 +176,7 @@ static int fetch_github_info(Addon *a, Context *ctx)
             if (cJSON_IsString(download_uri) && download_uri->valuestring != NULL) {
                 AddonAsset *zip = asset_create();
                 if (zip == NULL) {
-                    err = ADDON_EINTERNAL;
+                    err = ADDON_EBADJSON;
                     goto cleanup;
                 }
 
@@ -212,7 +212,7 @@ static int fetch_github_zip(AddonAsset *asset, Context *ctx)
 
     CURLcode status = curl_easy_perform(ctx->curl);
     if (status != CURLE_OK) {
-        err = ADDON_EINTERNAL;
+        err = ADDON_EHTTPREQ;
         goto cleanup;
     }
 
@@ -224,7 +224,7 @@ static int fetch_github_zip(AddonAsset *asset, Context *ctx)
         } else if (http_code == 401) {
             err = ADDON_EUNAUTHORIZED;
         } else {
-            err = ADDON_EINTERNAL;
+            err = ADDON_EHTTPREQ;
         }
         goto cleanup;
     }
@@ -365,7 +365,7 @@ int addon_from_json(Addon *a, const cJSON *json)
             }
             AddonAsset *zip = asset_create();
             if (zip == NULL) {
-                return ADDON_EINTERNAL;
+                return ADDON_EBADJSON;
             }
             zip->uri = strdup(asset->valuestring);
             list_insert(a->assets, zip);
@@ -381,33 +381,33 @@ char *addon_to_json(Addon *a)
     char *result = NULL;
     cJSON *json = cJSON_CreateObject();
     if (json == NULL) {
-        err = ADDON_EINTERNAL;
+        err = ADDON_EBADJSON;
         goto cleanup;
     }
 
     if (cJSON_AddStringToObject(json, ADDON_KEY_NAME, a->name) == NULL) {
-        err = ADDON_EINTERNAL;
+        err = ADDON_EBADJSON;
         goto cleanup;
     }
 
     if (cJSON_AddStringToObject(json, ADDON_KEY_DESC, a->desc) == NULL) {
-        err = ADDON_EINTERNAL;
+        err = ADDON_EBADJSON;
         goto cleanup;
     }
 
     if (cJSON_AddStringToObject(json, ADDON_KEY_VERSION, a->version) == NULL) {
-        err = ADDON_EINTERNAL;
+        err = ADDON_EBADJSON;
         goto cleanup;
     }
 
     if (cJSON_AddStringToObject(json, ADDON_KEY_URI, a->uri) == NULL) {
-        err = ADDON_EINTERNAL;
+        err = ADDON_EBADJSON;
         goto cleanup;
     }
 
     cJSON *dirs = cJSON_AddArrayToObject(json, ADDON_KEY_DIRS);
     if (dirs == NULL) {
-        err = ADDON_EINTERNAL;
+        err = ADDON_EBADJSON;
         goto cleanup;
     }
     ListNode *node = NULL;
@@ -418,7 +418,7 @@ char *addon_to_json(Addon *a)
 
     cJSON *assets = cJSON_AddArrayToObject(json, ADDON_KEY_ASSETS);
     if (assets == NULL) {
-        err = ADDON_EINTERNAL;
+        err = ADDON_EBADJSON;
         goto cleanup;
     }
     node = NULL;
@@ -445,6 +445,7 @@ const char *addon_strerror(int errcode)
         /* ADDON_EBADJSON */ "could not parse JSON",
         /* ADDON_ECATALOG */ "could not get item from catalog",
         /* ADDON_ECONFIG */ "could not parse config.ini",
+        /* ADDON_EHTTPREQ */ "HTTP return status did not indicate success",
         /* ADDON_EINTERNAL */ "addon internal",
         /* ADDON_ENAMETOOLONG */ "path or filename too long",
         /* ADDON_ENOENT */ "no such file or directory",
@@ -468,7 +469,7 @@ int addon_info(Addon *a, Context *ctx, const char *name)
     CatalogItem item;
     err = catalog_find(&item, WOWPKG_CATALOG_PATH, name);
     if (err == CATALOG_EINVALID) {
-        return ADDON_EINTERNAL;
+        return ADDON_ECATALOG;
     } else if (err == CATALOG_ENAMETOOLONG) {
         return ADDON_ENAMETOOLONG;
     } else if (err == CATALOG_ENOENT) {
@@ -569,8 +570,6 @@ int addon_extract(Addon *a, Context *ctx, const char *path)
         if ((err = move_filename(a->_package_path, path, entry->name)) != ADDON_OK) {
             goto cleanup;
         }
-
-        //     list_insert(a->dirs, strdup(entry->name));
     }
 
 cleanup:

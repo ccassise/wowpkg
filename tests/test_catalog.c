@@ -1,3 +1,5 @@
+#undef NDEBUG
+
 #include <assert.h>
 
 #include "osstring.h"
@@ -18,7 +20,7 @@ static void test_catalog_find_all(void)
         "BigWigs_Voice",
         "DBM-Dungeons",
         "DBM-PvP",
-        "DBM-Retail",
+        "DeadlyBossMods",
         "DBM-SpellTimers",
         "DetailsDamageMeter",
         "GatherMate2",

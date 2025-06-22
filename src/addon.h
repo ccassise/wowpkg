@@ -19,13 +19,14 @@ enum {
     ADDON_EBADJSON, /* could not parse JSON */
     ADDON_ECATALOG, /* could not get item from catalog */
     ADDON_ECONFIG, /* could not parse config.ini */
+    ADDON_EHTTPREQ, /* HTTP return status did not indicate success */
     ADDON_EINTERNAL, /* addon internal */
     ADDON_ENAMETOOLONG, /* path or filename too long */
     ADDON_ENOENT, /* no such file or directory */
     ADDON_ENOTFOUND, /* could not find addon */
     ADDON_ENO_ZIP_ASSET, /* could not find ZIP URL */
     ADDON_ERATE_LIMIT, /* rate limit exceeded */
-    ADDON_EUNAUTHORIZED, /* request returned 401 */
+    ADDON_EUNAUTHORIZED, /* unauthorized request */
     ADDON_EUNZIP, /* could not extract ZIP */
 };
 

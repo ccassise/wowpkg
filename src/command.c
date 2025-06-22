@@ -18,14 +18,14 @@
 // #define CMD_EMOVE_STR "failed to move file/directory"
 // #define CMD_EOPEN_DIR_STR "failed to open directory"
 // #define CMD_EDOWNLOAD_STR "failed to make HTTP request"
-#define CMD_EEXTRACT_STR "failed to extract addon"
+// #define CMD_EMETADATA_STR "failed to get metadata"
+// #define CMD_EEXTRACT_STR "failed to extract addon"
 #define CMD_EINVALID_ARGS_STR "invalid arguments"
-#define CMD_EMETADATA_STR "failed to get metadata"
 #define CMD_ENAMETOOLONG_STR "name too long"
 #define CMD_ENOT_FOUND_STR "could not find addon"
 #define CMD_ENO_MEM_STR "memory allocation failed"
-#define CMD_EPACKAGE_STR "failed to package addon"
-#define CMD_ERATE_LIMIT_STR "rate limit exceeded"
+// #define CMD_EPACKAGE_STR "failed to package addon"
+// #define CMD_ERATE_LIMIT_STR "rate limit exceeded"
 #define CMD_EREMOVE_DIR_STR "failed to remove existing directory"
 
 #define PRINT_ERROR1(error_str) PRINT_ERROR("%s\n", error_str)
@@ -50,10 +50,15 @@ static int cmp_addon(const void *a, const void *b)
 {
     const Addon *aa = a;
     const Addon *bb = b;
-
     return strcmp(aa->name, bb->name);
 }
 
+static int cmp_catalog_item(const void *a, const void *b)
+{
+    const CatalogItem *aa = a;
+    const CatalogItem *bb = b;
+    return strcmp(aa->name, bb->name);
+}
 /**
  * Compares a string a to the Addon b's name.
  */
@@ -102,9 +107,9 @@ int cmd_info(Context *ctx, int argc, const char *argv[], FILE *stream)
         err = addon_info(addon, ctx, argv[i]);
         if (err != ADDON_OK) {
             if (err == ADDON_ENOTFOUND) {
-                PRINT_WARNING3(CMD_ENOT_FOUND_STR, argv[0], argv[i]);
+                PRINT_WARNING3(addon_strerror(err), argv[0], argv[i]);
             } else {
-                PRINT_ERROR3(CMD_EMETADATA_STR, argv[0], argv[i]);
+                PRINT_ERROR3(addon_strerror(err), argv[0], argv[i]);
             }
 
             err = -1;
@@ -121,7 +126,7 @@ int cmd_info(Context *ctx, int argc, const char *argv[], FILE *stream)
         PRINT_STATUS_ADDON(stream, "\b", addon->name);
         fprintf(stream, TERM_WRAP(TERM_BOLD, "%*s") " %s\n", width, "Name:", addon->name);
         fprintf(stream, TERM_WRAP(TERM_BOLD, "%*s") " %s\n", width, "Description:", addon->desc);
-        fprintf(stream, TERM_WRAP(TERM_BOLD, "%*s") " %s\n", width, "Uri:", addon->uri);
+        fprintf(stream, TERM_WRAP(TERM_BOLD, "%*s") " %s\n", width, "URI:", addon->uri);
         fprintf(stream, TERM_WRAP(TERM_BOLD, "%*s") " %s\n", width, "Version:", addon->version);
         fprintf(stream, TERM_WRAP(TERM_BOLD, "%*s"), width, "ZIP:");
         ListNode *asset_node = NULL;
@@ -138,6 +143,7 @@ int cmd_info(Context *ctx, int argc, const char *argv[], FILE *stream)
             Addon *installed = installed_node->value;
             fprintf(stream, TERM_WRAP(TERM_BOLD, "%*s") " %s\n", width, "Installed-Version:", installed->version);
             fprintf(stream, TERM_WRAP(TERM_BOLD, "%*s"), width, "Installed-Directories:");
+            list_sort(installed->dirs, (ListCompareFn)strcmp);
             ListNode *dirs = NULL;
             list_foreach(dirs, installed->dirs)
             {
@@ -192,12 +198,8 @@ int cmd_install(Context *ctx, int argc, const char *argv[], FILE *stream)
             PRINT_WARNING3(addon_strerror(err), argv[0], argv[i]);
             err = 0;
             goto loop_error;
-        } else if (err == ADDON_ERATE_LIMIT) {
-            PRINT_ERROR2(addon_strerror(err), argv[i]);
-            err = -1;
-            goto loop_error;
         } else if (err != ADDON_OK) {
-            PRINT_ERROR3(CMD_EMETADATA_STR, argv[0], argv[i]);
+            PRINT_ERROR3(addon_strerror(err), argv[0], argv[i]);
             err = -1;
             goto loop_error;
         }
@@ -245,8 +247,8 @@ int cmd_install(Context *ctx, int argc, const char *argv[], FILE *stream)
         }
 
         PRINT_STATUS_ADDON(stream, "Packaging", addon->name);
-        if (addon_package(addon, ctx) != ADDON_OK) {
-            PRINT_ERROR3(CMD_EPACKAGE_STR, argv[0], addon->name);
+        if ((err = addon_package(addon, ctx)) != ADDON_OK) {
+            PRINT_ERROR3(addon_strerror(err), argv[0], addon->name);
             err = -1;
             goto cleanup;
         }
@@ -260,13 +262,11 @@ int cmd_install(Context *ctx, int argc, const char *argv[], FILE *stream)
             printf("Move: %s -> %s\n", dir, ctx->config->addons_path);
         }
 
-        if (addon_extract(addon, ctx, ctx->config->addons_path) != ADDON_OK) {
-            PRINT_ERROR3(CMD_EEXTRACT_STR, argv[0], addon->name);
+        if ((err = addon_extract(addon, ctx, ctx->config->addons_path)) != ADDON_OK) {
+            PRINT_ERROR3(addon_strerror(err), argv[0], addon->name);
             err = -1;
             goto cleanup;
         }
-
-        // addon_cleanup_files(addon);
     }
 
     node = NULL;
@@ -424,19 +424,52 @@ int cmd_search(Context *ctx, int argc, const char *argv[], FILE *stream)
         return -1;
     }
 
+    List *items = list_create();
+    if (items == NULL) {
+        PRINT_ERROR2(CMD_ENO_MEM_STR, argv[0]);
+        return -1;
+    }
+    list_set_free_fn(items, (ListFreeFn)free);
+
+    int err = 0;
+
     CatalogSearch *cs = catalog_search_begin(WOWPKG_CATALOG_PATH, argv[1]);
     if (cs == NULL) {
         return -1;
     }
 
-    CatalogItem *item = NULL;
-    while ((item = catalog_search_inext(cs)) != NULL) {
-        fprintf(stream, "%s\n", item->name);
+    CatalogItem *catalog_item = NULL;
+    while ((catalog_item = catalog_search_inext(cs)) != NULL) {
+        CatalogItem *item = malloc(sizeof(*item));
+        if (item == NULL) {
+            PRINT_ERROR2(CMD_ENO_MEM_STR, argv[0]);
+            err = -1;
+            goto cleanup;
+        }
+        memcpy(item->name, catalog_item->name, CATALOG_ITEM_MAX_SIZE);
+        memcpy(item->desc, catalog_item->desc, CATALOG_ITEM_MAX_SIZE);
+        memcpy(item->uri, catalog_item->uri, CATALOG_ITEM_MAX_SIZE);
+        list_insert(items, item);
     }
 
+    list_sort(items, (ListCompareFn)cmp_catalog_item);
+    ListNode *node = NULL;
+    list_foreach(node, items)
+    {
+        CatalogItem *item = node->value;
+        /* \b removes an extra space. */
+        PRINT_STATUS_ADDON(stream, "\b", item->name);
+        fprintf(stream, TERM_WRAP(TERM_BOLD, "%s") " %s\n", "Name:", item->name);
+        fprintf(stream, TERM_WRAP(TERM_BOLD, "%s") " %s\n", "URI:", item->uri);
+        fprintf(stream, TERM_WRAP(TERM_BOLD, "%s") " %s\n", "Description:", item->desc);
+    }
+
+cleanup:
     catalog_search_end(cs);
 
-    return 0;
+    list_destroy(items);
+
+    return err;
 }
 
 int cmd_update(Context *ctx, int argc, const char *argv[], FILE *stream)
@@ -484,15 +517,11 @@ int cmd_update(Context *ctx, int argc, const char *argv[], FILE *stream)
 
         err = addon_info(addon, ctx, addon->name);
         if (err == ADDON_ENOTFOUND) {
-            PRINT_WARNING3(CMD_ENOT_FOUND_STR, argv[0], addon->name);
+            PRINT_WARNING3(addon_strerror(err), argv[0], addon->name);
             err = 0;
             continue;
-        } else if (err == ADDON_ERATE_LIMIT) {
-            PRINT_ERROR2(CMD_ERATE_LIMIT_STR, addon->name);
-            err = -1;
-            continue;
         } else if (err != ADDON_OK) {
-            PRINT_ERROR3(CMD_EMETADATA_STR, argv[0], addon->name);
+            PRINT_ERROR3(addon_strerror(err), argv[0], addon->name);
             err = -1;
             goto cleanup;
         }
@@ -603,8 +632,8 @@ int cmd_upgrade(Context *ctx, int argc, const char *argv[], FILE *stream)
         }
 
         PRINT_STATUS_ADDON(stream, "Packaging", addon->name);
-        if (addon_package(addon, ctx) != ADDON_OK) {
-            PRINT_ERROR3(CMD_EPACKAGE_STR, argv[0], addon->name);
+        if ((err = addon_package(addon, ctx)) != ADDON_OK) {
+            PRINT_ERROR3(addon_strerror(err), argv[0], addon->name);
             err = -1;
             goto cleanup;
         }
@@ -632,13 +661,11 @@ int cmd_upgrade(Context *ctx, int argc, const char *argv[], FILE *stream)
             printf("Move: %s -> %s\n", dir, ctx->config->addons_path);
         }
 
-        if (addon_extract(addon, ctx, ctx->config->addons_path) != ADDON_OK) {
-            PRINT_ERROR3(CMD_EEXTRACT_STR, argv[0], addon->name);
+        if ((err = addon_extract(addon, ctx, ctx->config->addons_path)) != ADDON_OK) {
+            PRINT_ERROR3(addon_strerror(err), argv[0], addon->name);
             err = -1;
             goto cleanup;
         }
-
-        // addon_cleanup_files(addon);
     }
 
     list_foreach(node, addons)

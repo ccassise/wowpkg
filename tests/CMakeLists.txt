@@ -1,16 +1,16 @@
 set(
 	TESTS
 
-	addon
-	appstate
-	catalog
-	command
-	config
-	ini
-	list
-	osapi
-	osstring
-	zipper
+	"addon"
+	"appstate"
+	"catalog"
+	"command"
+	"config"
+	"ini"
+	"list"
+	"osapi"
+	"osstring"
+	"zipper"
 )
 
 foreach(TEST IN LISTS TESTS)

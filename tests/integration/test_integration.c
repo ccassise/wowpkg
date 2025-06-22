@@ -8,6 +8,7 @@
 #include "addon.h"
 #include "appstate.h"
 #include "config.h"
+#include "context.h"
 #include "list.h"
 #include "osapi.h"
 #include "osstring.h"
@@ -94,7 +95,7 @@ static void test_install_multiple(void)
 /**
  * Installs all addons from catalog.
  */
-static void test_stress(void)
+static void test_install_all(void)
 {
     char cmd_args[1024] = { '\0' };
     OsDir *dir = os_opendir(WOWPKG_CATALOG_PATH);
@@ -355,6 +356,226 @@ teardown:
     assert(err == 0);
 }
 
+static void test_info(void)
+{
+    FILE *fpout = popen(WOWPKG_EXEC_PATH " info plater", "r");
+    assert(fpout != NULL);
+
+    char actual[1024] = { '\0' };
+    assert(fgets(actual, ARRAY_SIZE(actual), fpout) != NULL);
+    assert(strstr(actual, "==>") != NULL);
+    assert(strstr(actual, "Plater") != NULL);
+
+    assert(fgets(actual, ARRAY_SIZE(actual), fpout) != NULL);
+    assert(strstr(actual, "Name:") != NULL);
+    assert(strstr(actual, "Plater") != NULL);
+
+    assert(fgets(actual, ARRAY_SIZE(actual), fpout) != NULL);
+    assert(strstr(actual, "Description:") != NULL);
+    assert(strstr(actual, "Nameplate addon designed for advanced users.") != NULL);
+
+    assert(fgets(actual, ARRAY_SIZE(actual), fpout) != NULL);
+    assert(strstr(actual, "URI:") != NULL);
+    assert(strstr(actual, "https://api.github.com/repos/Tercioo/Plater-Nameplates/releases/latest") != NULL);
+
+    assert(fgets(actual, ARRAY_SIZE(actual), fpout) != NULL);
+    assert(strstr(actual, "Version:") != NULL);
+    assert(strstr(actual, "Plater-v") != NULL);
+
+    assert(fgets(actual, ARRAY_SIZE(actual), fpout) != NULL);
+    assert(strstr(actual, "ZIP:") != NULL);
+    assert(strstr(actual, "https://github.com/Tercioo/Plater-Nameplates/releases/download/") != NULL);
+
+    assert(fgets(actual, ARRAY_SIZE(actual), fpout) == NULL);
+
+    assert(pclose(fpout) == 0);
+}
+
+static void test_info_multiple(void)
+{
+    FILE *fpout = popen(WOWPKG_EXEC_PATH " info plater silverdragon", "r");
+    assert(fpout != NULL);
+
+    char actual[1024] = { '\0' };
+    assert(fgets(actual, ARRAY_SIZE(actual), fpout) != NULL);
+    assert(strstr(actual, "==>") != NULL);
+    assert(strstr(actual, "Plater") != NULL);
+
+    assert(fgets(actual, ARRAY_SIZE(actual), fpout) != NULL);
+    assert(strstr(actual, "Name:") != NULL);
+    assert(strstr(actual, "Plater") != NULL);
+
+    assert(fgets(actual, ARRAY_SIZE(actual), fpout) != NULL);
+    assert(strstr(actual, "Description:") != NULL);
+    assert(strstr(actual, "Nameplate addon designed for advanced users.") != NULL);
+
+    assert(fgets(actual, ARRAY_SIZE(actual), fpout) != NULL);
+    assert(strstr(actual, "URI:") != NULL);
+    assert(strstr(actual, "https://api.github.com/repos/Tercioo/Plater-Nameplates/releases/latest") != NULL);
+
+    assert(fgets(actual, ARRAY_SIZE(actual), fpout) != NULL);
+    assert(strstr(actual, "Version:") != NULL);
+    assert(strstr(actual, "Plater-v") != NULL);
+
+    assert(fgets(actual, ARRAY_SIZE(actual), fpout) != NULL);
+    assert(strstr(actual, "ZIP:") != NULL);
+    assert(strstr(actual, "https://github.com/Tercioo/Plater-Nameplates/releases/download/") != NULL);
+
+    assert(fgets(actual, ARRAY_SIZE(actual), fpout) != NULL);
+    assert(strstr(actual, "==>") != NULL);
+    assert(strstr(actual, "SilverDragon") != NULL);
+
+    assert(fgets(actual, ARRAY_SIZE(actual), fpout) != NULL);
+    assert(strstr(actual, "Name:") != NULL);
+    assert(strstr(actual, "SilverDragon") != NULL);
+
+    assert(fgets(actual, ARRAY_SIZE(actual), fpout) != NULL);
+    assert(strstr(actual, "Description:") != NULL);
+    assert(strstr(actual, "Remember where rares were") != NULL);
+
+    assert(fgets(actual, ARRAY_SIZE(actual), fpout) != NULL);
+    assert(strstr(actual, "URI:") != NULL);
+    assert(strstr(actual, "https://api.github.com/repos/kemayo/wow-silverdragon/releases/latest") != NULL);
+
+    assert(fgets(actual, ARRAY_SIZE(actual), fpout) != NULL);
+    assert(strstr(actual, "Version:") != NULL);
+    assert(strstr(actual, "v") != NULL);
+
+    assert(fgets(actual, ARRAY_SIZE(actual), fpout) != NULL);
+    assert(strstr(actual, "ZIP:") != NULL);
+    assert(strstr(actual, "https://github.com/kemayo/wow-silverdragon/releases/download") != NULL);
+
+    assert(fgets(actual, ARRAY_SIZE(actual), fpout) == NULL);
+
+    assert(pclose(fpout) == 0);
+}
+
+static void test_info_installed(void)
+{
+    assert(system(WOWPKG_EXEC_PATH " install plater") == 0);
+
+    FILE *fpout = popen(WOWPKG_EXEC_PATH " info plater", "r");
+    assert(fpout != NULL);
+
+    char actual[1024] = { '\0' };
+    assert(fgets(actual, ARRAY_SIZE(actual), fpout) != NULL);
+    assert(strstr(actual, "==>") != NULL);
+    assert(strstr(actual, "Plater") != NULL);
+
+    assert(fgets(actual, ARRAY_SIZE(actual), fpout) != NULL);
+    assert(strstr(actual, "Name:") != NULL);
+    assert(strstr(actual, "Plater") != NULL);
+
+    assert(fgets(actual, ARRAY_SIZE(actual), fpout) != NULL);
+    assert(strstr(actual, "Description:") != NULL);
+    assert(strstr(actual, "Nameplate addon designed for advanced users.") != NULL);
+
+    assert(fgets(actual, ARRAY_SIZE(actual), fpout) != NULL);
+    assert(strstr(actual, "URI:") != NULL);
+    assert(strstr(actual, "https://api.github.com/repos/Tercioo/Plater-Nameplates/releases/latest") != NULL);
+
+    assert(fgets(actual, ARRAY_SIZE(actual), fpout) != NULL);
+    assert(strstr(actual, "Version:") != NULL);
+    assert(strstr(actual, "Plater-v") != NULL);
+
+    assert(fgets(actual, ARRAY_SIZE(actual), fpout) != NULL);
+    assert(strstr(actual, "ZIP:") != NULL);
+    assert(strstr(actual, "https://github.com/Tercioo/Plater-Nameplates/releases/download/") != NULL);
+
+    assert(fgets(actual, ARRAY_SIZE(actual), fpout) != NULL);
+    assert(strstr(actual, "Installed-Version:") != NULL);
+    assert(strstr(actual, "Plater-v") != NULL);
+
+    assert(fgets(actual, ARRAY_SIZE(actual), fpout) != NULL);
+    assert(strstr(actual, "Installed-Directories:") != NULL);
+    assert(strstr(actual, "Plater") != NULL);
+
+    assert(fgets(actual, ARRAY_SIZE(actual), fpout) == NULL);
+
+    assert(pclose(fpout) == 0);
+
+    assert(system(WOWPKG_EXEC_PATH " remove plater") == 0);
+}
+
+static void test_info_installed_multiple(void)
+{
+    assert(system(WOWPKG_EXEC_PATH " install plater silverdragon") == 0);
+
+    FILE *fpout = popen(WOWPKG_EXEC_PATH " info plater silverdragon", "r");
+    assert(fpout != NULL);
+
+    char actual[1024] = { '\0' };
+    assert(fgets(actual, ARRAY_SIZE(actual), fpout) != NULL);
+    assert(strstr(actual, "==>") != NULL);
+    assert(strstr(actual, "Plater") != NULL);
+
+    assert(fgets(actual, ARRAY_SIZE(actual), fpout) != NULL);
+    assert(strstr(actual, "Name:") != NULL);
+    assert(strstr(actual, "Plater") != NULL);
+
+    assert(fgets(actual, ARRAY_SIZE(actual), fpout) != NULL);
+    assert(strstr(actual, "Description:") != NULL);
+    assert(strstr(actual, "Nameplate addon designed for advanced users.") != NULL);
+
+    assert(fgets(actual, ARRAY_SIZE(actual), fpout) != NULL);
+    assert(strstr(actual, "URI:") != NULL);
+    assert(strstr(actual, "https://api.github.com/repos/Tercioo/Plater-Nameplates/releases/latest") != NULL);
+
+    assert(fgets(actual, ARRAY_SIZE(actual), fpout) != NULL);
+    assert(strstr(actual, "Version:") != NULL);
+    assert(strstr(actual, "Plater-v") != NULL);
+
+    assert(fgets(actual, ARRAY_SIZE(actual), fpout) != NULL);
+    assert(strstr(actual, "ZIP:") != NULL);
+    assert(strstr(actual, "https://github.com/Tercioo/Plater-Nameplates/releases/download/") != NULL);
+
+    assert(fgets(actual, ARRAY_SIZE(actual), fpout) != NULL);
+    assert(strstr(actual, "Installed-Version:") != NULL);
+    assert(strstr(actual, "Plater-v") != NULL);
+
+    assert(fgets(actual, ARRAY_SIZE(actual), fpout) != NULL);
+    assert(strstr(actual, "Installed-Directories:") != NULL);
+    assert(strstr(actual, "Plater") != NULL);
+
+    assert(fgets(actual, ARRAY_SIZE(actual), fpout) != NULL);
+    assert(strstr(actual, "==>") != NULL);
+    assert(strstr(actual, "SilverDragon") != NULL);
+
+    assert(fgets(actual, ARRAY_SIZE(actual), fpout) != NULL);
+    assert(strstr(actual, "Name:") != NULL);
+    assert(strstr(actual, "SilverDragon") != NULL);
+
+    assert(fgets(actual, ARRAY_SIZE(actual), fpout) != NULL);
+    assert(strstr(actual, "Description:") != NULL);
+    assert(strstr(actual, "Remember where rares were") != NULL);
+
+    assert(fgets(actual, ARRAY_SIZE(actual), fpout) != NULL);
+    assert(strstr(actual, "URI:") != NULL);
+    assert(strstr(actual, "https://api.github.com/repos/kemayo/wow-silverdragon/releases/latest") != NULL);
+
+    assert(fgets(actual, ARRAY_SIZE(actual), fpout) != NULL);
+    assert(strstr(actual, "Version:") != NULL);
+    assert(strstr(actual, "v") != NULL);
+
+    assert(fgets(actual, ARRAY_SIZE(actual), fpout) != NULL);
+    assert(strstr(actual, "ZIP:") != NULL);
+    assert(strstr(actual, "https://github.com/kemayo/wow-silverdragon/releases/download") != NULL);
+
+    assert(fgets(actual, ARRAY_SIZE(actual), fpout) != NULL);
+    assert(strstr(actual, "Installed-Version:") != NULL);
+    assert(strstr(actual, "v") != NULL);
+
+    assert(fgets(actual, ARRAY_SIZE(actual), fpout) != NULL);
+    assert(strstr(actual, "Installed-Directories:") != NULL);
+    assert(strstr(actual, "SilverDragon; SilverDragon_History; SilverDragon_Overlay; SilverDragon_RangeExtender") != NULL);
+
+    assert(fgets(actual, ARRAY_SIZE(actual), fpout) == NULL);
+
+    assert(pclose(fpout) == 0);
+
+    assert(system(WOWPKG_EXEC_PATH " remove plater silverdragon") == 0);
+}
+
 int main(void)
 {
     if (!is_addons_dir_empty() || !is_nothing_installed()) {
@@ -366,12 +587,19 @@ int main(void)
 
     test_install_single();
     test_install_multiple();
-    // test_stress();
     test_upgrade_single();
     test_upgrade_all();
     test_update_single();
     test_update_all();
     test_first_time_setup();
+    test_info();
+    test_info_multiple();
+    test_info_installed();
+    test_info_installed_multiple();
+
+    /* This should probably only be ran with GitHub token set, otherwise the rate
+     * limit is a real concern. */
+    test_install_all();
 
     return EXIT_SUCCESS;
 }
