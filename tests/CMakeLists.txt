@@ -3,6 +3,7 @@ set(
 
 	addon
 	appstate
+	catalog
 	command
 	config
 	ini

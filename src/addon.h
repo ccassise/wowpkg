@@ -119,14 +119,6 @@ char *addon_to_json(Addon *a);
 const char *addon_strerror(int errcode);
 
 /**
- * Sets the string pointed to by old to the string pointed to by new. If old is
- * not NULL then it will be free'd before getting set.
- *
- * If new string is NULL then function returns immediately with no action.
- */
-void addon_set_str(char **restrict oldstr, char *restrict newstr);
-
-/**
  * Fetches addon metadata.
  *
  * Returns ADDON_OK on success, otherwise an addon error number.
