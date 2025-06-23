@@ -22,7 +22,7 @@ wowpkg upgrade [ADDON...]
 
 ADDON for the following commands is the name of an addon. The name will include no spaces and is case-insensitive. It otherwise should match exactly the addon name found in the catalog.
 
-Gets information for one or more addons. Things like name, description, installed status, and url used.
+Gets information for one or more addons. Things like name, description, installed status, and URI used.
 
 ```
 wowpkg info ADDON...
@@ -52,9 +52,7 @@ Remove/uninstall the given addons.
 wowpkg remove ADDON...
 ```
 
-Searches the catalog for any addons that match TEXT.
-
-Currently, only the addon names are searched.
+Searches the catalog for any addons that match TEXT. Searches the name and description of the items in the catalog.
 
 ```
 wowpkg search TEXT
@@ -99,10 +97,10 @@ Add the new addon to the catalog by:
 
 ### Windows
 
-1. Run "wowpkg-VERSION-win64.exe" from the latest release.
-2. Create a wowpkg directory in the %APPDATA% directory.
-3. Copy [config.ini](data/config.ini) to %APPDATA%\wowpkg and update the addons path to the path of your World of Warcraft AddOns directory.
-4. Assuming wowpkg was installed in the default location. Add C:\Program Files\wowpkg\bin to the user PATH environment variable. This makes it easy to run wowpkg from anywhere in the terminal.
+1. Run `wowpkg-VERSION-win64.exe` from the latest release.
+2. Create a wowpkg directory in the `%APPDATA%` directory.
+3. Copy [config.ini](data/config.ini) to `%APPDATA%\wowpkg` and update the addons path to the path of your World of Warcraft AddOns directory.
+4. Assuming wowpkg was installed in the default location. Add `C:\Program Files\wowpkg\bin` to the user PATH environment variable. This makes it easy to run wowpkg from anywhere in the terminal.
 
 ### macOS
 
@@ -121,15 +119,15 @@ The below should work on Apple silicon. I have not been able to test on an Intel
 
 ### Windows
 
-1. Run `Uninstall.exe` from the installed wowpkg directory.
-2. Remove wowpkg\bin from your user PATH.
-3. If you want to remove user config data, remove the %APPDATA%\wowpkg directory.
+1. Run `Uninstall.exe` from the installed wowpkg directory (default `C:\Program Files\wowpkg\bin`).
+2. Remove `wowpkg\bin` from your user PATH.
+3. If you want to remove user config data, remove the `%APPDATA%\wowpkg` directory.
 
 ### macOS
 
-1. Remove the /Applications/wowpkg directory.
-2. Remove the export path from ~/.zshrc or terminal equivalent.
-3. If you want to remove user config data, remove the ~/.config/wowpkg directory.
+1. Remove the `/Applications/wowpkg` directory.
+2. Remove the export path from `~/.zshrc` or terminal equivalent.
+3. If you want to remove user config data, remove the `~/.config/wowpkg` directory.
 
 ## Running from source
 
@@ -140,8 +138,8 @@ There are a couple of project-specific CMake options to pass in that can change 
 | --- | --- | --- |
 | WOWPKG_ENABLE_SANITIZERS | OFF | Builds the program with or without sanitizers. |
 | WOWPKG_ENABLE_TESTS | OFF | Determines whether or not tests will be built. |
-| WOWPKG_ENABLE_TESTS_INTEGRATION | OFF | Determines whether or not integration tests will be built. |
-| WOWPKG_USE_DEVELOPMENT_PATHS | OFF | When enabled, the path to config.ini and location are saved. wowpkg will be set to the [data](data) project directory. When disabled, the paths to config.ini are saved. wowpkg will be dependent on the current OS. %APPDATA%/wowpkg for Windows and ~/.config/wowpkg for macOS/Linux. Generally, use development paths unless the project is being built for packaging or release. |
+| WOWPKG_ENABLE_TESTS_INTEGRATION | OFF | Determines whether or not integration tests will be built. These tests can take a significant amount of time to run. |
+| WOWPKG_USE_DEVELOPMENT_PATHS | OFF | When enabled, the path to `config.ini` and `saved.wowpkg` will be set to the [data](data) project directory. When disabled, the paths to `config.ini` and `saved.wowpkg` will be dependent on the current OS. `%APPDATA%/wowpkg` for Windows and `~/.config/wowpkg` for macOS/Linux. Generally, use development paths unless the project is being built for packaging or release. |
 
 1. Clone the repo.
    ```
@@ -153,16 +151,12 @@ There are a couple of project-specific CMake options to pass in that can change 
    git clone https://github.com/microsoft/vcpkg.git
    ```
 3. Run vcpkg bootstrap with `./vcpkg/bootstrap-vcpkg.sh` or `./vcpkg/bootstrap-vcpkg.bat` depending on your system.
-4. Install dependencies with vcpkg.
-   ```
-   ./vcpkg/vcpkg install
-   ```
-5. Create a build directory and compile.
+4. Create a build directory and compile. vcpkg should download and build all dependencies found in [vcpkg.json](vcpkg.json).
    ```
    $ mkdir build
    $ cd build
    $ cmake .. -DWOWPKG_USE_DEVELOPMENT_PATHS:option=on
    $ cmake --build .
    ```
-6. Change the path in [config.ini](data/config.ini) to where you want the addons to be extracted. Something like `/path/to/wowpkg/data/addons`.
-7. Run the compiled program.
+5. Change the path in [config.ini](data/config.ini) to where you want the addons to be extracted. Something like `/path/to/wowpkg/data/addons`.
+6. Run the compiled program.
