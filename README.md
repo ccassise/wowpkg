@@ -138,8 +138,9 @@ The source should compile on Windows using MSVC, macOS using clang, and Linux us
 There are a couple of project-specific CMake options to pass in that can change how the program is built.
 | Option | Default | Description |
 | --- | --- | --- |
-| WOWPKG_ENABLE_SANITIZERS | OFF | Builds the program with or without sanitizers |
-| WOWPKG_ENABLE_TESTS | OFF | Determines whether or not tests will be built |
+| WOWPKG_ENABLE_SANITIZERS | OFF | Builds the program with or without sanitizers. |
+| WOWPKG_ENABLE_TESTS | OFF | Determines whether or not tests will be built. |
+| WOWPKG_ENABLE_TESTS_INTEGRATION | OFF | Determines whether or not integration tests will be built. |
 | WOWPKG_USE_DEVELOPMENT_PATHS | OFF | When enabled, the path to config.ini and location are saved. wowpkg will be set to the [data](data) project directory. When disabled, the paths to config.ini are saved. wowpkg will be dependent on the current OS. %APPDATA%/wowpkg for Windows and ~/.config/wowpkg for macOS/Linux. Generally, use development paths unless the project is being built for packaging or release. |
 
 1. Clone the repo.
@@ -165,34 +166,3 @@ There are a couple of project-specific CMake options to pass in that can change 
    ```
 6. Change the path in [config.ini](data/config.ini) to where you want the addons to be extracted. Something like `/path/to/wowpkg/data/addons`.
 7. Run the compiled program.
-
-8. Clone the repo.
-9. Change to the project directory and get submodules.
-   ```
-   $ cd wowpkg
-   $ git submodule update --init
-   ```
-10. Run vcpkg bootstrap with `./vcpkg/bootstrap-vcpkg.sh` or `./vcpkg/bootstrap-vcpkg.bat` depending on your system.
-11. Install dependencies with vcpkg.
-
-    Windows
-
-    ```
-    $ ./vcpkg/vcpkg.exe install cjson:x64-windows curl:x64-windows minizip:x64-windows
-    ```
-
-    macOS/Linux
-
-    ```
-    $ ./vcpkg/vcpkg install cjson curl minizip
-    ```
-
-12. Create a build directory and compile.
-    ```
-    $ mkdir build
-    $ cd build
-    $ cmake .. -DWOWPKG_USE_DEVELOPMENT_PATHS:option=on
-    $ cmake --build .
-    ```
-13. Change the path in [config.ini](data/config.ini) to where you want the addons to be extracted. Something like `/path/to/wowpkg/data/addons`.
-14. Run the compiled program.
