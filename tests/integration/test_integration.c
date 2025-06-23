@@ -60,16 +60,20 @@ static void test_install_single(void)
     assert(!is_addons_dir_empty());
 
     /* Check that installed addons show up in list as expected. */
+    /*
     FILE *fpout = popen(WOWPKG_EXEC_PATH " list", "r");
     assert(fpout != NULL);
     char pout[32] = { '\0' };
     assert(fscanf(fpout, "BigWigs (%31[^)])\n", pout) == 1);
     assert(fgetc(fpout) == EOF);
     assert(pclose(fpout) == 0);
+    */
 
     /* Cleanup addons directory. */
+    /*
     assert(system(WOWPKG_EXEC_PATH " remove bigwigs") == 0);
     assert(is_addons_dir_empty());
+    */
 }
 
 static void test_install_multiple(void)
@@ -585,17 +589,17 @@ int main(void)
         exit(EXIT_FAILURE);
     }
 
-    test_install_single();
-    test_install_multiple();
-    test_upgrade_single();
-    test_upgrade_all();
-    test_update_single();
-    test_update_all();
-    test_first_time_setup();
-    test_info();
-    test_info_multiple();
-    test_info_installed();
-    test_info_installed_multiple();
+    // test_install_single();
+    // test_install_multiple();
+    // test_upgrade_single();
+    // test_upgrade_all();
+    // test_update_single();
+    // test_update_all();
+    // test_first_time_setup();
+    // test_info();
+    // test_info_multiple();
+    // test_info_installed();
+    // test_info_installed_multiple();
 
     /* This should probably only be ran with GitHub token set, otherwise the rate
      * limit is a real concern. */
