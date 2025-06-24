@@ -160,3 +160,5 @@ There are a couple of project-specific CMake options to pass in that can change 
    ```
 5. Change the path in [config.ini](data/config.ini) to where you want the addons to be extracted. Something like `/path/to/wowpkg/data/addons`.
 6. Run the compiled program.
+
+cmake -B C:\Users\colec\Developer\repos\wowpkg\build -DCMAKE_CXX_COMPILER=cl -DCMAKE_C_COMPILER=cl -DCMAKE_BUILD_TYPE=Debug -S C:\Users\colec\Developer\repos\wowpkg -DWOWPKG_USE_DEVELOPMENT_PATHS:option=on -DWOWPKG_ENABLE_SANITIZERS:option=on -DWOWPKG_ENABLE_TESTS:option=on -DWOWPKG_ENABLE_TESTS_INTEGRATION:option=off

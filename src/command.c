@@ -118,17 +118,13 @@ int cmd_info(Context *ctx, int argc, const char *argv[], FILE *stream)
 
         ListNode *installed_node = list_search(ctx->state->installed, addon, cmp_addon);
 
-        int width = 16;
-        if (installed_node != NULL) {
-            width = 24;
-        }
         /* \b removes an extra space. */
         PRINT_STATUS_ADDON(stream, "\b", addon->name);
-        fprintf(stream, TERM_WRAP(TERM_BOLD, "%*s") " %s\n", width, "Name:", addon->name);
-        fprintf(stream, TERM_WRAP(TERM_BOLD, "%*s") " %s\n", width, "Description:", addon->desc);
-        fprintf(stream, TERM_WRAP(TERM_BOLD, "%*s") " %s\n", width, "URI:", addon->uri);
-        fprintf(stream, TERM_WRAP(TERM_BOLD, "%*s") " %s\n", width, "Version:", addon->version);
-        fprintf(stream, TERM_WRAP(TERM_BOLD, "%*s"), width, "ZIP:");
+        fprintf(stream, TERM_WRAP(TERM_BOLD, "%s") " %s\n", "Name:", addon->name);
+        fprintf(stream, TERM_WRAP(TERM_BOLD, "%s") " %s\n", "Description:", addon->desc);
+        fprintf(stream, TERM_WRAP(TERM_BOLD, "%s") " %s\n", "URI:", addon->uri);
+        fprintf(stream, TERM_WRAP(TERM_BOLD, "%s") " %s\n", "Version:", addon->version);
+        fprintf(stream, TERM_WRAP(TERM_BOLD, "%s"), "ZIP:");
         ListNode *asset_node = NULL;
         list_foreach(asset_node, addon->assets)
         {
@@ -141,8 +137,8 @@ int cmd_info(Context *ctx, int argc, const char *argv[], FILE *stream)
         fprintf(stream, "\n");
         if (installed_node) {
             Addon *installed = installed_node->value;
-            fprintf(stream, TERM_WRAP(TERM_BOLD, "%*s") " %s\n", width, "Installed-Version:", installed->version);
-            fprintf(stream, TERM_WRAP(TERM_BOLD, "%*s"), width, "Installed-Directories:");
+            fprintf(stream, TERM_WRAP(TERM_BOLD, "%s") " %s\n", "Installed-Version:", installed->version);
+            fprintf(stream, TERM_WRAP(TERM_BOLD, "%s"), "Installed-Directories:");
             list_sort(installed->dirs, (ListCompareFn)strcmp);
             ListNode *dirs = NULL;
             list_foreach(dirs, installed->dirs)
