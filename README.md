@@ -144,21 +144,22 @@ There are a couple of project-specific CMake options to pass in that can change 
 1. Clone the repo.
    ```
    git clone https://github.com/ccassise/wowpkg.git
+   ```
+2. Change directory to the newly cloned repo.
+   ```
    cd wowpkg
    ```
-2. Clone vcpkg.
+3. Clone vcpkg.
    ```
    git clone https://github.com/microsoft/vcpkg.git
    ```
-3. Run vcpkg bootstrap with `./vcpkg/bootstrap-vcpkg.sh` or `./vcpkg/bootstrap-vcpkg.bat` depending on your system.
-4. Create a build directory and compile. vcpkg should download and build all dependencies found in [vcpkg.json](vcpkg.json).
+4. Run vcpkg bootstrap with `./vcpkg/bootstrap-vcpkg.sh` or `./vcpkg/bootstrap-vcpkg.bat` depending on your system.
+5. Create a build directory and compile. vcpkg should download and build all dependencies found in [vcpkg.json](vcpkg.json).
    ```
    $ mkdir build
    $ cd build
    $ cmake .. -DWOWPKG_USE_DEVELOPMENT_PATHS:option=on
    $ cmake --build .
    ```
-5. Change the path in [config.ini](data/config.ini) to where you want the addons to be extracted. Something like `/path/to/wowpkg/data/addons`.
-6. Run the compiled program.
-
-cmake -B C:\Users\colec\Developer\repos\wowpkg\build -DCMAKE_CXX_COMPILER=cl -DCMAKE_C_COMPILER=cl -DCMAKE_BUILD_TYPE=Debug -S C:\Users\colec\Developer\repos\wowpkg -DWOWPKG_USE_DEVELOPMENT_PATHS:option=on -DWOWPKG_ENABLE_SANITIZERS:option=on -DWOWPKG_ENABLE_TESTS:option=on -DWOWPKG_ENABLE_TESTS_INTEGRATION:option=off
+6. Change the path in [config.ini](data/config.ini) to where you want the addons to be extracted. Something like `/path/to/wowpkg/data/addons`.
+7. Run the compiled program.
