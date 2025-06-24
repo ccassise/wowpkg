@@ -67,11 +67,16 @@ find_package(LibArchive REQUIRED)
 set(WOWPKG_LIBS CURL::libcurl cjson LibArchive::LibArchive)
 
 if (MSVC)
-    # CMake does not set proper release flags for MSVC.
-    set(WFLAGS_RELEASE /O2 /GL /DNDEBUG /Zi /Gy)
-    set(WFLAGS /W4 "$<$<CONFIG:Release>:${WFLAGS_RELEASE}>")
+    set(WFLAGS_RELEASE /GL /O2)
+    set(LDFLAGS_RELEASE /LTCG)
 
-    set(LDFLAGS_RELEASE /DEBUG /INCREMENTAL:NO /OPT:REF /OPT:ICF)
+    # Really only needed if the config is Release.
+    if(WOWPKG_ENABLE_SANITIZERS)
+        set(WFLAGS_RELEASE ${WFLAGS_RELEASE} /Zi)
+        set(LDFLAGS_RELEASE ${LDFLAGS_RELEASE} /DEBUG)
+    endif()
+
+    set(WFLAGS /W4 "$<$<CONFIG:Release>:${WFLAGS_RELEASE}>")
     set(LDFLAGS "$<$<CONFIG:Release>:${LDFLAGS_RELEASE}>")
 
     # A lot of the functions suggested by this are not available on other

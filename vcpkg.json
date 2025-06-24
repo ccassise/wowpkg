@@ -4,6 +4,9 @@
     "dependencies": [
         "cjson",
         "curl",
-        "libarchive"
+        {
+            "name": "libarchive",
+            "default-features": false
+        }
     ]
 }
