@@ -88,10 +88,6 @@ jobs:
           echo "addons_path = ${{ github.workspace }}/data/addons"
         } > "${{ github.workspace }}/data/config.ini"
 
-    - name: Install valgrind
-      run: |
-        sudo apt install valgrind
-
     - name: Install vcpkg 
       run: |
         git clone https://github.com/microsoft/vcpkg.git
@@ -104,7 +100,7 @@ jobs:
         -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
         -S ${{ github.workspace }}
         -DWOWPKG_USE_DEVELOPMENT_PATHS:option=on
-        -DWOWPKG_ENABLE_SANITIZERS:option=off
+        -DWOWPKG_ENABLE_SANITIZERS:option=on
         -DWOWPKG_ENABLE_TESTS:option=on
         -DWOWPKG_ENABLE_TESTS_INTEGRATION:option=on
         
@@ -114,7 +110,7 @@ jobs:
 
     - name: Test
       working-directory: ${{ steps.strings.outputs.build-output-dir }}
-      run: ctest --build-config ${{ matrix.build_type }} -T memcheck --output-on-failure
+      run: ctest --build-config ${{ matrix.build_type }} --output-on-failure
 
   windows:
     runs-on: windows-latest
