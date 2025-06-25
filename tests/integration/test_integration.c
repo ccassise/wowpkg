@@ -96,7 +96,10 @@ static void test_install_multiple(void)
 }
 
 /**
- * Installs all addons from catalog.
+ * Installs all addons from catalog. Undecided if this is actually a good test.
+ * Maybe something better would be a GitHub action that checks periodically that
+ * all items in the catalog work. This test takes too long and does not really
+ * check anything specific to the code that the other tests do not.
  */
 static void test_install_all(void)
 {
@@ -602,7 +605,7 @@ int main(void)
 
     /* This should probably only be ran with GitHub token set, otherwise the rate
      * limit is a real concern. */
-    test_install_all();
+    UNUSED(test_install_all);
 
     return EXIT_SUCCESS;
 }

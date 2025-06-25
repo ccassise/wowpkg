@@ -548,6 +548,7 @@ int addon_package(Addon *a, Context *ctx)
         list_insert(a->dirs, strdup(entry->name));
     }
 
+    os_closedir(dir);
     return ADDON_OK;
 }
 

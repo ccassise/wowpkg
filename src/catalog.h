@@ -10,21 +10,6 @@ enum {
     CATALOG_ENOENT,
 };
 
-static const char *CATALOG_ERROR_STRINGS[] = {
-    /* CATALOG_OK */ NULL,
-
-    /* CATALOG_EINVALID */ "catalog file not in expected format",
-    /* CATALOG_ENAMETOOLONG */ "catalog file path or value in file is too long",
-    /* CATALOG_ENOENT */ "could not open catalog file",
-};
-
-/**
- * Returns the string value that matches the given error.
- *
- * IMPORTANT: Only values in the catalog error enum are valid.
- */
-#define CATALOG_STRERROR(e) CATALOG_ERROR_STRINGS[e]
-
 #define CATALOG_ITEM_MAX_SIZE 512 /* Should match INI prop max size. */
 
 typedef struct CatalogItem {
@@ -83,7 +68,9 @@ CatalogSearch *catalog_search_begin(const char *path, const char *text);
  *
  * RETURNS:
  *  The found item that contains the search term, or NULL if it was not found or
- *  the end of the search has been reached.
+ *  the end of the search has been reached. The returned structure uses internal
+ *  values and thus may change on subsequent calls to search_inext. If the
+ *  values need to be saved then they should be copied.
  */
 CatalogItem *catalog_search_inext(CatalogSearch *cs);
 
