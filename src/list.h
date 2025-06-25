@@ -14,6 +14,7 @@ typedef struct ListNode {
 typedef struct List {
     ListNode *head;
     ListFreeFn free;
+    size_t len;
 } List;
 
 #define list_foreach(n, l) for ((n) = (n) == NULL ? (l)->head : (n); (n); (n) = (n)->next)
@@ -21,6 +22,8 @@ typedef struct List {
 #define list_set_free_fn(l, fn) ((l)->free = (fn))
 
 #define list_isempty(l) ((l)->head == NULL)
+
+#define list_len(l) ((l)->len)
 
 List *list_create(void);
 
@@ -31,7 +34,7 @@ List *list_create(void);
  * Passing a NULL pointer will make this function return immediately with no
  * action.
  */
-void list_free(List *l);
+void list_destroy(List *l);
 
 /**
  * Creates a new node and inserts it at the beginning of the list with the given

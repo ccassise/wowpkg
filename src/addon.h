@@ -1,41 +1,77 @@
 #pragma once
 
-#include <stdio.h>
+/**
+ * OVERVIEW
+ * --------
+ *
+ * Addon module handles entire lifecycle of an addon. The lifecycle generally goes as such:
+ *   addon_info -> addon_fetch -> addon_package -> addon_extract
+ */
 
-#include <cjson/cJSON.h>
+#include <stdint.h>
 
-#include "list.h"
+struct cJSON;
+struct Context;
 
 enum {
     ADDON_OK = 0,
 
-    ADDON_ENOTFOUND, // Addon could not be found.
-    ADDON_ENOENT, // File/directory doesn't exist.
-    ADDON_EBADJSON, // Failed to parse JSON.
-    ADDON_ENO_ZIP_ASSET, // Could not find .zip asset in GitHub release.
-    ADDON_ENAMETOOLONG, // Path or filename is too long.
-    ADDON_EUNZIP, // Failed to extract .zip.
-    ADDON_EINTERNAL, // Internal error.
-    ADDON_ERATE_LIMIT, // Failed because rate limit to external API exceeded.
-    ADDON_ECONFIG, // Config file bad format.
+    ADDON_EBADJSON, /* could not parse JSON */
+    ADDON_ECATALOG, /* could not get item from catalog */
+    ADDON_ECONFIG, /* could not parse config.ini */
+    ADDON_EHTTPREQ, /* HTTP return status did not indicate success */
+    ADDON_EINTERNAL, /* addon internal */
+    ADDON_ENAMETOOLONG, /* path or filename too long */
+    ADDON_ENOENT, /* no such file or directory */
+    ADDON_ENOTFOUND, /* could not find addon */
+    ADDON_ENO_ZIP_ASSET, /* could not find ZIP URL */
+    ADDON_ERATE_LIMIT, /* rate limit exceeded */
+    ADDON_EUNAUTHORIZED, /* unauthorized request */
+    ADDON_EUNZIP, /* could not extract ZIP */
 };
 
 typedef struct Addon {
     char *name;
     char *desc;
-    char *url;
     char *version;
-    List *dirs;
+    char *uri;
+    struct List *dirs; /* List of strings */
+    struct List *assets; /* List of AddonAsset */
 
-    char *_zip_path;
     char *_package_path;
 } Addon;
 
-#define ADDON_NAME "name"
-#define ADDON_DESC "desc"
-#define ADDON_URL "url"
-#define ADDON_VERSION "version"
-#define ADDON_DIRS "dirs"
+typedef struct AddonAsset {
+    size_t size;
+    uint8_t *data;
+    char *uri;
+} AddonAsset;
+
+#define ADDON_KEY_NAME "name"
+#define ADDON_KEY_DESC "desc"
+#define ADDON_KEY_URI "uri"
+#define ADDON_KEY_VERSION "version"
+#define ADDON_KEY_DIRS "dirs"
+#define ADDON_KEY_ASSETS "assets"
+
+#define ADDON_SET_STRING(astr, str) \
+    do {                            \
+        if ((astr) != NULL)         \
+            free((astr));           \
+        if (str == NULL)            \
+            (astr) = NULL;          \
+        else                        \
+            (astr) = strdup(str);   \
+    } while (0)
+
+/**
+ * Duplicates the string and sets the addon property to it. If str is NULL then
+ * the addon property is released and set to NULL.
+ */
+#define ADDON_SET_NAME(a, str) ADDON_SET_STRING((a)->name, str)
+#define ADDON_SET_DESC(a, str) ADDON_SET_STRING((a)->desc, str)
+#define ADDON_SET_VERSION(a, str) ADDON_SET_STRING((a)->version, str)
+#define ADDON_SET_URI(a, str) ADDON_SET_STRING((a)->uri, str)
 
 Addon *addon_create(void);
 
@@ -46,16 +82,17 @@ Addon *addon_create(void);
  * Passing a NULL pointer will make this function return immediately with no
  * action.
  */
-void addon_free(Addon *a);
+void addon_destroy(Addon *a);
 
 /**
  * Deletes all files that addon currently has a handle to. If files were
  * extracted with addon_extract then those files will not be deleted.
  *
- * NOTE: This function is called implicitly by addon_free. Calling it after
- * addon_free does nothing.
+ * NOTE: This function is called implicitly by addon_destroy. Calling it after
+ * addon_destroy does nothing.
  */
-void addon_cleanup_files(Addon *a);
+// TODO: REMOVE
+// void addon_cleanup_files(Addon *a);
 
 /**
  * Creates and returns a new addon that was deep copied from the given addon.
@@ -75,52 +112,39 @@ Addon *addon_dup(Addon *a);
  * addon_to_json returns a string that shall be freed by the caller on success,
  * and NULL on error.
  */
-int addon_from_json(Addon *a, const cJSON *json);
+int addon_from_json(Addon *a, const struct cJSON *json);
 char *addon_to_json(Addon *a);
 
 /**
- * Sets the string pointed to by old to the string pointed to by new. If old is
- * not NULL then it will be free'd before getting set.
- *
- * If new string is NULL then function returns immediately with no action.
+ * Returns the error string for the given error code. If the code is out of
+ * range or is not an error then NULL is returned.
  */
-void addon_set_str(char **restrict oldstr, char *restrict newstr);
+const char *addon_strerror(int errcode);
 
 /**
- * Retrieves addon metadata from the catalog.
+ * Fetches addon metadata.
  *
- * Returns 0, non-zero on error.
+ * Returns ADDON_OK on success, otherwise an addon error number.
  */
-int addon_fetch_catalog_meta(Addon *a, const char *name);
+int addon_info(Addon *a, struct Context *ctx, const char *name);
 
 /**
- * Retrieves addon metadata from GitHub.
+ * Fetches the given addon asset.
  *
- * Returns NULL on error and sets out_err.
- */
-cJSON *addon_fetch_github_meta(const char *url, int *out_err);
-
-/**
- * Fetches all metadata for addon that matches the given name. On success the
- * addon will have all metadata filled out and its url will point to a .zip
- * download.
+ * NOTE: This should generally be called after addon_info.
  *
- * Returns ADDON_ENOT_FOUND if name doesn't match any known addons.
+ * Returns ADDON_OK on success, otherwise an addon error number.
  */
-int addon_fetch_all_meta(Addon *a, const char *name);
-
-/**
- * Downloads the .zip associated to Addon. Addon.url shall be a download link to
- * the .zip before calling this function.
- */
-int addon_fetch_zip(Addon *a);
+int addon_fetch(Addon *a, struct Context *ctx, AddonAsset *asset);
 
 /**
  * Prepares addon for extraction.
  *
- * Returns non zero on errors.
+ * NOTE: This should generally be called after addon_fetch.
+ *
+ * Returns ADDON_OK on success, otherwise an addon error number.
  */
-int addon_package(Addon *a);
+int addon_package(Addon *a, struct Context *ctx);
 
 /**
  * Moves all packaged files from the package directory to the given path. First
@@ -128,5 +152,7 @@ int addon_package(Addon *a);
  * the packaged files.
  *
  * NOTE: addon_package shall be called before this function.
+ *
+ * Returns ADDON_OK on success, otherwise an addon error number.
  */
-int addon_extract(Addon *a, const char *path);
+int addon_extract(Addon *a, struct Context *ctx, const char *path);

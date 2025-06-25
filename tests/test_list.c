@@ -1,3 +1,5 @@
+#undef NDEBUG
+
 #include <assert.h>
 #include <stdbool.h>
 #include <stdlib.h>
@@ -15,6 +17,8 @@ static void test_list_insert(void)
     list_insert(l, &values[1]);
     list_insert(l, &values[2]);
 
+    assert(list_len(l) == 3);
+
     ListNode *actual = l->head;
 
     assert(*(int *)actual->value == values[2]);
@@ -26,7 +30,7 @@ static void test_list_insert(void)
 
     assert(actual == NULL);
 
-    list_free(l);
+    list_destroy(l);
 }
 
 static void test_list_remove(void)
@@ -45,7 +49,10 @@ static void test_list_remove(void)
     ListNode *node4 = list_insert(l, str4);
     ListNode *node5 = list_insert(l, str5);
 
+    assert(list_len(l) == 5);
+
     list_remove(l, node3);
+    assert(list_len(l) == 4);
 
     ListNode *actual = l->head;
 
@@ -61,6 +68,7 @@ static void test_list_remove(void)
     assert(actual == NULL);
 
     list_remove(l, node1);
+    assert(list_len(l) == 3);
 
     actual = l->head;
     assert(strcmp((const char *)actual->value, str5) == 0);
@@ -73,6 +81,7 @@ static void test_list_remove(void)
     assert(actual == NULL);
 
     list_remove(l, node5);
+    assert(list_len(l) == 2);
 
     actual = l->head;
     assert(strcmp((const char *)actual->value, str4) == 0);
@@ -85,9 +94,10 @@ static void test_list_remove(void)
     list_remove(l, node4);
     list_remove(l, node2);
 
+    assert(list_len(l) == 0);
     assert(list_isempty(l));
 
-    list_free(l);
+    list_destroy(l);
 }
 
 static void test_list_search(void)
@@ -120,7 +130,7 @@ static void test_list_search(void)
     node = list_search_ptr(l, should_not_find);
     assert(node == NULL);
 
-    list_free(l);
+    list_destroy(l);
 }
 
 static void test_list_foreach(void)
@@ -146,7 +156,7 @@ static void test_list_foreach(void)
 
     assert(i == 3);
 
-    list_free(l);
+    list_destroy(l);
 }
 
 static void test_list_free_fn(void)
@@ -166,7 +176,7 @@ static void test_list_free_fn(void)
     list_insert(l, str4);
     list_insert(l, str5);
 
-    list_free(l);
+    list_destroy(l);
 }
 
 static int intcmp(const void *a, const void *b)
@@ -205,7 +215,7 @@ static void test_list_sort(void)
 
     assert(i == 8);
 
-    list_free(l);
+    list_destroy(l);
 }
 
 int main(void)

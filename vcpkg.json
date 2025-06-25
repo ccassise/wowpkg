@@ -1,0 +1,12 @@
+{
+    "name": "wowpkg",
+    "version": "0.4.0",
+    "dependencies": [
+        "cjson",
+        "curl",
+        {
+            "name": "libarchive",
+            "default-features": false
+        }
+    ]
+}

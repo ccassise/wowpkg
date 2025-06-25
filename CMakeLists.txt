@@ -1,13 +1,15 @@
-cmake_minimum_required(VERSION 3.16)
+cmake_minimum_required(VERSION 3.17)
 
-set(
-    CMAKE_TOOLCHAIN_FILE "${CMAKE_CURRENT_SOURCE_DIR}/vcpkg/scripts/buildsystems/vcpkg.cmake"
-    CACHE STRING "Vcpkg toolchain file"
-)
+if (NOT DEFINED ${CMAKE_TOOLCHAIN_FILE})
+    set(
+        CMAKE_TOOLCHAIN_FILE "${CMAKE_CURRENT_SOURCE_DIR}/vcpkg/scripts/buildsystems/vcpkg.cmake"
+        CACHE STRING "Vcpkg toolchain file"
+    )
+endif()
 
 project(
     wowpkg
-    VERSION 0.3.1
+    VERSION 0.4.0
     DESCRIPTION "A CLI World of Warcraft addon manager"
     LANGUAGES C
 )
@@ -16,6 +18,7 @@ set(WOWPKG_C_STANDARD 11)
 
 option(WOWPKG_ENABLE_SANITIZERS "Build with or without sanitizers" OFF)
 option(WOWPKG_ENABLE_TESTS "Build tests" OFF)
+option(WOWPKG_ENABLE_TESTS_INTEGRATION "Build integration tests" OFF)
 option(WOWPKG_USE_DEVELOPMENT_PATHS "Determines what paths will be used to find some files" OFF)
 
 # Compiler flags that enable warnings.
@@ -57,18 +60,23 @@ if (WOWPKG_ENABLE_TESTS)
     enable_testing()
 endif()
 
-find_package(CURL CONFIG REQUIRED)
+find_package(CURL REQUIRED)
 find_package(cJSON CONFIG REQUIRED)
-find_package(unofficial-minizip CONFIG REQUIRED)
+find_package(LibArchive REQUIRED)
 
-set(WOWPKG_LIBS CURL::libcurl cjson unofficial::minizip::minizip)
+set(WOWPKG_LIBS CURL::libcurl cjson LibArchive::LibArchive)
 
 if (MSVC)
-    # CMake does not set proper release flags for MSVC.
-    set(WFLAGS_RELEASE /O2 /GL /DNDEBUG /Zi /Gy)
-    set(WFLAGS /W4 "$<$<CONFIG:Release>:${WFLAGS_RELEASE}>")
+    set(WFLAGS_RELEASE /GL /O2)
+    set(LDFLAGS_RELEASE /LTCG)
 
-    set(LDFLAGS_RELEASE /DEBUG /INCREMENTAL:NO /OPT:REF /OPT:ICF)
+    # Really only needed if the config is Release.
+    if(WOWPKG_ENABLE_SANITIZERS)
+        set(WFLAGS_RELEASE ${WFLAGS_RELEASE} /Zi)
+        set(LDFLAGS_RELEASE ${LDFLAGS_RELEASE} /DEBUG)
+    endif()
+
+    set(WFLAGS /W4 "$<$<CONFIG:Release>:${WFLAGS_RELEASE}>")
     set(LDFLAGS "$<$<CONFIG:Release>:${LDFLAGS_RELEASE}>")
 
     # A lot of the functions suggested by this are not available on other
@@ -80,25 +88,24 @@ else()
 
         -Wall
         -Wextra
-        -Wshadow
-        -Wdouble-promotion
-        -Wconversion
         -Wpedantic
         -Wcast-align
-        -Wstrict-prototypes
-
-        -Wwrite-strings
-        -Winit-self
-        -Wformat=2
-        -Wstrict-overflow=2
         -Wcast-qual
-        -Wundef
-        -Wswitch-default
-        -fstack-protector-strong
+        -Wconversion
+        -Wdouble-promotion
+        -Wformat=2
+        -Winit-self
         -Wparentheses
-        -Wunused-macros
-        -Wswitch-enum
+        -Wshadow
         -Wstrict-aliasing
+        -Wstrict-overflow=2
+        -Wstrict-prototypes
+        -Wswitch-default
+        -Wswitch-enum
+        -Wundef
+        -Wunused-macros
+        -Wwrite-strings
+        -fstack-protector-strong
     )
 endif()
 
@@ -112,19 +119,20 @@ if (WOWPKG_ENABLE_SANITIZERS)
         set(
             SANFLAGS
 
-            -fsanitize=address
-            -fsanitize=undefined
-            -fsanitize=float-divide-by-zero
-            -fsanitize=float-cast-overflow
             -fno-sanitize-recover=all
-            -fno-sanitize=null
             -fno-sanitize=alignment
+            -fno-sanitize=null
+            -fsanitize=address
+            -fsanitize=float-cast-overflow
+            -fsanitize=float-divide-by-zero
+            -fsanitize=undefined
         )
 
         set (WFLAGS ${WFLAGS} ${SANFLAGS})
 
         if (APPLE)
-            set(LDFLAGS ${SANFLAGS} -static-libsan)
+            # set(LDFLAGS ${SANFLAGS} -static-libsan)
+            set(LDFLAGS ${SANFLAGS})
         else()
             set(LDFLAGS ${SANFLAGS} -static-libasan)
         endif()
@@ -136,11 +144,13 @@ set(
 
     ${PROJECT_SOURCE_DIR}/src/addon.c
     ${PROJECT_SOURCE_DIR}/src/appstate.c
+    ${PROJECT_SOURCE_DIR}/src/catalog.c
     ${PROJECT_SOURCE_DIR}/src/command.c
     ${PROJECT_SOURCE_DIR}/src/config.c
     ${PROJECT_SOURCE_DIR}/src/ini.c
     ${PROJECT_SOURCE_DIR}/src/list.c
     ${PROJECT_SOURCE_DIR}/src/osapi.c
+    ${PROJECT_SOURCE_DIR}/src/osstring.c
     ${PROJECT_SOURCE_DIR}/src/zipper.c
 )
 
@@ -149,7 +159,7 @@ list(APPEND WOWPKG_DEFINES WOWPKG_VERSION="${PROJECT_VERSION}")
 if(WOWPKG_USE_DEVELOPMENT_PATHS)
     message(STATUS "[${PROJECT_NAME}] building with development paths")
     list(APPEND WOWPKG_DEFINES
-        WOWPKG_USER_FILE_DIR="${PROJECT_SOURCE_DIR}/dev_only"
+        WOWPKG_USER_FILE_DIR="${PROJECT_SOURCE_DIR}/data"
         WOWPKG_CATALOG_PATH="${PROJECT_SOURCE_DIR}/catalog"
     )
 endif()
@@ -158,7 +168,12 @@ add_subdirectory(src)
 
 if (WOWPKG_ENABLE_TESTS)
     message(STATUS "[${PROJECT_NAME}] enabling tests")
-    add_subdirectory(test)
+    add_subdirectory(tests)
+endif()
+
+if (WOWPKG_ENABLE_TESTS_INTEGRATION)
+    message(STATUS "[${PROJECT_NAME}] enabling integration tests")
+    add_subdirectory(tests/integration)
 endif()
 
 if (APPLE)
@@ -183,6 +198,7 @@ else()
 endif()
 
 if (WIN32)
+    install(FILES ${PROJECT_SOURCE_DIR}/build/src/Release/archive.dll DESTINATION bin)
     install(FILES ${PROJECT_SOURCE_DIR}/build/src/Release/cjson.dll DESTINATION bin)
     install(FILES ${PROJECT_SOURCE_DIR}/build/src/Release/libcurl.dll DESTINATION bin)
     install(FILES ${PROJECT_SOURCE_DIR}/build/src/Release/zlib1.dll DESTINATION bin)

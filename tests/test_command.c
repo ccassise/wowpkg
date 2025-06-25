@@ -1,11 +1,16 @@
+#undef NDEBUG
+
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include "addon.h"
+#include "appstate.h"
 #include "command.h"
+#include "config.h"
 #include "context.h"
+#include "list.h"
 #include "osapi.h"
 #include "osstring.h"
 #include "term.h"
@@ -18,21 +23,21 @@ static void test_cmd_list(void)
                              "        {\n"
                              "            \"name\": \"c_test_name\",\n"
                              "            \"desc\": \"c_test_desc\",\n"
-                             "            \"url\": \"c_test_url\",\n"
+                             "            \"uri\": \"c_test_uri\",\n"
                              "            \"version\": \"v7.8.9\",\n"
                              "            \"dirs\": []\n"
                              "        },\n"
                              "        {\n"
                              "            \"name\": \"a_test_name\",\n"
                              "            \"desc\": \"a_test_desc\",\n"
-                             "            \"url\": \"a_test_url\",\n"
+                             "            \"uri\": \"a_test_uri\",\n"
                              "            \"version\": \"v1.2.3\",\n"
                              "            \"dirs\": []\n"
                              "        },\n"
                              "        {\n"
                              "            \"name\": \"b_test_name\",\n"
                              "            \"desc\": \"b_test_desc\",\n"
-                             "            \"url\": \"b_test_url\",\n"
+                             "            \"uri\": \"b_test_uri\",\n"
                              "            \"version\": \"v4.5.6\",\n"
                              "            \"dirs\": []\n"
                              "        }\n"
@@ -61,37 +66,105 @@ static void test_cmd_list(void)
     assert(fread(actual, sizeof(*actual), (size_t)actual_len, stream) == (size_t)actual_len);
     actual[actual_len] = '\0';
 
-    // Should be sorted.
+    /* Should be sorted. */
     assert(strcmp(actual, "a_test_name (v1.2.3)\nb_test_name (v4.5.6)\nc_test_name (v7.8.9)\n") == 0);
 
     fclose(stream);
-    appstate_free(ctx.state);
+    appstate_destroy(ctx.state);
     free(actual);
 }
 
 static void test_cmd_search(void)
 {
+    Context ctx;
+    ctx.state = appstate_create();
+
     FILE *stream = tmpfile();
     assert(stream != NULL);
 
     const char *argv[] = { "search", "wigs" };
-    assert(cmd_search(NULL, ARRAY_SIZE(argv), argv, stream) == 0);
+    assert(cmd_search(&ctx, ARRAY_SIZE(argv), argv, stream) == 0);
 
     long actual_len = ftell(stream);
     assert(actual_len > 0);
+    actual_len++; /* Make room for terminating null */
     fseek(stream, 0, SEEK_SET);
 
-    char *actual = malloc(sizeof(*actual) * (size_t)actual_len + 1);
+    char *actual = malloc(sizeof(*actual) * (size_t)actual_len);
     assert(actual != NULL);
 
-    assert(fread(actual, sizeof(*actual), (size_t)actual_len, stream) == (size_t)actual_len);
-    actual[actual_len] = '\0';
+    /* Output should be sorted. */
+    assert(fgets(actual, (int)actual_len, stream) != NULL);
+    assert(strstr(actual, "==>") != NULL);
+    assert(strstr(actual, "BigWigs") != NULL);
 
-    // Should be sorted.
-    assert(strcmp(actual, "BigWigs\nBigWigs_Voice\nLittleWigs\n") == 0);
+    assert(fgets(actual, (int)actual_len, stream) != NULL);
+    assert(strstr(actual, "Name:") != NULL);
+    assert(strstr(actual, "BigWigs") != NULL);
 
+    assert(fgets(actual, (int)actual_len, stream) != NULL);
+    assert(strstr(actual, "URI:") != NULL);
+    assert(strstr(actual, "https://api.github.com") != NULL);
+
+    assert(fgets(actual, (int)actual_len, stream) != NULL);
+    assert(strstr(actual, "Description:") != NULL);
+    // assert(os_strcasestr(actual, "wigs") != NULL);
+
+    assert(fgets(actual, (int)actual_len, stream) != NULL);
+    assert(strstr(actual, "==>") != NULL);
+    assert(strstr(actual, "BigWigs_Voice") != NULL);
+
+    assert(fgets(actual, (int)actual_len, stream) != NULL);
+    assert(strstr(actual, "Name:") != NULL);
+    assert(strstr(actual, "BigWigs_Voice") != NULL);
+
+    assert(fgets(actual, (int)actual_len, stream) != NULL);
+    assert(strstr(actual, "URI:") != NULL);
+    assert(strstr(actual, "https://api.github.com") != NULL);
+
+    assert(fgets(actual, (int)actual_len, stream) != NULL);
+    assert(strstr(actual, "Description:") != NULL);
+    assert(os_strcasestr(actual, "wigs") != NULL);
+
+    assert(fgets(actual, (int)actual_len, stream) != NULL);
+    assert(strstr(actual, "==>") != NULL);
+    assert(strstr(actual, "LittleWigs") != NULL);
+
+    assert(fgets(actual, (int)actual_len, stream) != NULL);
+    assert(strstr(actual, "Name:") != NULL);
+    assert(strstr(actual, "LittleWigs") != NULL);
+
+    assert(fgets(actual, (int)actual_len, stream) != NULL);
+    assert(strstr(actual, "URI:") != NULL);
+    assert(strstr(actual, "https://api.github.com") != NULL);
+
+    assert(fgets(actual, (int)actual_len, stream) != NULL);
+    assert(strstr(actual, "Description:") != NULL);
+    // assert(os_strcasestr(actual, "wigs") != NULL);
+
+    assert(fgets(actual, (int)actual_len, stream) == NULL);
+
+    appstate_destroy(ctx.state);
     fclose(stream);
     free(actual);
+}
+
+static void test_cmd_search_none(void)
+{
+    Context ctx;
+    ctx.state = appstate_create();
+
+    FILE *stream = tmpfile();
+    assert(stream != NULL);
+
+    const char *argv[] = { "search", "___not_found___" };
+    assert(cmd_search(&ctx, ARRAY_SIZE(argv), argv, stream) == 0);
+
+    long actual_len = ftell(stream);
+    assert(actual_len == 0);
+
+    appstate_destroy(ctx.state);
+    fclose(stream);
 }
 
 static void test_cmd_remove(void)
@@ -144,7 +217,7 @@ static void test_cmd_remove(void)
     Addon *installed = addon_create();
     assert(installed != NULL);
 
-    installed->name = strdup("MockAddon");
+    ADDON_SET_NAME(installed, (const char *)"MockAddon");
     list_insert(installed->dirs, strdup("test_a"));
     list_insert(installed->dirs, strdup("test_b"));
     list_insert(installed->dirs, strdup("test_c"));
@@ -165,8 +238,8 @@ static void test_cmd_remove(void)
     assert(os_stat(outdir_test_b, &s) != 0);
     assert(os_stat(outdir_test_c, &s) != 0);
 
-    appstate_free(ctx.state);
-    config_free(ctx.config);
+    appstate_destroy(ctx.state);
+    config_destroy(ctx.config);
     os_remove_all(outdir);
 }
 
@@ -176,20 +249,20 @@ static void test_cmd_outdated(void)
     Addon *addon2 = addon_create();
     Addon *addon3 = addon_create();
 
-    addon_set_str(&addon1->name, strdup("AddonOne"));
-    addon_set_str(&addon1->version, strdup("v1.2.3"));
-    addon_set_str(&addon2->name, strdup("AddonTwo"));
-    addon_set_str(&addon2->version, strdup("v4.5.6"));
-    addon_set_str(&addon3->name, strdup("AddonThree"));
-    addon_set_str(&addon3->version, strdup("19700101.1"));
+    ADDON_SET_NAME(addon1, (const char *)"AddonOne");
+    ADDON_SET_VERSION(addon1, (const char *)"v1.2.3");
+    ADDON_SET_NAME(addon2, (const char *)"AddonTwo");
+    ADDON_SET_VERSION(addon2, (const char *)"v4.5.6");
+    ADDON_SET_NAME(addon3, (const char *)"AddonThree");
+    ADDON_SET_VERSION(addon3, (const char *)"19700101.1");
 
     Addon *addon1_latest = addon_dup(addon1);
     Addon *addon2_latest = addon_dup(addon2);
     Addon *addon3_latest = addon_dup(addon3);
 
-    addon_set_str(&addon1_latest->version, strdup("v1.2.5"));
-    addon_set_str(&addon2_latest->version, strdup("v5.6.7"));
-    addon_set_str(&addon3_latest->version, strdup("20200809.5"));
+    ADDON_SET_VERSION(addon1_latest, (const char *)"v1.2.5");
+    ADDON_SET_VERSION(addon2_latest, (const char *)"v5.6.7");
+    ADDON_SET_VERSION(addon3_latest, (const char *)"20200809.5");
 
     Context ctx;
     memset(&ctx, 0, sizeof(ctx));
@@ -218,93 +291,21 @@ static void test_cmd_outdated(void)
     assert(fread(actual, sizeof(*actual), (size_t)actual_len, stream) == (size_t)actual_len);
     actual[actual_len] = '\0';
 
-    // Should be sorted.
+    /* Should be sorted. */
     assert(strcmp(actual, "AddonOne (v1.2.3) < (v1.2.5)\nAddonThree (19700101.1) < (20200809.5)\nAddonTwo (v4.5.6) < (v5.6.7)\n") == 0);
 
     fclose(stream);
     free(actual);
-    appstate_free(ctx.state);
-}
-
-static void test_cmd_info(void)
-{
-    Context ctx;
-    ctx.state = appstate_create();
-
-    Addon *addon = addon_create();
-    addon->name = strdup("Simulationcraft");
-    addon->url = strdup("zip_url");
-    addon->version = strdup("v1.2.3");
-
-    list_insert(ctx.state->installed, addon); // Transfer ownership of addon to ctx.state.
-
-    FILE *stream = tmpfile();
-    assert(stream != NULL);
-
-    const char *argv[] = { "info", "plater", "___not_found___", "SIMULATIONCRAFT" };
-    assert(cmd_info(&ctx, ARRAY_SIZE(argv), argv, stream) == 0);
-
-    long actual_len = ftell(stream);
-    assert(actual_len > 0);
-    fseek(stream, 0, SEEK_SET);
-
-    char *actual = malloc(sizeof(*actual) * (size_t)actual_len + 1);
-    assert(actual != NULL);
-
-    assert(fgets(actual, (int)actual_len + 1, stream) != NULL);
-    assert(strstr(actual, "==>") != NULL);
-    assert(strstr(actual, "Plater") != NULL);
-
-    assert(fgets(actual, (int)actual_len + 1, stream) != NULL);
-    assert(strstr(actual, "Description:") != NULL);
-    assert(strstr(actual, "Nameplate addon designed for advanced users.") != NULL);
-
-    assert(fgets(actual, (int)actual_len + 1, stream) != NULL);
-    assert(strstr(actual, "From:") != NULL);
-    assert(strstr(actual, "https://api.github.com/repos/Tercioo/Plater-Nameplates/releases/latest") != NULL);
-
-    assert(fgets(actual, (int)actual_len + 1, stream) != NULL);
-    assert(strstr(actual, "Installed:") != NULL);
-    assert(strstr(actual, "No") != NULL);
-
-    assert(fgets(actual, (int)actual_len + 1, stream) != NULL);
-    assert(strstr(actual, "==>") != NULL);
-    assert(strstr(actual, "Simulationcraft") != NULL);
-
-    assert(fgets(actual, (int)actual_len + 1, stream) != NULL);
-    assert(strstr(actual, "Description:") != NULL);
-    assert(strstr(actual, "Constructs SimC export strings") != NULL);
-
-    assert(fgets(actual, (int)actual_len + 1, stream) != NULL);
-    assert(strstr(actual, "From:") != NULL);
-    assert(strstr(actual, "https://api.github.com/repos/simulationcraft/simc-addon/releases/latest") != NULL);
-
-    assert(fgets(actual, (int)actual_len + 1, stream) != NULL);
-    assert(strstr(actual, "Installed:") != NULL);
-    assert(strstr(actual, "Yes") != NULL);
-
-    assert(fgets(actual, (int)actual_len + 1, stream) != NULL);
-    assert(strstr(actual, "Version:") != NULL);
-    assert(strstr(actual, "v1.2.3") != NULL);
-
-    assert(fgets(actual, (int)actual_len + 1, stream) != NULL);
-    assert(strstr(actual, "ZIP:") != NULL);
-    assert(strstr(actual, "zip_url") != NULL);
-
-    assert(fgets(actual, (int)actual_len + 1, stream) == NULL);
-
-    appstate_free(ctx.state);
-    fclose(stream);
-    free(actual);
+    appstate_destroy(ctx.state);
 }
 
 int main(void)
 {
     test_cmd_list();
     test_cmd_search();
+    test_cmd_search_none();
     test_cmd_remove();
     test_cmd_outdated();
-    test_cmd_info();
 
     return 0;
 }

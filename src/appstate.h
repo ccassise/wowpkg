@@ -21,7 +21,7 @@ AppState *appstate_create(void);
  * Passing a NULL pointer will make this function return immediately with no
  * action.
  */
-void appstate_free(AppState *state);
+void appstate_destroy(AppState *state);
 
 int appstate_from_json(AppState *state, const char *json_str);
 char *appstate_to_json(AppState *state);

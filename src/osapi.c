@@ -5,47 +5,69 @@
 
 #ifdef _WIN32
 #include <io.h>
-#else
+#endif
+
+#ifdef __APPLE__
+#include <copyfile.h>
+#include <unistd.h>
+#endif
+
+#ifdef __linux__
+#include <sys/sendfile.h>
 #include <unistd.h>
 #endif
 
 #include "osapi.h"
 #include "wowpkg.h"
 
-static int copy_file(const char *oldpath, const char *newpath)
+static int os_copyfile(const char *oldpath, const char *newpath)
 {
+#if defined(_WIN32)
+    if (!CopyFileA(oldpath, newpath, FALSE)) {
+        return -1;
+    }
+#elif defined(__APPLE__)
+    return copyfile(oldpath, newpath, NULL, COPYFILE_ALL);
+#else /* Linux */
+    int err = 0;
+
     FILE *fold = fopen(oldpath, "rb");
     FILE *fnew = fopen(newpath, "wb");
     if (fold == NULL || fnew == NULL) {
-        return -1;
+        err = -1;
+        goto cleanup;
     }
 
-#ifndef _WIN32
-    // Change permission of new file to match that of old file.
-    struct os_stat s_old;
-    if (fstat(fileno(fnew), &s_old) != 0) {
-        return -1;
+    int fdold = fileno(fold);
+    int fdnew = fileno(fnew);
+    if (fdold == -1 || fdnew == -1) {
+        err = -1;
+        goto cleanup;
     }
 
-    if (fchmod(fileno(fnew), s_old.st_mode & (S_IRWXU | S_IRWXG | S_IRWXG)) != 0) {
-        return -1;
+    struct stat sold;
+    if (fstat(fdold, &sold) != 0 || sold.st_size < 0) {
+        err = -1;
+        goto cleanup;
     }
-#endif
 
-    unsigned char buf[BUFSIZ];
-    size_t n = 0;
-    while ((n = fread(buf, sizeof(*buf), ARRAY_SIZE(buf), fold)) > 0) {
-        if (fwrite(buf, sizeof(*buf), n, fnew) != n) {
-            fclose(fold);
-            fclose(fnew);
-            return -1;
+    ssize_t wrote = 0;
+    while ((wrote += sendfile(fdnew, fdold, NULL, (size_t)sold.st_size)) < (ssize_t)sold.st_size) {
+        if (wrote < 0) {
+            err = -1;
+            goto cleanup;
         }
     }
 
-    fclose(fold);
-    fclose(fnew);
-
-    return 0;
+cleanup:
+    if (fold != NULL) {
+        fclose(fold);
+    }
+    if (fnew != NULL) {
+        fclose(fnew);
+    }
+    return err;
+#endif
 }
 
 /**
@@ -57,7 +79,7 @@ static int copy_file(const char *oldpath, const char *newpath)
  *
  * Returns 0, -1 and sets errno on errors.
  */
-static int copy_dir(const char *oldpath, const char *newpath)
+static int os_copydir(const char *oldpath, const char *newpath)
 {
     int err = 0;
 
@@ -121,9 +143,9 @@ static int copy_dir(const char *oldpath, const char *newpath)
                 return -1;
             }
 
-            err = copy_dir(oldname, newname);
+            err = os_copydir(oldname, newname);
         } else {
-            err = copy_file(oldname, newname);
+            err = os_copyfile(oldname, newname);
         }
 
         if (err != 0) {
@@ -145,9 +167,9 @@ OsDir *os_opendir(const char *path)
     }
 
 #ifdef _WIN32
-    // Windows requires a '*' at the end of a path in order to grab all files in
-    // a directory, and this function should never be called like that -- so add
-    // it now.
+    /* Windows requires a '*' at the end of a path in order to grab all files in
+     * a directory, and this function should never be called like that -- so add
+     * it now. */
     char path_win[OS_MAX_PATH];
     int n = snprintf(path_win, ARRAY_SIZE(path_win), "%s%c*", path, OS_SEPARATOR);
     if (n < 0 || (size_t)n >= ARRAY_SIZE(path_win)) {
@@ -246,7 +268,7 @@ int os_mkdir_all(char *path, mode_t perms)
         *sep = '\0';
 
         int err = os_mkdir(path, perms);
-        *sep = sep_ch; // Restore separator.
+        *sep = sep_ch; /* Restore separator. */
 
         if (err != 0 && errno != EEXIST) {
             return -1;
@@ -386,12 +408,25 @@ int os_rename(const char *oldpath, const char *newpath)
 {
 #ifdef _WIN32
     if (!MoveFileExA(oldpath, newpath, MOVEFILE_REPLACE_EXISTING | MOVEFILE_COPY_ALLOWED)) {
-        return -1;
+        if (GetLastError() != ERROR_ACCESS_DENIED) {
+            return -1;
+        }
+
+        /* MoveFile does not move directories across volumes. Try creating the
+         * directory and if it succeeds then it was on a different volume,
+         * otherwise it is a different error. */
+        struct os_stat sold;
+        if (os_stat(oldpath, &sold) != 0 || !S_ISDIR(sold.st_mode)) {
+            errno = EACCES;
+            return -1;
+        }
+
+        return os_mkdir(newpath, 0755);
     }
     return 0;
 #else
-    // Try using rename(2) but if errno is EXDEV then we will fall back to copy
-    // and delete.
+    /* Try using rename(2) but if errno is EXDEV then we will fall back to copy
+     * and delete. */
     int err = rename(oldpath, newpath);
     if (err == 0) {
         return 0;
@@ -405,7 +440,7 @@ int os_rename(const char *oldpath, const char *newpath)
     }
 
     if (S_ISREG(s_old.st_mode)) {
-        if (copy_file(oldpath, newpath) != 0) {
+        if (os_copyfile(oldpath, newpath) != 0) {
             return -1;
         }
         remove(oldpath);
@@ -414,15 +449,15 @@ int os_rename(const char *oldpath, const char *newpath)
 
         err = os_stat(newpath, &s_new);
         if (err != 0) {
-            // Old path is a directory and new path does not exist -- create a
-            // directory at the new path.
+            /* Old path is a directory and new path does not exist -- create a
+             * directory at the new path. */
             err = os_mkdir(newpath, 0755);
             if (err != 0) {
                 return -1;
             }
         } else {
-            // Old path is a directory and new path exists -- ensure that new
-            // path is an empty directory.
+            /* Old path is a directory and new path exists -- ensure that new
+             * path is an empty directory. */
             if (!S_ISDIR(s_new.st_mode)) {
                 return -1;
             }
@@ -434,7 +469,7 @@ int os_rename(const char *oldpath, const char *newpath)
 
             OsDirEnt *entry = NULL;
             while ((entry = os_readdir(dir)) != NULL) {
-                // These should be the only entries in an empty directory.
+                /* These should be the only entries in an empty directory. */
                 if (strcmp(entry->name, ".") != 0 && strcmp(entry->name, "..") != 0) {
                     err = -1;
                     break;
@@ -448,7 +483,7 @@ int os_rename(const char *oldpath, const char *newpath)
             }
         }
 
-        if (copy_dir(oldpath, newpath) != 0) {
+        if (os_copydir(oldpath, newpath) != 0) {
             return -1;
         }
 

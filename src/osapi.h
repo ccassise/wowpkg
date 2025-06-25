@@ -23,18 +23,22 @@
 #define OS_MAX_PATH MAX_PATH
 #define OS_MAX_FILENAME _MAX_FNAME
 
+#define OS_IS_SEP(c) ((c) == OS_VALID_SEPARATORS[0] || (c) == OS_VALID_SEPARATORS[1])
+
 #if !defined(S_ISDIR)
-#define S_ISDIR(mode) (((mode)&S_IFMT) == S_IFDIR)
+#define S_ISDIR(mode) (((mode) & S_IFMT) == S_IFDIR)
 #endif
 
 #if !defined(S_ISREG)
-#define S_ISREG(mode) (((mode)&S_IFMT) == S_IFREG)
+#define S_ISREG(mode) (((mode) & S_IFMT) == S_IFREG)
 #endif
 
-#define os_stat _stat
-#define os_rmdir _rmdir
-#define os_getcwd _getcwd
 #define os_chdir _chdir
+#define os_getcwd _getcwd
+#define os_rmdir _rmdir
+#define os_stat _stat
+#define pclose _pclose
+#define popen _popen
 
 typedef unsigned short mode_t;
 
@@ -46,10 +50,13 @@ typedef unsigned short mode_t;
 #define OS_MAX_PATH PATH_MAX
 #define OS_MAX_FILENAME FILENAME_MAX
 
-#define os_stat stat
-#define os_rmdir rmdir
-#define os_getcwd getcwd
+#define OS_IS_SEP(c) ((c) == OS_VALID_SEPARATORS[0])
+
 #define os_chdir chdir
+#define os_getcwd getcwd
+#define os_getcwd getcwd
+#define os_rmdir rmdir
+#define os_stat stat
 
 #endif
 
@@ -59,23 +66,20 @@ typedef struct OsDirEnt {
 
 #ifdef _WIN32
 
-struct OsDir_Win32 {
+typedef struct OsDir {
     OsDirEnt entry;
     HANDLE dir;
     WIN32_FIND_DATA ffd;
     BOOL _is_first;
-};
-
-typedef struct OsDir_Win32 OsDir;
+} OsDir;
 
 #else
 
-struct OsDir {
+typedef struct OsDir {
     OsDirEnt entry;
     DIR *dir;
-};
+} OsDir;
 
-typedef struct OsDir OsDir;
 #endif
 
 /**

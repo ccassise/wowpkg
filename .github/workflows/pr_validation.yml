@@ -1,0 +1,166 @@
+# This starter workflow is for a CMake project running on multiple platforms. There is a different starter workflow if you just want a single platform.
+# See: https://github.com/actions/starter-workflows/blob/main/ci/cmake-single-platform.yml
+name: CMake on multiple platforms
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  macos:
+    runs-on: macos-latest
+
+    strategy:
+      fail-fast: false
+
+      matrix:
+        build_type: [Release, Debug]
+        c_compiler: [clang]
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set reusable strings
+      id: strings
+      shell: bash
+      run: |
+        echo "build-output-dir=${{ github.workspace }}/build" >> "$GITHUB_OUTPUT"
+
+    - name: Create wowpkg config.ini
+      run: |
+        {
+          echo '[Config]'
+          echo "github_token = ${{ secrets.GITHUB_TOKEN }}"
+          echo '[Retail]'
+          echo "addons_path = ${{ github.workspace }}/data/addons"
+        } > "${{ github.workspace }}/data/config.ini"
+
+    - name: Install vcpkg 
+      run: |
+        git clone https://github.com/microsoft/vcpkg.git
+        /bin/sh -c ./vcpkg/bootstrap-vcpkg.sh
+
+    - name: Configure CMake
+      run: >
+        cmake -B ${{ steps.strings.outputs.build-output-dir }}
+        -DCMAKE_C_COMPILER=${{ matrix.c_compiler }}
+        -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
+        -S ${{ github.workspace }}
+        -DWOWPKG_USE_DEVELOPMENT_PATHS:option=on
+        -DWOWPKG_ENABLE_SANITIZERS:option=on
+        -DWOWPKG_ENABLE_TESTS:option=on
+        -DWOWPKG_ENABLE_TESTS_INTEGRATION:option=on
+        
+    - name: Build
+      run: cmake --build ${{ steps.strings.outputs.build-output-dir }} --config ${{ matrix.build_type }}
+
+    - name: Test
+      working-directory: ${{ steps.strings.outputs.build-output-dir }}
+      run: ctest --build-config ${{ matrix.build_type }} --output-on-failure
+
+  linux:
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+
+      matrix:
+        build_type: [Release, Debug]
+        c_compiler: [gcc]
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set reusable strings
+      id: strings
+      shell: bash
+      run: |
+        echo "build-output-dir=${{ github.workspace }}/build" >> "$GITHUB_OUTPUT"
+
+    - name: Create wowpkg config.ini
+      run: |
+        {
+          echo '[Config]'
+          echo "github_token = ${{ secrets.GITHUB_TOKEN }}"
+          echo '[Retail]'
+          echo "addons_path = ${{ github.workspace }}/data/addons"
+        } > "${{ github.workspace }}/data/config.ini"
+
+    - name: Install vcpkg 
+      run: |
+        git clone https://github.com/microsoft/vcpkg.git
+        /bin/sh -c ./vcpkg/bootstrap-vcpkg.sh
+
+    - name: Configure CMake
+      run: >
+        cmake -B ${{ steps.strings.outputs.build-output-dir }}
+        -DCMAKE_C_COMPILER=${{ matrix.c_compiler }}
+        -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
+        -S ${{ github.workspace }}
+        -DWOWPKG_USE_DEVELOPMENT_PATHS:option=on
+        -DWOWPKG_ENABLE_SANITIZERS:option=on
+        -DWOWPKG_ENABLE_TESTS:option=on
+        -DWOWPKG_ENABLE_TESTS_INTEGRATION:option=on
+        
+
+    - name: Build
+      run: cmake --build ${{ steps.strings.outputs.build-output-dir }} --config ${{ matrix.build_type }}
+
+    - name: Test
+      working-directory: ${{ steps.strings.outputs.build-output-dir }}
+      run: ctest --build-config ${{ matrix.build_type }} --output-on-failure
+
+  windows:
+    runs-on: windows-latest
+
+    strategy:
+      fail-fast: false
+
+      matrix:
+        build_type: [Release, Debug]
+        c_compiler: [cl]
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set reusable strings
+      id: strings
+      shell: bash
+      run: |
+        echo "build-output-dir=${{ github.workspace }}/build" >> "$GITHUB_OUTPUT"
+        
+    - name: Create wowpkg config.ini
+      shell: bash
+      run: |
+        {
+          echo '[Config]'
+          echo "github_token = ${{ secrets.GITHUB_TOKEN }}"
+          echo '[Retail]'
+          echo "addons_path = ${{ github.workspace }}/data/addons"
+        } > "${{ github.workspace }}/data/config.ini"
+
+    - name: Install vcpkg 
+      shell: pwsh
+      run: |
+        git clone https://github.com/microsoft/vcpkg.git
+        .\vcpkg\bootstrap-vcpkg.bat
+
+    - name: Configure CMake
+      run: >
+        cmake -B ${{ steps.strings.outputs.build-output-dir }}
+        -DCMAKE_C_COMPILER=${{ matrix.c_compiler }}
+        -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
+        -S ${{ github.workspace }}
+        -DWOWPKG_USE_DEVELOPMENT_PATHS:option=on
+        -DWOWPKG_ENABLE_SANITIZERS:option=off
+        -DWOWPKG_ENABLE_TESTS:option=on
+        -DWOWPKG_ENABLE_TESTS_INTEGRATION:option=on
+
+    - name: Build
+      run: cmake --build ${{ steps.strings.outputs.build-output-dir }} --config ${{ matrix.build_type }}
+
+    - name: Test
+      working-directory: ${{ steps.strings.outputs.build-output-dir }}
+      run: ctest --build-config ${{ matrix.build_type }} --output-on-failure

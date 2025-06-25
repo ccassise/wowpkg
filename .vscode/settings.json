@@ -1,0 +1,8 @@
+{
+    "cmake.configureSettings": {
+        "WOWPKG_ENABLE_SANITIZERS": true,
+        "WOWPKG_ENABLE_TESTS": true,
+        "WOWPKG_ENABLE_TESTS_INTEGRATION": false,
+        "WOWPKG_USE_DEVELOPMENT_PATHS": true
+    }
+}

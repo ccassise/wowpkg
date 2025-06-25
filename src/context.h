@@ -1,9 +1,11 @@
 #pragma once
 
-#include "appstate.h"
-#include "config.h"
+struct AppState;
+struct Config;
+struct CURL;
 
 typedef struct Context {
-    AppState *state;
-    Config *config;
+    struct AppState *state;
+    struct Config *config;
+    struct CURL *curl;
 } Context;

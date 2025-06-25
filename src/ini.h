@@ -88,37 +88,21 @@ typedef struct INIKey {
     char value[INI_MAX_PROP];
 } INIKey;
 
-typedef struct INI {
-    FILE *_f;
-    int _ch; // last read character from stream.
-
-    size_t _row; // Current row in file.
-    size_t _col; // Position in line of last read character.
-
-    int _err; // Last error encountered, if any.
-    size_t _err_row; // The row that the last error was found.
-    size_t _err_col; // The col that the last error was found.
-
-    INIKey _key;
-} INI;
+typedef struct INI INI;
 
 enum {
     INI_OK = 0,
 
-    // EEOF signifies that there were no errors in parsing the file and there
-    // is no more file to parse. Subsequent readkey's will do nothing.
-    INI_EEOF,
-
-    // If ini_last_error() contains any of these then the position in file that
-    // the error occurred can be obtained from ini_last_error_row() and
-    // ini_last_error_col().
+    /* If ini_last_error() contains any of these then the position in file that the
+     * error occurred can be obtained from ini_last_error_row() and
+     * ini_last_error_col(). */
     INI_EPARSE,
     INI_ENAMETOOLONG,
 };
 
-#define ini_last_error(i) ((i)->_err)
-#define ini_last_error_row(i) ((i)->_err_row)
-#define ini_last_error_col(i) ((i)->_err_col)
+int ini_last_error(INI *ini);
+size_t ini_last_error_row(INI *ini);
+size_t ini_last_error_col(INI *ini);
 
 /**
  * Opens a .ini file for reading.

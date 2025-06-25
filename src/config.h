@@ -2,6 +2,7 @@
 
 typedef struct Config {
     char *addons_path;
+    char *github_token;
 } Config;
 
 Config *config_create(void);
@@ -12,6 +13,6 @@ Config *config_create(void);
  * Passing a NULL pointer will make this function return immediately with no
  * action.
  */
-void config_free(Config *cfg);
+void config_destroy(Config *cfg);
 
 int config_load(Config *cfg, const char *path);
